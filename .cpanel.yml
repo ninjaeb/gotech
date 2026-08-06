@@ -7,11 +7,12 @@
 # without editing the username. If you use a different "Application root"
 # in cPanel's "Setup Node.js App" tool, change the folder name below (and
 # commit the change) to match it.
-# IMPORTANT: this must be a DIFFERENT directory from the Git repository's own
-# checkout path (the one shown on the "Manage Repository" page) — never point
-# it at the git clone itself, or files written there later (e.g. by `npm
-# install`) will dirty the checkout and block future deploys with "uncommitted
-# changes exist on the checked-out branch".
+# It's fine for this to be the SAME directory as the Git checkout (the path
+# shown on the "Manage Repository" page) — in that case these `cp` tasks are
+# redundant (the checkout already puts files in place) but harmless. Just
+# make sure .gitignore covers what cPanel writes into that directory at
+# runtime (.htaccess, tmp/, stderr.log, stdout.log — already covered here),
+# or they'll show up as "uncommitted changes" and block future deploys.
 # See the "Deploying on cPanel" section in README.md for full setup steps.
 ---
 deployment:

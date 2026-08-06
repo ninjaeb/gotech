@@ -42,3 +42,12 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# cPanel "Setup Node.js App" (Phusion Passenger / LiteSpeed lsnode) — files
+# it generates directly in the Application root at runtime. Only relevant
+# when the Application root is the same directory as the Git checkout;
+# harmless to ignore otherwise.
+/.htaccess
+/tmp/
+/stderr.log
+/stdout.log

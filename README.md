@@ -105,26 +105,25 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), and optionally `GEMINI_API_KEY` to enable the AI Assistant.
 
-5. **Install and migrate.** Click *Run NPM Install* in the Node app UI (this also triggers `prisma generate` via `postinstall`). Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead) and run:
+5. **Install and migrate.** Click *Run NPM Install* in the Node app UI (this also triggers `prisma generate` via `postinstall`). Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash
    npx prisma migrate deploy
    npx prisma db seed   # optional, sample data
    ```
 
-6. **Restart** the app from the Node.js Selector UI, then visit the Application URL.
+6. **Restart** the app from the Node.js Selector UI, then visit the Application URL. `server.js` builds the production bundle itself the first time it starts (there's no separate "build" step to run) — the first request after a restart may take a little longer while `next build` runs; check `stderr.log` in the Application root if it doesn't come up.
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
-To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, then restart the app.
+To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, **delete the `.next` folder** (File Manager, or `rm -rf .next`) so the next restart rebuilds it, then restart the app.
 
 ### Troubleshooting
 
-- **"The system cannot deploy" / "no uncommitted changes exist on the checked-out branch"** — this means the Git repository's own checkout directory (shown on the *Manage Repository* page) has local modifications, almost always because something was run *inside that directory* instead of the separate Application root. The Git checkout must stay pristine — it only exists for `.cpanel.yml`'s `cp` tasks to copy from. Fix:
-  1. Confirm the Git repository path (Git™ Version Control → Manage) and the Node app's Application root (Setup Node.js App) are **different directories**. If they're the same, that's the bug — create/point the Node app at a separate directory (matching `DEPLOYPATH` in `.cpanel.yml`) and redo steps 3–6 above.
-  2. Clear the dirty checkout: open cPanel's *Terminal* (or SSH), `cd` into the Git repository path, and run `git status` to see what changed (commonly `package-lock.json`, if `npm install` was ever run there directly). Discard it with `git checkout -- <file>`, or `git reset --hard HEAD` to discard everything in that checkout — safe, since it should never contain hand-made changes.
-  3. Retry *Deploy HEAD Commit*.
-- **A red "Error" popup after "Run NPM Install" that just shows an `npm warn deprecated ...` line** — this is cosmetic. cPanel's UI surfaces anything npm writes to stderr in a red box, including harmless deprecation warnings, regardless of whether the install actually failed. Click "Show more" and check for an `npm error` line specifically; if there isn't one, the install succeeded.
-- **`DEPLOYPATH`** in `.cpanel.yml` defaults to `$HOME/gotech-crm/`, which resolves automatically for any account. Only edit it if your Application root uses a different folder name — and commit the change, since `.cpanel.yml` is read from the Git checkout, not the deployed app.
+- **"The system cannot deploy" / "no uncommitted changes exist on the checked-out branch"** — the Git checkout (shown on the *Manage Repository* page) has local changes. If your Application root *is* the Git checkout directory (a valid, simpler setup — everything below assumes this), the usual cause is cPanel's own runtime files landing in it: `.htaccess` (the Node proxy config it writes), `stderr.log`/`stdout.log`, and `tmp/` (Passenger/LiteSpeed's restart signal) all show up as untracked files the moment the app starts. This repo's `.gitignore` already excludes them — `git status` in that directory should be clean after pulling the latest commit. If it's still dirty, run `git status` there (Terminal) to see what's left; a modified `package-lock.json` usually means `npm install` was run directly in that directory, which is fine — just `git checkout -- package-lock.json` (or `git reset --hard HEAD` to discard everything non-essential) and retry *Deploy HEAD Commit*.
+- **`stderr.log` shows `Error: Cannot find module 'next'`** — dependencies aren't installed yet in the Application root. Click *Run NPM Install* in the Node app screen.
+- **`stderr.log` shows `Could not find a production build in the '.next' directory`** — you're running an older `server.js` from before it gained the auto-build step above. Redeploy the latest commit and restart.
+- **A red "Error" popup after "Run NPM Install" that just shows an `npm warn deprecated ...` line** — this is cosmetic. cPanel's UI surfaces anything npm writes to stderr in a red box, including harmless deprecation warnings, regardless of whether the install actually failed. Check for an `npm error` line specifically; if there isn't one, the install succeeded.
+- **`DEPLOYPATH`** in `.cpanel.yml` must match your actual Application root (it uses `$HOME` so only the folder name needs editing, e.g. `$HOME/crm.example.com/`) — commit the change, since `.cpanel.yml` is read from the Git checkout, not the deployed app.
 
 ## Project structure
 
