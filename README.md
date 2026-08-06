@@ -117,6 +117,15 @@ No native binaries to worry about: Prisma 7's driver-adapter architecture (`@pri
 
 To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, then restart the app.
 
+### Troubleshooting
+
+- **"The system cannot deploy" / "no uncommitted changes exist on the checked-out branch"** — this means the Git repository's own checkout directory (shown on the *Manage Repository* page) has local modifications, almost always because something was run *inside that directory* instead of the separate Application root. The Git checkout must stay pristine — it only exists for `.cpanel.yml`'s `cp` tasks to copy from. Fix:
+  1. Confirm the Git repository path (Git™ Version Control → Manage) and the Node app's Application root (Setup Node.js App) are **different directories**. If they're the same, that's the bug — create/point the Node app at a separate directory (matching `DEPLOYPATH` in `.cpanel.yml`) and redo steps 3–6 above.
+  2. Clear the dirty checkout: open cPanel's *Terminal* (or SSH), `cd` into the Git repository path, and run `git status` to see what changed (commonly `package-lock.json`, if `npm install` was ever run there directly). Discard it with `git checkout -- <file>`, or `git reset --hard HEAD` to discard everything in that checkout — safe, since it should never contain hand-made changes.
+  3. Retry *Deploy HEAD Commit*.
+- **A red "Error" popup after "Run NPM Install" that just shows an `npm warn deprecated ...` line** — this is cosmetic. cPanel's UI surfaces anything npm writes to stderr in a red box, including harmless deprecation warnings, regardless of whether the install actually failed. Click "Show more" and check for an `npm error` line specifically; if there isn't one, the install succeeded.
+- **`DEPLOYPATH`** in `.cpanel.yml` defaults to `$HOME/gotech-crm/`, which resolves automatically for any account. Only edit it if your Application root uses a different folder name — and commit the change, since `.cpanel.yml` is read from the Git checkout, not the deployed app.
+
 ## Project structure
 
 ```

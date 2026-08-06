@@ -3,14 +3,20 @@
 # "Manage" -> "Pull or Deploy" -> "Deploy HEAD Commit", cPanel runs the
 # commands below from the repo checkout directory.
 #
-# Before using this, edit DEPLOYPATH to match the "Application root" you
-# chose when creating the app in cPanel's "Setup Node.js App" tool, e.g.
-# /home/<cpanel-username>/gotech-crm (an absolute path, not a URL).
+# DEPLOYPATH defaults to $HOME/gotech-crm/ so it resolves correctly for any
+# cPanel account without editing. If you used a different "Application root"
+# in cPanel's "Setup Node.js App" tool, change the folder name below (and
+# commit the change) to match it.
+# IMPORTANT: this must be a DIFFERENT directory from the Git repository's own
+# checkout path (the one shown on the "Manage Repository" page) — never point
+# it at the git clone itself, or files written there later (e.g. by `npm
+# install`) will dirty the checkout and block future deploys with "uncommitted
+# changes exist on the checked-out branch".
 # See the "Deploying on cPanel" section in README.md for full setup steps.
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/USERNAME/gotech-crm/
+    - export DEPLOYPATH=$HOME/gotech-crm/
     - /bin/cp -R ./src $DEPLOYPATH
     - /bin/cp -R ./prisma $DEPLOYPATH
     - /bin/cp -R ./public $DEPLOYPATH
