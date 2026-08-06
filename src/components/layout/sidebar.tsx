@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,14 +24,13 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white sm:flex dark:border-neutral-800 dark:bg-neutral-950">
-      <div className="flex h-14 items-center gap-2 border-b border-slate-200 px-5 dark:border-neutral-800">
+    <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-800 bg-slate-950 sm:flex">
+      <div className="flex h-14 items-center gap-2 border-b border-slate-800 px-5">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
           G
         </div>
-        <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-          GoTech CRM
-        </span>
+        <span className="text-sm font-semibold text-slate-100">GoTech CRM</span>
+        <ThemeToggle className="ml-auto" />
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {NAV_ITEMS.map((item) => {
@@ -46,8 +46,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 active
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-neutral-900 dark:hover:text-slate-100",
+                  ? "bg-indigo-950 text-indigo-300"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-slate-100",
               )}
             >
               <Icon className="h-4 w-4" />
