@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { UserMenu } from "@/components/layout/user-menu";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -20,7 +21,11 @@ const NAV_ITEMS = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  user,
+}: {
+  user: { name: string; email: string; title: string | null };
+}) {
   const pathname = usePathname();
 
   return (
@@ -56,6 +61,7 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <UserMenu user={user} />
     </aside>
   );
 }

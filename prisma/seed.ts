@@ -1,4 +1,6 @@
+import { randomBytes } from "node:crypto";
 import { db } from "../src/lib/db";
+import { hashPassword } from "../src/lib/auth/password";
 import { ActivityType, DealStage, TaskType } from "../src/generated/prisma/client";
 
 function daysFromNow(days: number) {
@@ -8,7 +10,27 @@ function daysFromNow(days: number) {
   return date;
 }
 
+async function seedInitialUser() {
+  const existing = await db.user.count();
+  if (existing > 0) return;
+
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase() || "admin@example.com";
+  const name = process.env.ADMIN_NAME?.trim() || "Admin";
+  const password = randomBytes(9).toString("base64url");
+
+  await db.user.create({
+    data: { email, name, passwordHash: await hashPassword(password) },
+  });
+
+  console.log("\nCreated initial login:");
+  console.log(`  Email:    ${email}`);
+  console.log(`  Password: ${password}`);
+  console.log("  (shown once — store it somewhere safe)\n");
+}
+
 async function main() {
+  await seedInitialUser();
+
   console.log("Clearing existing data…");
   await db.activity.deleteMany();
   await db.task.deleteMany();

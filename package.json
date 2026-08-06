@@ -8,6 +8,7 @@
     "start": "next start",
     "start:cpanel": "NODE_ENV=production node server.js",
     "lint": "eslint",
+    "create-user": "tsx scripts/create-user.ts",
     "postinstall": "cd \"$INIT_CWD\" && prisma generate"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "clsx": "^2.1.1",
     "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
+    "jose": "^6.2.8",
     "lucide-react": "^1.28.0",
     "mariadb": "^3.5.3",
     "next": "16.3.0",

@@ -7,10 +7,12 @@ import {
   CheckSquare,
   KanbanSquare,
   LayoutDashboard,
+  LogOut,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { logout } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -48,6 +50,16 @@ export function MobileNav() {
         })}
       </div>
       <ThemeToggle className="shrink-0" />
+      <form action={logout}>
+        <button
+          type="submit"
+          aria-label="Log out"
+          title="Log out"
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </form>
     </div>
   );
 }

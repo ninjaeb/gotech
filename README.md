@@ -4,6 +4,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 
 ## Features
 
+- **Login** — individual named accounts (email + password); everyone who signs in shares the same CRM data. A light/dark theme toggle lives in the sidebar
 - **Companies** — track organizations with industry, domain, and contact details
 - **Contacts** — people linked to companies, with notes and history
 - **Contact import** — upload a Google Contacts CSV export (`/contacts/import`) and preview matched/duplicate/skipped rows before anything is saved
@@ -41,6 +42,12 @@ cp .env.example .env
 DATABASE_URL="mysql://user:password@localhost:3306/gotech_crm"
 ```
 
+Also set `SESSION_SECRET` (required — signs login sessions):
+
+```bash
+echo "SESSION_SECRET=\"$(openssl rand -base64 32)\"" >> .env
+```
+
 If you don't already have a database, the quickest way to get one locally is Docker:
 
 ```bash
@@ -58,13 +65,23 @@ This creates the schema and generates the Prisma Client into `src/generated/pris
 
 > Prisma Client is generated to `src/generated/prisma` (not `node_modules`) and is gitignored. Run `npx prisma generate` again any time the schema changes without running a migration.
 
-### 4. Seed sample data (optional)
+### 4. Seed your first login (and sample data)
 
 ```bash
 npx prisma db seed
 ```
 
-Populates the database with sample companies, contacts, deals, tasks, and activity so you can explore the app immediately. Re-running the seed clears and re-creates this sample data.
+The app requires logging in, so run this at least once. If no users exist yet, it creates one and prints the email/password to the terminal **once** — copy it down, then sign in at `/login`. It also populates sample companies, contacts, deals, tasks, and activity so you can explore the app immediately.
+
+Re-running the seed clears and re-creates the sample CRM data, but never touches existing users — it's safe to run again later without affecting logins. Set `ADMIN_EMAIL`/`ADMIN_NAME` env vars before the *first* run to customize the initial account.
+
+To add teammates, use the `create-user` script (this hashes the password properly — don't add users directly via `prisma studio`):
+
+```bash
+npm run create-user -- --email="jane@example.com" --name="Jane Doe" --title="Sales"
+```
+
+Prints a generated password once, or pass `--password="..."` to set your own.
 
 ### 5. Start the dev server
 
@@ -103,12 +120,12 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), and optionally `GEMINI_API_KEY` to enable the AI Assistant.
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), and optionally `GEMINI_API_KEY` to enable the AI Assistant.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI (this also triggers `prisma generate` via `postinstall`). Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash
    npx prisma migrate deploy
-   npx prisma db seed   # optional, sample data
+   npx prisma db seed   # required — this is also how you get your first login; see "Seed your first login" above
    ```
 
 6. **Restart** the app from the Node.js Selector UI, then visit the Application URL. `server.js` builds the production bundle itself the first time it starts (there's no separate "build" step to run) — the first request after a restart may take a little longer while `next build` runs; check `stderr.log` in the Application root if it doesn't come up.
@@ -131,26 +148,34 @@ To redeploy after future changes: push to the branch cPanel's Git Version Contro
 
 ```
 prisma/
-  schema.prisma        Data model (Company, Contact, Deal, Task, Activity)
-  seed.ts               Sample data seed script
+  schema.prisma        Data model (User, Company, Contact, Deal, Task, Activity)
+  seed.ts               Sample data seed script (also creates the first login)
+scripts/
+  create-user.ts         CLI to add more logins (npm run create-user)
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
+proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)
 src/
   app/
-    actions/            Server Actions (mutations) grouped by entity
-    companies/           Companies list, detail, create, edit
-    contacts/             Contacts list, detail, create, edit, CSV import
-    deals/                 Deals kanban board, detail, create, edit
-    tasks/                 Task list with filters and quick-add
-    page.tsx              Dashboard
+    actions/            Server Actions (mutations) grouped by entity, incl. auth.ts (login/logout)
+    (app)/               Route group: everything behind login, shares one layout
+      companies/           Companies list, detail, create, edit
+      contacts/             Contacts list, detail, create, edit, CSV import
+      deals/                 Deals kanban board, detail, create, edit
+      tasks/                 Task list with filters and quick-add
+      page.tsx              Dashboard
+      layout.tsx             Sidebar / mobile nav + secure session check
+    login/                Login page (outside the (app) group — no sidebar)
+    layout.tsx            Root layout: fonts, global CSS, theme-init script
   components/
-    ui/                  Design system primitives (Button, Card, Input, …)
-    layout/              Sidebar / mobile nav
+    ui/                  Design system primitives (Button, Card, Input, ThemeToggle, …)
+    layout/              Sidebar / mobile nav / user menu (name, role, logout)
     companies/ contacts/ deals/ tasks/ activity/   Feature components
     ai/                  AiInsightsPanel (Contact/Company/Deal AI Assistant)
     dashboard/           AiPipelineDiagnosis (dashboard AI Assistant)
   lib/
     db.ts                Prisma Client singleton (MariaDB driver adapter)
+    auth/                Password hashing (scrypt), JWT sessions (jose), DAL (verifySession/getCurrentUser)
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
     ai/                  Gemini client + Prisma-to-prompt context builders
     format.ts, labels.ts, utils.ts
@@ -165,6 +190,7 @@ src/
 | `npm start` | Serve the production build with `next start` |
 | `npm run start:cpanel` | Serve the production build via `server.js` (cPanel/Passenger-style hosts) |
 | `npm run lint` | Run ESLint |
+| `npm run create-user -- --email=… --name=…` | Add another login |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
-| `npx prisma db seed` | (Re-)seed sample data |
+| `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |
