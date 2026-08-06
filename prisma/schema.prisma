@@ -1,0 +1,149 @@
+// Prisma schema for the GoTech CRM
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum DealStage {
+  LEAD
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum TaskType {
+  CALL
+  EMAIL
+  MEETING
+  FOLLOW_UP
+  OTHER
+}
+
+enum ActivityType {
+  NOTE
+  CALL
+  EMAIL
+  MEETING
+  STAGE_CHANGE
+  TASK_COMPLETED
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?
+  industry  String?
+  phone     String?
+  address   String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contacts   Contact[]
+  deals      Deal[]
+  tasks      Task[]
+  activities Activity[]
+
+  @@index([name])
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  title     String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId String?
+
+  deals      Deal[]
+  tasks      Task[]
+  activities Activity[]
+
+  @@index([companyId])
+  @@index([lastName, firstName])
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  title             String
+  value             Decimal   @default(0) @db.Decimal(12, 2)
+  stage             DealStage @default(LEAD)
+  expectedCloseDate DateTime?
+  notes             String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId String?
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId String?
+
+  tasks      Task[]
+  activities Activity[]
+
+  @@index([companyId])
+  @@index([contactId])
+  @@index([stage])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  type        TaskType  @default(OTHER)
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([dealId])
+  @@index([dueDate])
+}
+
+model Activity {
+  id        String       @id @default(cuid())
+  type      ActivityType
+  content   String       @db.Text
+  createdAt DateTime     @default(now())
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([dealId])
+  @@index([createdAt])
+}
