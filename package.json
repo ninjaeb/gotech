@@ -8,7 +8,7 @@
     "start": "next start",
     "start:cpanel": "NODE_ENV=production node server.js",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "cd \"$INIT_CWD\" && prisma generate"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
