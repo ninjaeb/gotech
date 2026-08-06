@@ -1,19 +1,19 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 
 declare global {
-  var anthropicClientGlobal: Anthropic | undefined;
+  var geminiClientGlobal: GoogleGenAI | undefined;
 }
 
 export function isAiConfigured() {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return Boolean(process.env.GEMINI_API_KEY);
 }
 
-export function getAnthropicClient() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("ANTHROPIC_API_KEY is not set");
+export function getGeminiClient() {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY is not set");
   }
-  if (!globalThis.anthropicClientGlobal) {
-    globalThis.anthropicClientGlobal = new Anthropic();
+  if (!globalThis.geminiClientGlobal) {
+    globalThis.geminiClientGlobal = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
-  return globalThis.anthropicClientGlobal;
+  return globalThis.geminiClientGlobal;
 }
