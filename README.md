@@ -10,6 +10,8 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Deals** — a kanban-style sales pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost) with per-stage totals
 - **Tasks** — follow-ups and to-dos with due dates, linked to contacts/companies/deals, filterable by Open / Overdue / Due today / Completed
 - **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal
+- **Dashboard** — pipeline overview (open value, closed-won, win rate), stage-by-stage breakdown, high-value open deals, and upcoming tasks
+- **AI Assistant** *(optional, requires an Anthropic API key)* — on each Contact/Company/Deal page: AI-generated summary + suggested next action, and a draftable follow-up message. On the dashboard: an "AI Pipeline Diagnosis" that reads pipeline health and overdue work and names the single highest-priority thing to do next
 
 ## Stack
 
@@ -17,6 +19,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - TypeScript, Tailwind CSS v4
 - [Prisma ORM 7](https://www.prisma.io) with the `@prisma/adapter-mariadb` driver adapter
 - MySQL / MariaDB
+- [Claude (`claude-opus-5`)](https://www.anthropic.com/claude) via `@anthropic-ai/sdk`, for the optional AI Assistant
 
 ## Getting started
 
@@ -71,6 +74,16 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### 6. Enable the AI Assistant (optional)
+
+Get an API key from the [Anthropic Console](https://console.anthropic.com), then add it to `.env`:
+
+```env
+ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Restart the dev server. "Generate insights", "Draft follow-up", and "AI Pipeline Diagnosis" buttons will now call Claude; without a key they show a "not configured" message instead of erroring. No other setup needed — see `src/lib/ai/` and `src/app/actions/ai-insights.ts`.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint, and a `postinstall` script that regenerates the Prisma Client automatically whenever `npm install` runs.
@@ -90,7 +103,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`).
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), and optionally `ANTHROPIC_API_KEY` to enable the AI Assistant.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI (this also triggers `prisma generate` via `postinstall`). Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead) and run:
    ```bash
@@ -124,9 +137,12 @@ src/
     ui/                  Design system primitives (Button, Card, Input, …)
     layout/              Sidebar / mobile nav
     companies/ contacts/ deals/ tasks/ activity/   Feature components
+    ai/                  AiInsightsPanel (Contact/Company/Deal AI Assistant)
+    dashboard/           AiPipelineDiagnosis (dashboard AI Assistant)
   lib/
     db.ts                Prisma Client singleton (MariaDB driver adapter)
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
+    ai/                  Anthropic client + Prisma-to-prompt context builders
     format.ts, labels.ts, utils.ts
 ```
 

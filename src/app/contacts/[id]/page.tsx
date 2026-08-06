@@ -13,6 +13,7 @@ import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
+import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, initials } from "@/lib/format";
 
@@ -150,6 +151,8 @@ export default async function ContactDetailPage({
         </div>
 
         <div className="space-y-6">
+          <AiInsightsPanel entity={{ contactId: contact.id }} />
+
           <Card>
             <CardHeader>
               <CardTitle>Tasks</CardTitle>

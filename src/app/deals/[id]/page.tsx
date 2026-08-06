@@ -12,6 +12,7 @@ import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
+import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export default async function DealDetailPage({
@@ -110,6 +111,8 @@ export default async function DealDetailPage({
         </div>
 
         <div className="space-y-6">
+          <AiInsightsPanel entity={{ dealId: deal.id }} />
+
           <Card>
             <CardHeader>
               <CardTitle>Tasks</CardTitle>
