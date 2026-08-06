@@ -6,12 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "start:cpanel": "NODE_ENV=production node server.js",
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "clsx": "^2.1.1",
+    "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2",
     "lucide-react": "^1.28.0",
     "mariadb": "^3.5.3",

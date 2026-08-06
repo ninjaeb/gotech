@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Search, Upload, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,10 +36,16 @@ export default async function ContactsPage({
         title="Contacts"
         description={`${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`}
         actions={
-          <Link href="/contacts/new" className={buttonClasses()}>
-            <Plus className="h-4 w-4" />
-            New contact
-          </Link>
+          <>
+            <Link href="/contacts/import" className={buttonClasses("secondary")}>
+              <Upload className="h-4 w-4" />
+              Import
+            </Link>
+            <Link href="/contacts/new" className={buttonClasses()}>
+              <Plus className="h-4 w-4" />
+              New contact
+            </Link>
+          </>
         }
       />
 

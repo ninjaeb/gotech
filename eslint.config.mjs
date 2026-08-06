@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    // Plain CommonJS Node entrypoint (see server.js) — Passenger/cPanel
+    // require a requireable .js file, not an ES module.
+    files: ["server.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;
