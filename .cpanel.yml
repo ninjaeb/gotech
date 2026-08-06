@@ -18,10 +18,11 @@
 deployment:
   tasks:
     - export DEPLOYPATH=$HOME/crm.gotka.com/
-    - /bin/cp -R ./src $DEPLOYPATH
-    - /bin/cp -R ./prisma $DEPLOYPATH
-    - /bin/cp -R ./public $DEPLOYPATH
-    - /bin/cp ./package.json ./package-lock.json ./next.config.ts ./tsconfig.json ./postcss.config.mjs ./eslint.config.mjs ./prisma.config.ts ./server.js $DEPLOYPATH
+    # If DEPLOYPATH is the same directory as this checkout (-ef compares
+    # inode, so trailing slashes don't matter), skip the copy — the checkout
+    # already IS the deployed app, and `cp -R ./src $DEPLOYPATH` would try to
+    # copy src/ onto itself, which can stall instead of failing cleanly.
+    - '[ "$DEPLOYPATH" -ef . ] && echo "DEPLOYPATH is this checkout — nothing to copy." || { /bin/cp -R ./src ./prisma ./public ./package.json ./package-lock.json ./next.config.ts ./tsconfig.json ./postcss.config.mjs ./eslint.config.mjs ./prisma.config.ts ./server.js $DEPLOYPATH; }'
     # After the copy, still run these once via the cPanel Node.js app UI (or
     # SSH, with its "nodevenv" activated) — they need the app's own Node/npm:
     #   npm install            # also runs `prisma generate` via postinstall
