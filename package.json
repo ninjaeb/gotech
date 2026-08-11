@@ -9,6 +9,7 @@
     "start:cpanel": "NODE_ENV=production node server.js",
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
+    "clear-data": "tsx scripts/clear-data.ts",
     "postinstall": "cd \"$INIT_CWD\" && prisma generate"
   },
   "dependencies": {

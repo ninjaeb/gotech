@@ -83,6 +83,13 @@ npm run create-user -- --email="jane@example.com" --name="Jane Doe" --title="Sal
 
 Prints a generated password once, or pass `--password="..."` to set your own.
 
+When you're ready to move off the sample data (Acme Inc., Sarah Chen, etc.) and start entering real companies/contacts/deals, use `clear-data` instead of re-running the seed — seeding would just refill it with the same sample records. It deletes all CRM data and leaves logins untouched:
+
+```bash
+npm run clear-data          # shows what would be deleted, deletes nothing
+npm run clear-data -- --yes # actually deletes it
+```
+
 ### 5. Start the dev server
 
 ```bash
@@ -152,6 +159,7 @@ prisma/
   seed.ts               Sample data seed script (also creates the first login)
 scripts/
   create-user.ts         CLI to add more logins (npm run create-user)
+  clear-data.ts           CLI to wipe sample/CRM data without touching logins
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
 proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)
@@ -191,6 +199,7 @@ src/
 | `npm run start:cpanel` | Serve the production build via `server.js` (cPanel/Passenger-style hosts) |
 | `npm run lint` | Run ESLint |
 | `npm run create-user -- --email=… --name=…` | Add another login |
+| `npm run clear-data -- --yes` | Delete all CRM data (companies/contacts/deals/tasks/activity), keep logins |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |
