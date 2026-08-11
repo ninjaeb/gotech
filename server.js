@@ -14,6 +14,23 @@ const next = require("next");
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== "production";
 
+// Server Actions that call redirect() make Next.js stream the redirect
+// target back in the same response, by issuing an internal fetch to this
+// same server. It infers that fetch's origin from this process's own port
+// tracking, which is never told about custom servers' actual host/port
+// (we don't pass them to next({ dev }) below) — so it guesses wrong, and
+// combines that guess with whatever protocol the client's original request
+// arrived as (relevant behind a TLS-terminating reverse proxy like
+// cPanel's, which sets X-Forwarded-Proto: https). Both failure modes (bad
+// port, bad protocol) show up as the self-fetch failing outright rather
+// than as a broken redirect for the user — Next.js catches it and falls
+// back to a normal, unstreamed redirect — but it's wasted work and a lot
+// of log noise on every single redirecting Server Action. `next start`
+// sets this same env var itself once it knows its own port; we do the
+// same, pointed at the plain-HTTP loopback address this server actually
+// listens on.
+process.env.__NEXT_PRIVATE_ORIGIN = `http://127.0.0.1:${port}`;
+
 // Hosts like cPanel's Setup Node.js App only run `npm install` for you (its
 // "Run NPM Install" button) — nothing in that flow runs `next build`, which
 // a production start (dev: false) requires. Build once here, automatically,
