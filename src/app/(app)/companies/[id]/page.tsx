@@ -13,6 +13,7 @@ import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
+import { LinkContactForm } from "@/components/contacts/link-contact-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
@@ -26,7 +27,7 @@ export default async function CompanyDetailPage({
 }) {
   const { id } = await params;
 
-  const [currency, company] = await Promise.all([
+  const [currency, company, allContacts] = await Promise.all([
     getCurrency(),
     db.company.findUnique({
       where: { id },
@@ -37,9 +38,21 @@ export default async function CompanyDetailPage({
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
       },
     }),
+    db.contact.findMany({
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        companyId: true,
+        company: { select: { name: true } },
+      },
+    }),
   ]);
 
   if (!company) notFound();
+
+  const linkableContacts = allContacts.filter((contact) => contact.companyId !== id);
 
   return (
     <div>
@@ -98,7 +111,7 @@ export default async function CompanyDetailPage({
                 Add contact
               </Link>
             </CardHeader>
-            <CardBody>
+            <CardBody className="space-y-3">
               {company.contacts.length === 0 ? (
                 <EmptyState title="No contacts linked to this company yet." />
               ) : (
@@ -118,6 +131,7 @@ export default async function CompanyDetailPage({
                   ))}
                 </ul>
               )}
+              <LinkContactForm companyId={company.id} contacts={linkableContacts} />
             </CardBody>
           </Card>
 

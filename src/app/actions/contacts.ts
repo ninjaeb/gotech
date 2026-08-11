@@ -63,6 +63,20 @@ export async function updateContact(id: string, formData: FormData) {
   redirect(`/contacts/${id}`);
 }
 
+export async function linkExistingContact(companyId: string, formData: FormData) {
+  const contactId = formData.get("contactId");
+  if (typeof contactId !== "string" || !contactId) return;
+  const previous = await db.contact.findUnique({
+    where: { id: contactId },
+    select: { companyId: true },
+  });
+  await db.contact.update({ where: { id: contactId }, data: { companyId } });
+  revalidatePath("/contacts");
+  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/companies/${companyId}`);
+  if (previous?.companyId) revalidatePath(`/companies/${previous.companyId}`);
+}
+
 export async function deleteContact(id: string, formData: FormData) {
   void formData;
   const contact = await db.contact.delete({ where: { id } });

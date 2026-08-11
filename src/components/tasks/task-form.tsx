@@ -41,6 +41,12 @@ export function TaskForm({
     if (!contactStillValid) setContactId("");
   }
 
+  function handleContactChange(nextContactId: string) {
+    setContactId(nextContactId);
+    const contact = contacts.find((c) => c.id === nextContactId);
+    if (contact?.companyId) setCompanyId(contact.companyId);
+  }
+
   return (
     <form action={action} className="space-y-4">
       <FieldGroup label="Task" htmlFor="title" required>
@@ -87,7 +93,7 @@ export function TaskForm({
             id="contactId"
             name="contactId"
             value={contactId}
-            onChange={(event) => setContactId(event.target.value)}
+            onChange={(event) => handleContactChange(event.target.value)}
           >
             <option value="">—</option>
             {filteredContacts.map((contact) => (

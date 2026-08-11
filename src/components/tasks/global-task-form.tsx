@@ -35,6 +35,12 @@ export function GlobalTaskForm({
     if (!contactStillValid) setContactId("");
   }
 
+  function handleContactChange(nextContactId: string) {
+    setContactId(nextContactId);
+    const contact = contacts.find((c) => c.id === nextContactId);
+    if (contact?.companyId) setCompanyId(contact.companyId);
+  }
+
   return (
     <form
       ref={formRef}
@@ -86,7 +92,7 @@ export function GlobalTaskForm({
             id="g-contactId"
             name="contactId"
             value={contactId}
-            onChange={(event) => setContactId(event.target.value)}
+            onChange={(event) => handleContactChange(event.target.value)}
           >
             <option value="">—</option>
             {filteredContacts.map((contact) => (

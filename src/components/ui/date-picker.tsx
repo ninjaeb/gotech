@@ -116,7 +116,7 @@ export function DatePicker({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-2 rounded-md border-0 px-3 py-2 text-left text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:bg-neutral-900 dark:text-slate-100 dark:ring-neutral-700"
+        className="flex h-11 w-full items-center justify-between gap-2 rounded-md border-0 px-3 text-left text-sm text-slate-900 ring-1 ring-inset ring-slate-300 focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:bg-neutral-900 dark:text-slate-100 dark:ring-neutral-700"
       >
         <span className={value ? undefined : "text-slate-400 dark:text-slate-500"}>
           {value ? formatDisplay(value) : placeholder}
