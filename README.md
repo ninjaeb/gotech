@@ -75,13 +75,13 @@ The app requires logging in, so run this at least once. If no users exist yet, i
 
 Re-running the seed clears and re-creates the sample CRM data, but never touches existing users — it's safe to run again later without affecting logins. Set `ADMIN_EMAIL`/`ADMIN_NAME` env vars before the *first* run to customize the initial account.
 
-To add teammates, use the `create-user` script (this hashes the password properly — don't add users directly via `prisma studio`):
+To add teammates, use **Settings → Users** in the running app, or the `create-user` script from the command line (both hash the password properly — don't add users directly via `prisma studio`):
 
 ```bash
 npm run create-user -- --email="jane@example.com" --name="Jane Doe" --title="Sales"
 ```
 
-Prints a generated password once, or pass `--password="..."` to set your own.
+Either way, set your own password or leave it blank for a generated one (shown once — copy it down; the script takes `--password="..."`). Any signed-in user can reset a teammate's password from **Settings → Users**, and change their own from **Settings → Change your password**.
 
 When you're ready to move off the sample data (Acme Inc., Sarah Chen, etc.) and start entering real companies/contacts/deals, use `clear-data` instead of re-running the seed — seeding would just refill it with the same sample records. It deletes all CRM data and leaves logins untouched:
 

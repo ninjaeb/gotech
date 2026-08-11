@@ -12,6 +12,8 @@ import { Label, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CreateUserForm } from "@/components/settings/create-user-form";
+import { ResetPasswordButton } from "@/components/settings/reset-password-button";
+import { ChangePasswordForm } from "@/components/settings/change-password-form";
 
 export default async function SettingsPage() {
   const [currency, currentUser, users] = await Promise.all([
@@ -54,7 +56,7 @@ export default async function SettingsPage() {
         <CardBody className="space-y-4">
           <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
             {users.map((user) => (
-              <li key={user.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+              <li key={user.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
                 <div className="min-w-0">
                   <p className="truncate font-medium text-slate-800 dark:text-slate-200">
                     {user.name}
@@ -67,21 +69,35 @@ export default async function SettingsPage() {
                     {user.title && ` · ${user.title}`} · joined {formatDate(user.createdAt)}
                   </p>
                 </div>
-                {user.id !== currentUser.id && users.length > 1 && (
-                  <form action={deleteUser.bind(null, user.id)}>
-                    <ConfirmSubmitButton
-                      confirmMessage={`Remove ${user.name}'s login? They won't be able to sign in anymore.`}
-                      size="sm"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </ConfirmSubmitButton>
-                  </form>
+                {user.id !== currentUser.id && (
+                  <div className="flex items-center gap-2">
+                    <ResetPasswordButton userId={user.id} userName={user.name} />
+                    {users.length > 1 && (
+                      <form action={deleteUser.bind(null, user.id)}>
+                        <ConfirmSubmitButton
+                          confirmMessage={`Remove ${user.name}'s login? They won't be able to sign in anymore.`}
+                          size="sm"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </ConfirmSubmitButton>
+                      </form>
+                    )}
+                  </div>
                 )}
               </li>
             ))}
           </ul>
 
           <CreateUserForm />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Change your password</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <ChangePasswordForm />
         </CardBody>
       </Card>
     </div>
