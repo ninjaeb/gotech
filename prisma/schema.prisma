@@ -45,6 +45,13 @@ model User {
   createdAt    DateTime @default(now())
 }
 
+// Single-row table for CRM-wide settings (currently just currency).
+// Always read/written at id "singleton" — see src/lib/settings.ts.
+model Settings {
+  id       String @id @default("singleton")
+  currency String @default("USD")
+}
+
 model Company {
   id        String   @id @default(cuid())
   name      String

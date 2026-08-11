@@ -6,12 +6,16 @@ import { buttonClasses } from "@/components/ui/button";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getCurrency } from "@/lib/settings";
 
 export default async function DealsPage() {
-  const deals = await db.deal.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { company: true, contact: true },
-  });
+  const [currency, deals] = await Promise.all([
+    getCurrency(),
+    db.deal.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { company: true, contact: true },
+    }),
+  ]);
 
   const columns = DEAL_STAGES.map((stage) => {
     const stageDeals = deals.filter((deal) => deal.stage === stage);
@@ -43,7 +47,7 @@ export default async function DealsPage() {
                 </span>
               </h3>
               <span className="text-xs font-medium text-slate-400">
-                {formatCurrency(column.total)}
+                {formatCurrency(column.total, currency)}
               </span>
             </div>
             <div className="min-h-16 space-y-2 rounded-lg bg-slate-100/70 p-2 dark:bg-neutral-900/60">
@@ -69,7 +73,7 @@ export default async function DealsPage() {
                       </p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                          {formatCurrency(deal.value.toString())}
+                          {formatCurrency(deal.value.toString(), currency)}
                         </span>
                         {deal.expectedCloseDate && (
                           <span className="text-xs text-slate-400">

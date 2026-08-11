@@ -14,6 +14,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getCurrency } from "@/lib/settings";
 
 export default async function DealDetailPage({
   params,
@@ -22,15 +23,18 @@ export default async function DealDetailPage({
 }) {
   const { id } = await params;
 
-  const deal = await db.deal.findUnique({
-    where: { id },
-    include: {
-      company: true,
-      contact: true,
-      tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
-      activities: { orderBy: { createdAt: "desc" }, take: 30 },
-    },
-  });
+  const [currency, deal] = await Promise.all([
+    getCurrency(),
+    db.deal.findUnique({
+      where: { id },
+      include: {
+        company: true,
+        contact: true,
+        tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
+        activities: { orderBy: { createdAt: "desc" }, take: 30 },
+      },
+    }),
+  ]);
 
   if (!deal) notFound();
 
@@ -77,7 +81,7 @@ export default async function DealDetailPage({
                   <DealStageSelect dealId={deal.id} stage={deal.stage} />
                 </div>
               </div>
-              <DetailRow label="Value" value={formatCurrency(deal.value.toString())} />
+              <DetailRow label="Value" value={formatCurrency(deal.value.toString(), currency)} />
               <DetailRow
                 label="Company"
                 value={deal.company?.name ?? null}

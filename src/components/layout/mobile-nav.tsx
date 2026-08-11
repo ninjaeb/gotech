@@ -8,6 +8,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   LogOut,
+  Settings,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/deals", label: "Deals", icon: KanbanSquare },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function MobileNav() {

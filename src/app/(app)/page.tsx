@@ -10,6 +10,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
 import { DEAL_STAGES, DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency } from "@/lib/format";
+import { getCurrency } from "@/lib/settings";
 
 const OPEN_STAGES = DEAL_STAGES.filter((stage) => stage !== "WON" && stage !== "LOST");
 
@@ -20,6 +21,7 @@ export default async function DashboardPage() {
   endOfToday.setDate(endOfToday.getDate() + 1);
 
   const [
+    currency,
     companyCount,
     contactCount,
     allDeals,
@@ -28,6 +30,7 @@ export default async function DashboardPage() {
     upcomingTasks,
     topOpenDeals,
   ] = await Promise.all([
+    getCurrency(),
     db.company.count(),
     db.contact.count(),
     db.deal.findMany({ select: { value: true, stage: true } }),
@@ -91,11 +94,11 @@ export default async function DashboardPage() {
               Pipeline overview
             </p>
             <p className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
-              {formatCurrency(openPipelineValue)}
+              {formatCurrency(openPipelineValue, currency)}
               <span className="ml-2 text-base font-normal text-slate-400">open pipeline</span>
             </p>
             <p className="mt-2 text-sm text-slate-300">
-              {formatCurrency(closedRevenue)} closed-won
+              {formatCurrency(closedRevenue, currency)} closed-won
               {winRate !== null && ` · ${winRate}% win rate`}
             </p>
           </div>
@@ -151,7 +154,7 @@ export default async function DashboardPage() {
                       {DEAL_STAGE_LABELS[stage]}{" "}
                       <span className="font-normal text-slate-400">({count})</span>
                     </span>
-                    <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value, currency)}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-neutral-800">
                     <div
@@ -197,7 +200,7 @@ export default async function DashboardPage() {
                         </div>
                         <div className="flex shrink-0 items-center gap-3">
                           <span className="font-medium text-slate-700 dark:text-slate-300">
-                            {formatCurrency(deal.value.toString())}
+                            {formatCurrency(deal.value.toString(), currency)}
                           </span>
                           <Badge className={DEAL_STAGE_BADGE_CLASSES[deal.stage]}>
                             {DEAL_STAGE_LABELS[deal.stage]}

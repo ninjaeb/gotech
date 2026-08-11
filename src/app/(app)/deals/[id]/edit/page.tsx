@@ -4,6 +4,7 @@ import { updateDeal } from "@/app/actions/deals";
 import { DealForm } from "@/components/deals/deal-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { getCurrency } from "@/lib/settings";
 
 export default async function EditDealPage({
   params,
@@ -11,7 +12,8 @@ export default async function EditDealPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [deal, companies, contacts] = await Promise.all([
+  const [currency, deal, companies, contacts] = await Promise.all([
+    getCurrency(),
     db.deal.findUnique({ where: { id } }),
     db.company.findMany({ orderBy: { name: "asc" } }),
     db.contact.findMany({
@@ -32,6 +34,7 @@ export default async function EditDealPage({
             companies={companies}
             contacts={contacts}
             submitLabel="Save changes"
+            currency={currency}
           />
         </CardBody>
       </Card>

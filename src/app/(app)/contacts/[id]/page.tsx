@@ -16,6 +16,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, initials } from "@/lib/format";
+import { getCurrency } from "@/lib/settings";
 
 export default async function ContactDetailPage({
   params,
@@ -24,15 +25,18 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params;
 
-  const contact = await db.contact.findUnique({
-    where: { id },
-    include: {
-      company: true,
-      deals: { orderBy: { createdAt: "desc" } },
-      tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
-      activities: { orderBy: { createdAt: "desc" }, take: 30 },
-    },
-  });
+  const [currency, contact] = await Promise.all([
+    getCurrency(),
+    db.contact.findUnique({
+      where: { id },
+      include: {
+        company: true,
+        deals: { orderBy: { createdAt: "desc" } },
+        tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
+        activities: { orderBy: { createdAt: "desc" }, take: 30 },
+      },
+    }),
+  ]);
 
   if (!contact) notFound();
 
@@ -135,7 +139,7 @@ export default async function ContactDetailPage({
                         </span>
                         <span className="flex shrink-0 items-center gap-3">
                           <span className="text-slate-500 dark:text-slate-400">
-                            {formatCurrency(deal.value.toString())}
+                            {formatCurrency(deal.value.toString(), currency)}
                           </span>
                           <Badge className={DEAL_STAGE_BADGE_CLASSES[deal.stage]}>
                             {DEAL_STAGE_LABELS[deal.stage]}

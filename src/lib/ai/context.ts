@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getCurrency } from "@/lib/settings";
 import {
   ACTIVITY_TYPE_LABELS,
   DEAL_STAGE_LABELS,
@@ -39,6 +40,7 @@ function activitySection(
 }
 
 async function buildContactContext(contactId: string): Promise<EntityContext | null> {
+  const currency = await getCurrency();
   const contact = await db.contact.findUnique({
     where: { id: contactId },
     include: {
@@ -61,7 +63,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
     lines.push("", "Deals:");
     for (const deal of contact.deals) {
       lines.push(
-        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString())}`,
+        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}`,
       );
     }
   }
@@ -72,6 +74,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
 }
 
 async function buildCompanyContext(companyId: string): Promise<EntityContext | null> {
+  const currency = await getCurrency();
   const company = await db.company.findUnique({
     where: { id: companyId },
     include: {
@@ -93,7 +96,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
     lines.push("", "Deals:");
     for (const deal of company.deals) {
       lines.push(
-        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString())}`,
+        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}`,
       );
     }
   }
@@ -104,6 +107,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
 }
 
 async function buildDealContext(dealId: string): Promise<EntityContext | null> {
+  const currency = await getCurrency();
   const deal = await db.deal.findUnique({
     where: { id: dealId },
     include: {
@@ -117,7 +121,7 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
 
   const lines: string[] = [];
   lines.push(`Deal: ${deal.title}`);
-  lines.push(`Stage: ${DEAL_STAGE_LABELS[deal.stage]} | Value: ${formatCurrency(deal.value.toString())}`);
+  lines.push(`Stage: ${DEAL_STAGE_LABELS[deal.stage]} | Value: ${formatCurrency(deal.value.toString(), currency)}`);
   if (deal.expectedCloseDate) lines.push(`Expected close: ${formatDate(deal.expectedCloseDate)}`);
   if (deal.company) lines.push(`Company: ${deal.company.name}`);
   if (deal.contact) lines.push(`Contact: ${deal.contact.firstName} ${deal.contact.lastName}`);
@@ -138,7 +142,8 @@ export async function buildPipelineContext(): Promise<string> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [openDeals, overdueTasks, dueTodayTasks] = await Promise.all([
+  const [currency, openDeals, overdueTasks, dueTodayTasks] = await Promise.all([
+    getCurrency(),
     db.deal.findMany({
       where: { stage: { notIn: ["WON", "LOST"] } },
       orderBy: { value: "desc" },
@@ -157,14 +162,14 @@ export async function buildPipelineContext(): Promise<string> {
 
   const lines: string[] = [];
   const totalValue = openDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
-  lines.push(`Open pipeline: ${openDeals.length} deals worth ${formatCurrency(totalValue)}.`);
+  lines.push(`Open pipeline: ${openDeals.length} deals worth ${formatCurrency(totalValue, currency)}.`);
 
   if (openDeals.length > 0) {
     lines.push("", "Open deals (largest first):");
     for (const deal of openDeals.slice(0, 20)) {
       const who = deal.company?.name ?? (deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : "no company");
       lines.push(
-        `- ${deal.title} (${who}) — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString())}${deal.expectedCloseDate ? `, expected close ${formatDate(deal.expectedCloseDate)}` : ""}`,
+        `- ${deal.title} (${who}) — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}${deal.expectedCloseDate ? `, expected close ${formatDate(deal.expectedCloseDate)}` : ""}`,
       );
     }
   }

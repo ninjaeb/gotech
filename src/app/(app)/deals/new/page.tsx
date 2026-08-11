@@ -3,6 +3,7 @@ import { createDeal } from "@/app/actions/deals";
 import { DealForm } from "@/components/deals/deal-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { getCurrency } from "@/lib/settings";
 
 export default async function NewDealPage({
   searchParams,
@@ -10,7 +11,8 @@ export default async function NewDealPage({
   searchParams: Promise<{ companyId?: string; contactId?: string }>;
 }) {
   const { companyId, contactId } = await searchParams;
-  const [companies, contacts] = await Promise.all([
+  const [currency, companies, contacts] = await Promise.all([
+    getCurrency(),
     db.company.findMany({ orderBy: { name: "asc" } }),
     db.contact.findMany({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
@@ -30,6 +32,7 @@ export default async function NewDealPage({
             defaultCompanyId={companyId}
             defaultContactId={contactId}
             submitLabel="Create deal"
+            currency={currency}
           />
         </CardBody>
       </Card>

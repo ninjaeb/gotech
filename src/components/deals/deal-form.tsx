@@ -12,6 +12,7 @@ export function DealForm({
   defaultCompanyId,
   defaultContactId,
   submitLabel = "Save deal",
+  currency = "USD",
 }: {
   action: (formData: FormData) => void;
   deal?: Deal;
@@ -20,6 +21,7 @@ export function DealForm({
   defaultCompanyId?: string;
   defaultContactId?: string;
   submitLabel?: string;
+  currency?: string;
 }) {
   return (
     <form action={action} className="space-y-4">
@@ -34,7 +36,7 @@ export function DealForm({
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FieldGroup label="Value (USD)" htmlFor="value">
+        <FieldGroup label={`Value (${currency})`} htmlFor="value">
           <Input
             id="value"
             name="value"

@@ -8,7 +8,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Companies** — track organizations with industry, domain, and contact details
 - **Contacts** — people linked to companies, with notes and history
 - **Contact import** — upload a Google Contacts CSV export (`/contacts/import`) and preview matched/duplicate/skipped rows before anything is saved
-- **Deals** — a kanban-style sales pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost) with per-stage totals
+- **Deals** — a kanban-style sales pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost) with per-stage totals, in one CRM-wide currency you can change any time in *Settings*
 - **Tasks** — follow-ups and to-dos with due dates, linked to contacts/companies/deals, filterable by Open / Overdue / Due today / Completed
 - **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal
 - **Dashboard** — pipeline overview (open value, closed-won, win rate), stage-by-stage breakdown, high-value open deals, and upcoming tasks
@@ -155,7 +155,7 @@ To redeploy after future changes: push to the branch cPanel's Git Version Contro
 
 ```
 prisma/
-  schema.prisma        Data model (User, Company, Contact, Deal, Task, Activity)
+  schema.prisma        Data model (User, Settings, Company, Contact, Deal, Task, Activity)
   seed.ts               Sample data seed script (also creates the first login)
 scripts/
   create-user.ts         CLI to add more logins (npm run create-user)
@@ -171,6 +171,7 @@ src/
       contacts/             Contacts list, detail, create, edit, CSV import
       deals/                 Deals kanban board, detail, create, edit
       tasks/                 Task list with filters and quick-add
+      settings/              Currency setting
       page.tsx              Dashboard
       layout.tsx             Sidebar / mobile nav + secure session check
     login/                Login page (outside the (app) group — no sidebar)
@@ -184,6 +185,8 @@ src/
   lib/
     db.ts                Prisma Client singleton (MariaDB driver adapter)
     auth/                Password hashing (scrypt), JWT sessions (jose), DAL (verifySession/getCurrentUser)
+    settings.ts            Cached getCurrency()/setCurrency() (Settings singleton row)
+    currency.ts             Curated list of ISO 4217 currencies for the Settings dropdown
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
     ai/                  Gemini client + Prisma-to-prompt context builders
     format.ts, labels.ts, utils.ts
