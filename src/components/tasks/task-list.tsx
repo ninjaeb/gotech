@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { Company, Contact, Deal, Task } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
 import { TASK_TYPE_LABELS } from "@/lib/labels";
-import { relativeToToday } from "@/lib/format";
+import { relativeToToday, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { cn } from "@/lib/utils";
@@ -102,7 +102,7 @@ export function TaskList({
                       href={`/contacts/${task.contact.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
-                      {task.contact.firstName} {task.contact.lastName}
+                      {fullName(task.contact.firstName, task.contact.lastName)}
                     </Link>
                   )}
                   {task.company && (
@@ -125,16 +125,25 @@ export function TaskList({
               )}
             </div>
 
-            <form action={deleteTask.bind(null, task.id)}>
-              <ConfirmSubmitButton
-                confirmMessage="Delete this task?"
-                variant="ghost"
-                size="sm"
-                className="!px-1.5 text-slate-400 hover:text-rose-600"
+            <div className="flex shrink-0 items-center gap-1">
+              <Link
+                href={`/tasks/${task.id}/edit`}
+                aria-label="Edit task"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
               >
-                <Trash2 className="h-4 w-4" />
-              </ConfirmSubmitButton>
-            </form>
+                <Pencil className="h-4 w-4" />
+              </Link>
+              <form action={deleteTask.bind(null, task.id)}>
+                <ConfirmSubmitButton
+                  confirmMessage="Delete this task?"
+                  variant="ghost"
+                  size="sm"
+                  className="!px-1.5 text-slate-400 hover:text-rose-600"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </ConfirmSubmitButton>
+              </form>
+            </div>
           </li>
         );
       })}

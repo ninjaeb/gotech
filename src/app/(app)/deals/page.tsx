@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function DealsPage() {
@@ -67,9 +67,7 @@ export default async function DealsPage() {
                       </p>
                       <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                         {deal.company?.name ??
-                          (deal.contact
-                            ? `${deal.contact.firstName} ${deal.contact.lastName}`
-                            : "No company")}
+                          (deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : "No company")}
                       </p>
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">

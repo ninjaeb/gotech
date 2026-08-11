@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { login } from "@/app/actions/auth";
 import { Card, CardBody } from "@/components/ui/card";
-import { Label, Input } from "@/components/ui/field";
+import { Label, Input, RequiredMark } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -25,7 +25,10 @@ export default function LoginPage() {
           <CardBody>
             <form action={formAction} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">
+                  Email
+                  <RequiredMark />
+                </Label>
                 <Input
                   id="email"
                   name="email"
@@ -36,7 +39,10 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">
+                  Password
+                  <RequiredMark />
+                </Label>
                 <Input
                   id="password"
                   name="password"

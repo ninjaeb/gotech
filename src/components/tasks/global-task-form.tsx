@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
+import { fullName } from "@/lib/format";
 
 export function GlobalTaskForm({
   companies,
@@ -13,11 +14,26 @@ export function GlobalTaskForm({
   deals,
 }: {
   companies: { id: string; name: string }[];
-  contacts: { id: string; firstName: string; lastName: string }[];
+  contacts: { id: string; firstName: string; lastName: string | null; companyId: string | null }[];
   deals: { id: string; title: string }[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [companyId, setCompanyId] = useState("");
+  const [contactId, setContactId] = useState("");
+
+  const filteredContacts = useMemo(
+    () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
+    [contacts, companyId],
+  );
+
+  function handleCompanyChange(nextCompanyId: string) {
+    setCompanyId(nextCompanyId);
+    const contactStillValid = !nextCompanyId
+      ? true
+      : contacts.some((contact) => contact.id === contactId && contact.companyId === nextCompanyId);
+    if (!contactStillValid) setContactId("");
+  }
 
   return (
     <form
@@ -26,12 +42,14 @@ export function GlobalTaskForm({
         startTransition(async () => {
           await createTask(formData);
           formRef.current?.reset();
+          setCompanyId("");
+          setContactId("");
         });
       }}
       className="space-y-3"
     >
       <div className="grid gap-3 sm:grid-cols-3">
-        <FieldGroup label="Task" htmlFor="g-title" className="sm:col-span-3">
+        <FieldGroup label="Task" htmlFor="g-title" required className="sm:col-span-3">
           <Input id="g-title" name="title" required placeholder="Follow up on proposal" />
         </FieldGroup>
       </div>
@@ -49,7 +67,12 @@ export function GlobalTaskForm({
           <DatePicker id="g-dueDate" name="dueDate" />
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="g-companyId">
-          <Select id="g-companyId" name="companyId" defaultValue="">
+          <Select
+            id="g-companyId"
+            name="companyId"
+            value={companyId}
+            onChange={(event) => handleCompanyChange(event.target.value)}
+          >
             <option value="">—</option>
             {companies.map((company) => (
               <option key={company.id} value={company.id}>
@@ -59,11 +82,16 @@ export function GlobalTaskForm({
           </Select>
         </FieldGroup>
         <FieldGroup label="Contact" htmlFor="g-contactId">
-          <Select id="g-contactId" name="contactId" defaultValue="">
+          <Select
+            id="g-contactId"
+            name="contactId"
+            value={contactId}
+            onChange={(event) => setContactId(event.target.value)}
+          >
             <option value="">—</option>
-            {contacts.map((contact) => (
+            {filteredContacts.map((contact) => (
               <option key={contact.id} value={contact.id}>
-                {contact.firstName} {contact.lastName}
+                {fullName(contact.firstName, contact.lastName)}
               </option>
             ))}
           </Select>

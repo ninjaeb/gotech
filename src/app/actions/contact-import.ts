@@ -188,7 +188,7 @@ export async function confirmContactImport(
     await db.contact.create({
       data: {
         firstName: row.firstName || "",
-        lastName: row.lastName || "",
+        lastName: row.lastName || null,
         email,
         phone: row.phone?.trim() || null,
         title: row.title?.trim() || null,

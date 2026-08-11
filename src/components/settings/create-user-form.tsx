@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createUser } from "@/app/actions/users";
-import { Label, Input } from "@/components/ui/field";
+import { Label, Input, RequiredMark } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 export function CreateUserForm() {
@@ -23,11 +23,17 @@ export function CreateUserForm() {
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <Label htmlFor="new-user-name">Name</Label>
+          <Label htmlFor="new-user-name">
+            Name
+            <RequiredMark />
+          </Label>
           <Input id="new-user-name" name="name" required placeholder="Jane Doe" />
         </div>
         <div>
-          <Label htmlFor="new-user-email">Email</Label>
+          <Label htmlFor="new-user-email">
+            Email
+            <RequiredMark />
+          </Label>
           <Input id="new-user-email" name="email" type="email" required placeholder="jane@example.com" />
         </div>
         <div>

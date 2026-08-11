@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
-  lastName: z.string().trim().min(1, "Last name is required"),
+  lastName: z.string().trim().optional(),
   email: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   title: z.string().trim().optional(),
@@ -31,7 +31,7 @@ function parseContactForm(formData: FormData) {
   const data = parsed.data;
   return {
     firstName: data.firstName,
-    lastName: data.lastName,
+    lastName: data.lastName || null,
     email: data.email || null,
     phone: data.phone || null,
     title: data.title || null,

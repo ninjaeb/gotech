@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -53,6 +54,41 @@ export async function createTask(formData: FormData) {
     },
   });
   revalidateTaskPaths(task);
+}
+
+export async function updateTask(id: string, formData: FormData) {
+  const parsed = taskSchema.safeParse({
+    title: formData.get("title"),
+    description: formData.get("description"),
+    type: formData.get("type") || TaskType.OTHER,
+    dueDate: formData.get("dueDate"),
+    contactId: formData.get("contactId"),
+    companyId: formData.get("companyId"),
+    dealId: formData.get("dealId"),
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
+  }
+  const data = parsed.data;
+  const previous = await db.task.findUniqueOrThrow({
+    where: { id },
+    select: { contactId: true, companyId: true, dealId: true },
+  });
+  const task = await db.task.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description || null,
+      type: data.type,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      contactId: data.contactId || null,
+      companyId: data.companyId || null,
+      dealId: data.dealId || null,
+    },
+  });
+  revalidateTaskPaths(previous);
+  revalidateTaskPaths(task);
+  redirect("/tasks");
 }
 
 export async function toggleTaskComplete(id: string) {

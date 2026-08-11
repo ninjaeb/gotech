@@ -1,36 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Company, Contact, Deal } from "@/generated/prisma/client";
+import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
+import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
-type ContactOption = Pick<Contact, "id" | "firstName" | "lastName" | "companyId">;
+type ContactOption = { id: string; firstName: string; lastName: string | null; companyId: string | null };
 
-export function DealForm({
+export function TaskForm({
   action,
-  deal,
+  task,
   companies,
   contacts,
-  defaultCompanyId,
-  defaultContactId,
-  submitLabel = "Save deal",
-  currency = "USD",
+  deals,
+  submitLabel = "Save task",
 }: {
   action: (formData: FormData) => void;
-  deal?: Deal;
-  companies: Company[];
+  task?: Task;
+  companies: { id: string; name: string }[];
   contacts: ContactOption[];
-  defaultCompanyId?: string;
-  defaultContactId?: string;
+  deals: { id: string; title: string }[];
   submitLabel?: string;
-  currency?: string;
 }) {
-  const [companyId, setCompanyId] = useState(deal?.companyId ?? defaultCompanyId ?? "");
-  const [contactId, setContactId] = useState(deal?.contactId ?? defaultContactId ?? "");
+  const [companyId, setCompanyId] = useState(task?.companyId ?? "");
+  const [contactId, setContactId] = useState(task?.contactId ?? "");
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
@@ -47,39 +43,30 @@ export function DealForm({
 
   return (
     <form action={action} className="space-y-4">
-      <FieldGroup label="Deal title" htmlFor="title" required>
-        <Input
-          id="title"
-          name="title"
-          required
-          defaultValue={deal?.title}
-          placeholder="Acme Inc. — Annual contract"
-        />
+      <FieldGroup label="Task" htmlFor="title" required>
+        <Input id="title" name="title" required defaultValue={task?.title} placeholder="Follow up on proposal" />
+      </FieldGroup>
+
+      <FieldGroup label="Description" htmlFor="description">
+        <Textarea id="description" name="description" rows={3} defaultValue={task?.description ?? ""} />
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <FieldGroup label={`Value (${currency})`} htmlFor="value">
-          <Input
-            id="value"
-            name="value"
-            type="number"
-            min={0}
-            step="0.01"
-            defaultValue={deal ? deal.value.toString() : "0"}
-          />
-        </FieldGroup>
-        <FieldGroup label="Stage" htmlFor="stage">
-          <Select id="stage" name="stage" defaultValue={deal?.stage ?? "LEAD"}>
-            {DEAL_STAGES.map((stage) => (
-              <option key={stage} value={stage}>
-                {DEAL_STAGE_LABELS[stage]}
+        <FieldGroup label="Type" htmlFor="type">
+          <Select id="type" name="type" defaultValue={task?.type ?? "OTHER"}>
+            {TASK_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {TASK_TYPE_LABELS[type]}
               </option>
             ))}
           </Select>
         </FieldGroup>
+        <FieldGroup label="Due date" htmlFor="dueDate">
+          <DatePicker id="dueDate" name="dueDate" defaultValue={formatDateInput(task?.dueDate)} />
+        </FieldGroup>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <FieldGroup label="Company" htmlFor="companyId">
           <Select
             id="companyId"
@@ -87,7 +74,7 @@ export function DealForm({
             value={companyId}
             onChange={(event) => handleCompanyChange(event.target.value)}
           >
-            <option value="">No company</option>
+            <option value="">—</option>
             {companies.map((company) => (
               <option key={company.id} value={company.id}>
                 {company.name}
@@ -102,7 +89,7 @@ export function DealForm({
             value={contactId}
             onChange={(event) => setContactId(event.target.value)}
           >
-            <option value="">No contact</option>
+            <option value="">—</option>
             {filteredContacts.map((contact) => (
               <option key={contact.id} value={contact.id}>
                 {fullName(contact.firstName, contact.lastName)}
@@ -110,26 +97,17 @@ export function DealForm({
             ))}
           </Select>
         </FieldGroup>
+        <FieldGroup label="Deal" htmlFor="dealId">
+          <Select id="dealId" name="dealId" defaultValue={task?.dealId ?? ""}>
+            <option value="">—</option>
+            {deals.map((deal) => (
+              <option key={deal.id} value={deal.id}>
+                {deal.title}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
       </div>
-
-      <FieldGroup label="Expected close date" htmlFor="expectedCloseDate">
-        <DatePicker
-          id="expectedCloseDate"
-          name="expectedCloseDate"
-          className="max-w-xs"
-          defaultValue={formatDateInput(deal?.expectedCloseDate)}
-        />
-      </FieldGroup>
-
-      <FieldGroup label="Notes" htmlFor="notes">
-        <Textarea
-          id="notes"
-          name="notes"
-          rows={4}
-          defaultValue={deal?.notes ?? ""}
-          placeholder="Anything worth remembering about this deal…"
-        />
-      </FieldGroup>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit">{submitLabel}</Button>

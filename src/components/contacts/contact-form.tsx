@@ -18,7 +18,7 @@ export function ContactForm({
   return (
     <form action={action} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
-        <FieldGroup label="First name" htmlFor="firstName">
+        <FieldGroup label="First name" htmlFor="firstName" required>
           <Input
             id="firstName"
             name="firstName"
@@ -30,8 +30,7 @@ export function ContactForm({
           <Input
             id="lastName"
             name="lastName"
-            required
-            defaultValue={contact?.lastName}
+            defaultValue={contact?.lastName ?? ""}
           />
         </FieldGroup>
       </div>

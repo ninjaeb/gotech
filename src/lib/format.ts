@@ -35,6 +35,10 @@ export function formatDateInput(value: Date | string | null | undefined) {
   return date.toISOString().slice(0, 10);
 }
 
+export function fullName(firstName: string, lastName?: string | null) {
+  return [firstName, lastName].filter(Boolean).join(" ");
+}
+
 export function initials(name: string) {
   return name
     .split(" ")

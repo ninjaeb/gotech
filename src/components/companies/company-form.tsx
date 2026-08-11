@@ -13,7 +13,7 @@ export function CompanyForm({
 }) {
   return (
     <form action={action} className="space-y-4">
-      <FieldGroup label="Company name" htmlFor="name">
+      <FieldGroup label="Company name" htmlFor="name" required>
         <Input
           id="name"
           name="name"

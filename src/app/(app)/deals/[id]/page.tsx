@@ -14,7 +14,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function DealDetailPage({
@@ -44,7 +44,7 @@ export default async function DealDetailPage({
       <PageHeader
         title={deal.title}
         description={
-          [deal.company?.name, deal.contact && `${deal.contact.firstName} ${deal.contact.lastName}`]
+          [deal.company?.name, deal.contact && fullName(deal.contact.firstName, deal.contact.lastName)]
             .filter(Boolean)
             .join(" · ") || undefined
         }
@@ -90,11 +90,7 @@ export default async function DealDetailPage({
               />
               <DetailRow
                 label="Contact"
-                value={
-                  deal.contact
-                    ? `${deal.contact.firstName} ${deal.contact.lastName}`
-                    : null
-                }
+                value={deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : null}
                 href={deal.contact ? `/contacts/${deal.contact.id}` : undefined}
               />
               <DetailRow

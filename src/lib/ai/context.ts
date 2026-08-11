@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import {
   ACTIVITY_TYPE_LABELS,
@@ -54,7 +54,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
 
   const lines: string[] = [];
   lines.push(
-    `Contact: ${contact.firstName} ${contact.lastName}${contact.title ? `, ${contact.title}` : ""}${contact.company ? ` at ${contact.company.name}` : ""}`,
+    `Contact: ${fullName(contact.firstName, contact.lastName)}${contact.title ? `, ${contact.title}` : ""}${contact.company ? ` at ${contact.company.name}` : ""}`,
   );
   if (contact.email) lines.push(`Email: ${contact.email}`);
   if (contact.phone) lines.push(`Phone: ${contact.phone}`);
@@ -70,7 +70,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
   lines.push(...tasksSection(contact.tasks));
   lines.push(...activitySection(contact.activities));
 
-  return { label: `${contact.firstName} ${contact.lastName}`, contextText: lines.join("\n") };
+  return { label: fullName(contact.firstName, contact.lastName), contextText: lines.join("\n") };
 }
 
 async function buildCompanyContext(companyId: string): Promise<EntityContext | null> {
@@ -90,7 +90,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
   lines.push(`Company: ${company.name}${company.industry ? ` (${company.industry})` : ""}`);
   lines.push(`Notes: ${company.notes?.trim() || "(none)"}`);
   lines.push(
-    `Contacts: ${company.contacts.length > 0 ? company.contacts.map((c) => `${c.firstName} ${c.lastName}`).join(", ") : "(none)"}`,
+    `Contacts: ${company.contacts.length > 0 ? company.contacts.map((c) => fullName(c.firstName, c.lastName)).join(", ") : "(none)"}`,
   );
   if (company.deals.length > 0) {
     lines.push("", "Deals:");
@@ -124,7 +124,7 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
   lines.push(`Stage: ${DEAL_STAGE_LABELS[deal.stage]} | Value: ${formatCurrency(deal.value.toString(), currency)}`);
   if (deal.expectedCloseDate) lines.push(`Expected close: ${formatDate(deal.expectedCloseDate)}`);
   if (deal.company) lines.push(`Company: ${deal.company.name}`);
-  if (deal.contact) lines.push(`Contact: ${deal.contact.firstName} ${deal.contact.lastName}`);
+  if (deal.contact) lines.push(`Contact: ${fullName(deal.contact.firstName, deal.contact.lastName)}`);
   lines.push(`Notes: ${deal.notes?.trim() || "(none)"}`);
   lines.push(...tasksSection(deal.tasks));
   lines.push(...activitySection(deal.activities));
@@ -167,7 +167,7 @@ export async function buildPipelineContext(): Promise<string> {
   if (openDeals.length > 0) {
     lines.push("", "Open deals (largest first):");
     for (const deal of openDeals.slice(0, 20)) {
-      const who = deal.company?.name ?? (deal.contact ? `${deal.contact.firstName} ${deal.contact.lastName}` : "no company");
+      const who = deal.company?.name ?? (deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : "no company");
       lines.push(
         `- ${deal.title} (${who}) — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}${deal.expectedCloseDate ? `, expected close ${formatDate(deal.expectedCloseDate)}` : ""}`,
       );
@@ -180,7 +180,7 @@ export async function buildPipelineContext(): Promise<string> {
     lines.push("", "Overdue tasks:");
     for (const task of overdueTasks) {
       const who =
-        task.deal?.title ?? task.company?.name ?? (task.contact ? `${task.contact.firstName} ${task.contact.lastName}` : null);
+        task.deal?.title ?? task.company?.name ?? (task.contact ? fullName(task.contact.firstName, task.contact.lastName) : null);
       lines.push(
         `- ${task.title}${who ? ` (${who})` : ""} — was due ${formatDate(task.dueDate)}`,
       );

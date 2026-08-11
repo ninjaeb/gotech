@@ -16,7 +16,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
-import { formatCurrency, initials } from "@/lib/format";
+import { formatCurrency, fullName, initials } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function ContactDetailPage({
@@ -41,12 +41,12 @@ export default async function ContactDetailPage({
 
   if (!contact) notFound();
 
-  const fullName = `${contact.firstName} ${contact.lastName}`;
+  const contactName = fullName(contact.firstName, contact.lastName);
 
   return (
     <div>
       <PageHeader
-        title={fullName}
+        title={contactName}
         description={
           [contact.title, contact.company?.name].filter(Boolean).join(" at ") ||
           undefined
@@ -79,11 +79,11 @@ export default async function ContactDetailPage({
             <CardBody>
               <div className="flex items-center gap-3 pb-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-sm font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                  {initials(fullName)}
+                  {initials(contactName)}
                 </div>
                 <div>
                   <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {fullName}
+                    {contactName}
                   </p>
                   {contact.company && (
                     <Link

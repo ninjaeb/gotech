@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
 import { DEAL_STAGES, DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 const OPEN_STAGES = DEAL_STAGES.filter((stage) => stage !== "WON" && stage !== "LOST");
@@ -193,9 +193,7 @@ export default async function DashboardPage() {
                           </p>
                           <p className="truncate text-xs text-slate-400">
                             {deal.company?.name ??
-                              (deal.contact
-                                ? `${deal.contact.firstName} ${deal.contact.lastName}`
-                                : "No company")}
+                              (deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : "No company")}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-3">

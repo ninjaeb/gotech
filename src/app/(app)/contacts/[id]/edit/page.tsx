@@ -4,6 +4,7 @@ import { updateContact } from "@/app/actions/contacts";
 import { ContactForm } from "@/components/contacts/contact-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { fullName } from "@/lib/format";
 
 export default async function EditContactPage({
   params,
@@ -19,7 +20,7 @@ export default async function EditContactPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title={`Edit ${contact.firstName} ${contact.lastName}`} />
+      <PageHeader title={`Edit ${fullName(contact.firstName, contact.lastName)}`} />
       <Card>
         <CardBody>
           <ContactForm

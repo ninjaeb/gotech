@@ -74,7 +74,7 @@ model Company {
 model Contact {
   id        String   @id @default(cuid())
   firstName String
-  lastName  String
+  lastName  String?
   email     String?
   phone     String?
   title     String?

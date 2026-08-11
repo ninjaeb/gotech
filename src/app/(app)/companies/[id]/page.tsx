@@ -16,7 +16,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function CompanyDetailPage({
@@ -110,7 +110,7 @@ export default async function CompanyDetailPage({
                         className="flex items-center justify-between py-2.5 text-sm hover:text-indigo-600"
                       >
                         <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {contact.firstName} {contact.lastName}
+                          {fullName(contact.firstName, contact.lastName)}
                         </span>
                         <span className="text-slate-400">{contact.title}</span>
                       </Link>

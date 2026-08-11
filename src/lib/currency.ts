@@ -9,6 +9,7 @@ export const CURRENCIES = [
   { code: "INR", name: "Indian Rupee" },
   { code: "CHF", name: "Swiss Franc" },
   { code: "SGD", name: "Singapore Dollar" },
+  { code: "MYR", name: "Malaysian Ringgit" },
   { code: "HKD", name: "Hong Kong Dollar" },
   { code: "NZD", name: "New Zealand Dollar" },
   { code: "SEK", name: "Swedish Krona" },

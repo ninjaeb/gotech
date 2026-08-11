@@ -42,20 +42,34 @@ export function Select({
   return <select className={cn(fieldClasses, className)} {...props} />;
 }
 
+export function RequiredMark() {
+  return (
+    <span className="text-rose-500" aria-hidden="true">
+      {" "}
+      *
+    </span>
+  );
+}
+
 export function FieldGroup({
   label,
   htmlFor,
+  required,
   className,
   children,
 }: {
   label: string;
   htmlFor: string;
+  required?: boolean;
   className?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className={className}>
-      <Label htmlFor={htmlFor}>{label}</Label>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required && <RequiredMark />}
+      </Label>
       {children}
     </div>
   );

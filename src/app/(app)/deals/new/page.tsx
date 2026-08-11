@@ -16,7 +16,7 @@ export default async function NewDealPage({
     db.company.findMany({ orderBy: { name: "asc" } }),
     db.contact.findMany({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
   ]);
 
