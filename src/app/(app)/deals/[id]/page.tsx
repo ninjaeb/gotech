@@ -13,6 +13,7 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
+import { Linkify } from "@/components/ui/linkify";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
@@ -105,9 +106,7 @@ export default async function DealDetailPage({
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     Notes
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                    {deal.notes}
-                  </p>
+                  <Linkify text={deal.notes} className="mt-1 text-slate-700 dark:text-slate-300" />
                 </div>
               )}
             </CardBody>

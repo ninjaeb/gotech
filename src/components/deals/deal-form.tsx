@@ -1,6 +1,7 @@
 import type { Company, Contact, Deal } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatDateInput } from "@/lib/format";
 
@@ -89,10 +90,9 @@ export function DealForm({
       </div>
 
       <FieldGroup label="Expected close date" htmlFor="expectedCloseDate">
-        <Input
+        <DatePicker
           id="expectedCloseDate"
           name="expectedCloseDate"
-          type="date"
           className="max-w-xs"
           defaultValue={formatDateInput(deal?.expectedCloseDate)}
         />

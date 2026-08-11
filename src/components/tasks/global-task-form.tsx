@@ -4,6 +4,7 @@ import { useRef, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 
 export function GlobalTaskForm({
@@ -45,7 +46,7 @@ export function GlobalTaskForm({
           </Select>
         </FieldGroup>
         <FieldGroup label="Due date" htmlFor="g-dueDate">
-          <Input id="g-dueDate" name="dueDate" type="date" />
+          <DatePicker id="g-dueDate" name="dueDate" />
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="g-companyId">
           <Select id="g-companyId" name="companyId" defaultValue="">

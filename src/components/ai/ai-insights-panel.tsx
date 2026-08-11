@@ -11,6 +11,7 @@ import {
 import type { EntityRef } from "@/lib/ai/context";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Linkify } from "@/components/ui/linkify";
 
 export function AiInsightsPanel({ entity }: { entity: EntityRef }) {
   const [insights, setInsights] = useState<Insights | null>(null);
@@ -119,9 +120,10 @@ export function AiInsightsPanel({ entity }: { entity: EntityRef }) {
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Draft
               </p>
-              <p className="whitespace-pre-wrap rounded-md bg-slate-50 p-3 text-slate-700 dark:bg-neutral-800 dark:text-slate-300">
-                {draft.draft}
-              </p>
+              <Linkify
+                text={draft.draft}
+                className="rounded-md bg-slate-50 p-3 text-slate-700 dark:bg-neutral-800 dark:text-slate-300"
+              />
               <Button size="sm" variant="secondary" onClick={copyDraft}>
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 {copied ? "Copied" : "Copy"}

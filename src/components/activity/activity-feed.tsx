@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Activity } from "@/generated/prisma/client";
 import { formatDateTime } from "@/lib/format";
+import { Linkify } from "@/components/ui/linkify";
 
 const ICONS = {
   NOTE: MessageSquare,
@@ -37,9 +38,7 @@ export function ActivityFeed({ activities }: { activities: Activity[] }) {
               <Icon className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
-                {activity.content}
-              </p>
+              <Linkify text={activity.content} className="text-sm text-slate-700 dark:text-slate-300" />
               <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                 {formatDateTime(activity.createdAt)}
               </p>

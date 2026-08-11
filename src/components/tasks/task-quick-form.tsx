@@ -4,6 +4,7 @@ import { useRef, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 
 export function TaskQuickForm({
@@ -45,7 +46,7 @@ export function TaskQuickForm({
           </option>
         ))}
       </Select>
-      <Input type="date" name="dueDate" className="w-40" />
+      <DatePicker name="dueDate" placeholder="Due date" className="w-40" />
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Adding…" : "Add task"}
       </Button>

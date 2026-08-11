@@ -14,6 +14,7 @@ import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
+import { Linkify } from "@/components/ui/linkify";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, initials } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -104,9 +105,7 @@ export default async function ContactDetailPage({
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
                     Notes
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-slate-700 dark:text-slate-300">
-                    {contact.notes}
-                  </p>
+                  <Linkify text={contact.notes} className="mt-1 text-slate-700 dark:text-slate-300" />
                 </div>
               )}
             </CardBody>
