@@ -80,6 +80,20 @@ if (!dev) {
       renameSync(buildDir, backupDir);
     }
     try {
+      // src/generated/prisma is gitignored — a schema.prisma change that
+      // reaches this server via git never updates it on its own. Normally
+      // only `npm install`'s postinstall hook regenerates it, so a
+      // redeploy that changes the schema but doesn't reinstall
+      // dependencies silently type-checks (and builds) against a stale
+      // client, e.g. a field that just became nullable still typed as
+      // required everywhere it's used. Regenerating on every rebuild here
+      // — cheap, and doesn't need a database connection — closes that gap
+      // the same way the always-fresh `next build` above does for the
+      // compiled app itself.
+      execFileSync(process.execPath, [require.resolve("prisma/build/index.js"), "generate"], {
+        cwd: __dirname,
+        stdio: ["inherit", 2, 2],
+      });
       execFileSync(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
         cwd: __dirname,
         // Redirect both the build's stdout AND stderr into our own stderr
