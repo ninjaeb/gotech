@@ -5,8 +5,6 @@
 //
 // Not used for local development or for platforms that run `next start`
 // natively (Vercel, Docker, etc.) — see package.json's "dev"/"start" scripts.
-const { existsSync } = require("node:fs");
-const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { createServer } = require("node:http");
 const next = require("next");
@@ -33,13 +31,19 @@ process.env.__NEXT_PRIVATE_ORIGIN = `http://127.0.0.1:${port}`;
 
 // Hosts like cPanel's Setup Node.js App only run `npm install` for you (its
 // "Run NPM Install" button) — nothing in that flow runs `next build`, which
-// a production start (dev: false) requires. Build once here, automatically,
-// so starting/restarting the app from the cPanel UI alone is enough.
-// Note: if you redeploy new code into this same directory, delete the
-// `.next` folder (e.g. via File Manager) before restarting, so this picks
-// up the change — otherwise it keeps serving the previous build.
-if (!dev && !existsSync(path.join(__dirname, ".next", "BUILD_ID"))) {
-  console.log("> No production build found — running `next build`...");
+// a production start (dev: false) requires. Build here, automatically, so
+// starting/restarting the app from the cPanel UI alone is enough.
+//
+// This always rebuilds on every production start/restart rather than only
+// when no build exists yet. That costs the ~20-30s build time on every
+// restart, but the alternative — skip building if `.next/BUILD_ID` is
+// already present — silently keeps serving whatever was built last any
+// time a restart follows a redeploy without first deleting `.next`, which
+// is exactly the kind of easy-to-forget manual step that leads to "I
+// pushed a fix and restarted, why am I still seeing the old behavior?".
+// Building unconditionally removes that failure mode entirely.
+if (!dev) {
+  console.log("> Building production bundle...");
   execFileSync(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
     cwd: __dirname,
     stdio: "inherit",
