@@ -7,6 +7,7 @@
 // natively (Vercel, Docker, etc.) — see package.json's "dev"/"start" scripts.
 const { execFileSync } = require("node:child_process");
 const { existsSync, readFileSync, writeFileSync, renameSync, rmSync } = require("node:fs");
+const { randomBytes } = require("node:crypto");
 const path = require("node:path");
 const { createServer } = require("node:http");
 const next = require("next");
@@ -58,6 +59,28 @@ function currentCommit() {
   } catch {
     return null;
   }
+}
+
+// Next.js encrypts each Server Action's closure data (e.g. the `task.id`
+// bound into updateTask.bind(null, task.id)) with a key it randomly
+// generates on every build by default — "actions can only be invoked for
+// a specific build" per Next's own data-security docs. A tab left open
+// across a rebuild is exactly the case that breaks. Next's docs recommend
+// pinning NEXT_SERVER_ACTIONS_ENCRYPTION_KEY so it's stable across builds
+// instead; this generates one the first time this server ever builds and
+// reuses it on every subsequent build, stored outside .next (which gets
+// swapped out per build) so it actually persists.
+function getOrCreateServerActionsKey() {
+  const keyPath = path.join(__dirname, ".server-actions-key");
+  try {
+    const existing = readFileSync(keyPath, "utf8").trim();
+    if (existing) return existing;
+  } catch {
+    // First build on this host — nothing to reuse yet.
+  }
+  const key = randomBytes(32).toString("base64");
+  writeFileSync(keyPath, key);
+  return key;
 }
 
 if (!dev) {
@@ -116,7 +139,13 @@ if (!dev) {
         // the current commit in as NEXT_DEPLOYMENT_ID (Next's docs
         // recommend exactly a git SHA for this) instead makes Next notice
         // the mismatch itself and force a full reload before that happens.
-        env: commit ? { ...process.env, NEXT_DEPLOYMENT_ID: commit } : process.env,
+        // NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is the companion fix, for
+        // Server Actions specifically — see getOrCreateServerActionsKey.
+        env: {
+          ...process.env,
+          ...(commit ? { NEXT_DEPLOYMENT_ID: commit } : {}),
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: getOrCreateServerActionsKey(),
+        },
       });
       if (commit) writeFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), commit);
       if (hasExistingBuild) rmSync(backupDir, { recursive: true, force: true });

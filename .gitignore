@@ -18,6 +18,11 @@
 /.next.last-good/
 /out/
 
+# server.js's persisted, auto-generated Server Actions encryption key —
+# see getOrCreateServerActionsKey in server.js. Machine-specific, not a
+# secret meant to be shared/committed.
+/.server-actions-key
+
 # production
 /build
 
