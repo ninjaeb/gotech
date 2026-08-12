@@ -6,6 +6,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  /* Tailwind's text-* utilities are all rem-based, so this scales every
+     size in the app uniformly instead of bumping classes one by one. */
+  font-size: 18px;
+}
+
 body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
