@@ -82,7 +82,15 @@ if (!dev) {
     try {
       execFileSync(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
         cwd: __dirname,
-        stdio: "inherit",
+        // Redirect both the build's stdout AND stderr into our own stderr
+        // (fd 2) specifically, rather than each inheriting its matching
+        // stream. Next's build prints its per-file type-check diagnostics
+        // to stdout but the final failure summary to stderr — hosts that
+        // split stdout.log/stderr.log into separate files (cPanel does)
+        // then hide the actual error in whichever file nobody's checking.
+        // Funneling both into one guarantees the real diagnostic lands
+        // wherever stderr.log ends up.
+        stdio: ["inherit", 2, 2],
       });
       if (commit) writeFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), commit);
       if (hasExistingBuild) rmSync(backupDir, { recursive: true, force: true });
