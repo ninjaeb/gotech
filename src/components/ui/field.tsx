@@ -7,6 +7,24 @@ const fieldClasses =
 // height should come from `rows`, not this.
 const controlHeight = "h-11";
 
+// Native <select> chrome varies enough across browsers/OS that it can
+// visually suppress our ring-based border while still showing its own
+// dropdown arrow (the same underlying inconsistency behind the earlier
+// height mismatch). appearance-none hands rendering entirely to our own
+// CSS instead, so this draws a replacement arrow as a background image —
+// rather than an absolutely-positioned icon in a wrapper element, which
+// would need to track the select's own width (callers like
+// DealStageSelect size it to content, not always 100%) — since a
+// background image is always positioned relative to the select's own box
+// no matter what width it ends up rendering at.
+const selectChevronStyle: React.CSSProperties = {
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")",
+  backgroundPosition: "right 0.6rem center",
+  backgroundRepeat: "no-repeat",
+  backgroundSize: "1rem",
+};
+
 export function Label({
   className,
   children,
@@ -41,9 +59,16 @@ export function Textarea({
 
 export function Select({
   className,
+  style,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn(fieldClasses, controlHeight, className)} {...props} />;
+  return (
+    <select
+      className={cn(fieldClasses, controlHeight, "appearance-none pr-8", className)}
+      style={{ ...selectChevronStyle, ...style }}
+      {...props}
+    />
+  );
 }
 
 export function RequiredMark() {
