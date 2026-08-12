@@ -105,6 +105,18 @@ if (!dev) {
         // Funneling both into one guarantees the real diagnostic lands
         // wherever stderr.log ends up.
         stdio: ["inherit", 2, 2],
+        // A browser tab left open across a redeploy has the previous
+        // build's JS chunk map baked into its already-loaded runtime. Next
+        // rebuilds that map every build (chunk IDs aren't stable across
+        // builds), so that tab's next chunk load — triggered by, say,
+        // clicking a button that needs a not-yet-loaded piece of the app —
+        // requests an ID that means nothing to the new build and throws
+        // client-side ("can't infer type of chunk from URL"), taking the
+        // whole page down with no server-side error to show for it. Baking
+        // the current commit in as NEXT_DEPLOYMENT_ID (Next's docs
+        // recommend exactly a git SHA for this) instead makes Next notice
+        // the mismatch itself and force a full reload before that happens.
+        env: commit ? { ...process.env, NEXT_DEPLOYMENT_ID: commit } : process.env,
       });
       if (commit) writeFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), commit);
       if (hasExistingBuild) rmSync(backupDir, { recursive: true, force: true });
