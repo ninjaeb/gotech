@@ -6,6 +6,8 @@
 // Not used for local development or for platforms that run `next start`
 // natively (Vercel, Docker, etc.) — see package.json's "dev"/"start" scripts.
 const { execFileSync } = require("node:child_process");
+const { existsSync, readFileSync, writeFileSync, renameSync, rmSync } = require("node:fs");
+const path = require("node:path");
 const { createServer } = require("node:http");
 const next = require("next");
 
@@ -34,20 +36,74 @@ process.env.__NEXT_PRIVATE_ORIGIN = `http://127.0.0.1:${port}`;
 // a production start (dev: false) requires. Build here, automatically, so
 // starting/restarting the app from the cPanel UI alone is enough.
 //
-// This always rebuilds on every production start/restart rather than only
-// when no build exists yet. That costs the ~20-30s build time on every
-// restart, but the alternative — skip building if `.next/BUILD_ID` is
-// already present — silently keeps serving whatever was built last any
-// time a restart follows a redeploy without first deleting `.next`, which
-// is exactly the kind of easy-to-forget manual step that leads to "I
-// pushed a fix and restarted, why am I still seeing the old behavior?".
-// Building unconditionally removes that failure mode entirely.
+// Rebuild whenever the checked-out commit differs from the one already
+// built (tracked in .next/DEPLOYED_COMMIT, which next build's own output
+// doesn't touch) rather than on every single start. A redeploy always gets
+// a fresh build; a plain restart with no new commit reuses the existing
+// one instead of paying a ~20-30s rebuild — and, more importantly, instead
+// of re-running a build that's currently broken. Falls back to "no
+// existing build" when this isn't a git checkout (e.g. deployed via
+// rsync/upload) or `git` isn't on PATH, since there's nothing to compare.
+function readDeployedCommit(buildDir) {
+  try {
+    return readFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), "utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
+function currentCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], { cwd: __dirname }).toString().trim();
+  } catch {
+    return null;
+  }
+}
+
 if (!dev) {
-  console.log("> Building production bundle...");
-  execFileSync(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
-    cwd: __dirname,
-    stdio: "inherit",
-  });
+  const buildDir = path.join(__dirname, ".next");
+  const backupDir = path.join(__dirname, ".next.last-good");
+  const hasExistingBuild = existsSync(path.join(buildDir, "BUILD_ID"));
+  const commit = currentCommit();
+  const needsBuild = !hasExistingBuild || !commit || commit !== readDeployedCommit(buildDir);
+
+  if (needsBuild) {
+    console.log("> Building production bundle...");
+    // A build that fails partway through (e.g. during type-checking, which
+    // runs after compilation has already written into .next) can leave
+    // .next in a mixed old/new state — worse than either a clean build or
+    // no build. Move the last known-good build fully out of the way first,
+    // so a failure has a clean, complete build to restore rather than
+    // whatever partial mess got left behind.
+    if (hasExistingBuild) {
+      rmSync(backupDir, { recursive: true, force: true });
+      renameSync(buildDir, backupDir);
+    }
+    try {
+      execFileSync(process.execPath, [require.resolve("next/dist/bin/next"), "build"], {
+        cwd: __dirname,
+        stdio: "inherit",
+      });
+      if (commit) writeFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), commit);
+      if (hasExistingBuild) rmSync(backupDir, { recursive: true, force: true });
+    } catch (error) {
+      // A broken build must never take down an app that has a previous
+      // working one to fall back to — that's strictly worse than serving
+      // stale code: it's serving nothing. Only let it propagate (and stop
+      // the app from starting) when there's truly nothing to fall back to.
+      if (hasExistingBuild) {
+        rmSync(buildDir, { recursive: true, force: true });
+        renameSync(backupDir, buildDir);
+        console.error(
+          "> Build failed (see error above) — restored the previous build so the app stays up. That previous build's commit is still what's recorded, so the next restart will try building this commit again too, in case the failure was transient; fix the actual error to make that retry succeed.",
+        );
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    console.log(`> Reusing existing build — commit ${commit.slice(0, 7)} already built.`);
+  }
 }
 
 const app = next({ dev });

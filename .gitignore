@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next.last-good/
 /out/
 
 # production
