@@ -9,6 +9,12 @@ import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = { id: string; firstName: string; lastName: string | null; companyId: string | null };
+type DealOption = { id: string; title: string; companyId: string | null; contactId: string | null };
+
+function dealMatches(deal: DealOption, companyId: string, contactId: string) {
+  if (!companyId && !contactId) return true;
+  return (companyId !== "" && deal.companyId === companyId) || (contactId !== "" && deal.contactId === contactId);
+}
 
 export function TaskForm({
   action,
@@ -22,15 +28,20 @@ export function TaskForm({
   task?: Task;
   companies: { id: string; name: string }[];
   contacts: ContactOption[];
-  deals: { id: string; title: string }[];
+  deals: DealOption[];
   submitLabel?: string;
 }) {
   const [companyId, setCompanyId] = useState(task?.companyId ?? "");
   const [contactId, setContactId] = useState(task?.contactId ?? "");
+  const [dealId, setDealId] = useState(task?.dealId ?? "");
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
     [contacts, companyId],
+  );
+  const filteredDeals = useMemo(
+    () => deals.filter((deal) => dealMatches(deal, companyId, contactId)),
+    [deals, companyId, contactId],
   );
 
   function handleCompanyChange(nextCompanyId: string) {
@@ -38,13 +49,19 @@ export function TaskForm({
     const contactStillValid = !nextCompanyId
       ? true
       : contacts.some((contact) => contact.id === contactId && contact.companyId === nextCompanyId);
+    const nextContactId = contactStillValid ? contactId : "";
     if (!contactStillValid) setContactId("");
+    const deal = deals.find((d) => d.id === dealId);
+    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
   }
 
   function handleContactChange(nextContactId: string) {
     setContactId(nextContactId);
     const contact = contacts.find((c) => c.id === nextContactId);
+    const nextCompanyId = contact?.companyId ?? companyId;
     if (contact?.companyId) setCompanyId(contact.companyId);
+    const deal = deals.find((d) => d.id === dealId);
+    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
   }
 
   return (
@@ -104,9 +121,14 @@ export function TaskForm({
           </Select>
         </FieldGroup>
         <FieldGroup label="Deal" htmlFor="dealId">
-          <Select id="dealId" name="dealId" defaultValue={task?.dealId ?? ""}>
+          <Select
+            id="dealId"
+            name="dealId"
+            value={dealId}
+            onChange={(event) => setDealId(event.target.value)}
+          >
             <option value="">—</option>
-            {deals.map((deal) => (
+            {filteredDeals.map((deal) => (
               <option key={deal.id} value={deal.id}>
                 {deal.title}
               </option>

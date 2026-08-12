@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { Input } from "@/components/ui/field";
 import { TaskList } from "@/components/tasks/task-list";
 import { GlobalTaskForm } from "@/components/tasks/global-task-form";
 import { cn } from "@/lib/utils";
@@ -15,6 +17,14 @@ const FILTERS = [
 ] as const;
 
 type FilterKey = (typeof FILTERS)[number]["key"];
+
+function tabHref(key: FilterKey, query?: string) {
+  const params = new URLSearchParams();
+  if (key !== "open") params.set("filter", key);
+  if (query) params.set("q", query);
+  const qs = params.toString();
+  return qs ? `/tasks?${qs}` : "/tasks";
+}
 
 function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
   const startOfToday = new Date();
@@ -41,16 +51,26 @@ function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string }>;
 }) {
-  const { filter: rawFilter } = await searchParams;
+  const { filter: rawFilter, q } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)
     : "open";
+  const query = q?.trim();
+
+  const where: Prisma.TaskWhereInput = query
+    ? {
+        AND: [
+          buildWhere(filter),
+          { OR: [{ title: { contains: query } }, { description: { contains: query } }] },
+        ],
+      }
+    : buildWhere(filter);
 
   const [tasks, companies, contacts, deals] = await Promise.all([
     db.task.findMany({
-      where: buildWhere(filter),
+      where,
       orderBy:
         filter === "completed"
           ? { completedAt: "desc" }
@@ -66,7 +86,10 @@ export default async function TasksPage({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
-    db.deal.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, title: true } }),
+    db.deal.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, companyId: true, contactId: true },
+    }),
   ]);
 
   return (
@@ -83,7 +106,7 @@ export default async function TasksPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={f.key === "open" ? "/tasks" : `/tasks?filter=${f.key}`}
+            href={tabHref(f.key, query)}
             className={cn(
               "border-b-2 px-3 py-2 text-sm font-medium",
               filter === f.key
@@ -96,15 +119,31 @@ export default async function TasksPage({
         ))}
       </div>
 
+      <form className="mb-4">
+        {filter !== "open" && <input type="hidden" name="filter" value={filter} />}
+        <div className="relative max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder="Search tasks…"
+            className="pl-9"
+          />
+        </div>
+      </form>
+
       <Card>
         <CardBody>
           <TaskList
             tasks={tasks}
             showParent
             emptyMessage={
-              filter === "completed"
-                ? "No completed tasks yet."
-                : "Nothing here — you're all caught up."
+              query
+                ? "No tasks match your search."
+                : filter === "completed"
+                  ? "No completed tasks yet."
+                  : "Nothing here — you're all caught up."
             }
           />
         </CardBody>

@@ -8,6 +8,13 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { fullName } from "@/lib/format";
 
+type DealOption = { id: string; title: string; companyId: string | null; contactId: string | null };
+
+function dealMatches(deal: DealOption, companyId: string, contactId: string) {
+  if (!companyId && !contactId) return true;
+  return (companyId !== "" && deal.companyId === companyId) || (contactId !== "" && deal.contactId === contactId);
+}
+
 export function GlobalTaskForm({
   companies,
   contacts,
@@ -15,16 +22,21 @@ export function GlobalTaskForm({
 }: {
   companies: { id: string; name: string }[];
   contacts: { id: string; firstName: string; lastName: string | null; companyId: string | null }[];
-  deals: { id: string; title: string }[];
+  deals: DealOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [companyId, setCompanyId] = useState("");
   const [contactId, setContactId] = useState("");
+  const [dealId, setDealId] = useState("");
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
     [contacts, companyId],
+  );
+  const filteredDeals = useMemo(
+    () => deals.filter((deal) => dealMatches(deal, companyId, contactId)),
+    [deals, companyId, contactId],
   );
 
   function handleCompanyChange(nextCompanyId: string) {
@@ -32,13 +44,19 @@ export function GlobalTaskForm({
     const contactStillValid = !nextCompanyId
       ? true
       : contacts.some((contact) => contact.id === contactId && contact.companyId === nextCompanyId);
+    const nextContactId = contactStillValid ? contactId : "";
     if (!contactStillValid) setContactId("");
+    const deal = deals.find((d) => d.id === dealId);
+    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
   }
 
   function handleContactChange(nextContactId: string) {
     setContactId(nextContactId);
     const contact = contacts.find((c) => c.id === nextContactId);
+    const nextCompanyId = contact?.companyId ?? companyId;
     if (contact?.companyId) setCompanyId(contact.companyId);
+    const deal = deals.find((d) => d.id === dealId);
+    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
   }
 
   return (
@@ -50,6 +68,7 @@ export function GlobalTaskForm({
           formRef.current?.reset();
           setCompanyId("");
           setContactId("");
+          setDealId("");
         });
       }}
       className="space-y-3"
@@ -103,9 +122,14 @@ export function GlobalTaskForm({
           </Select>
         </FieldGroup>
         <FieldGroup label="Deal" htmlFor="g-dealId">
-          <Select id="g-dealId" name="dealId" defaultValue="">
+          <Select
+            id="g-dealId"
+            name="dealId"
+            value={dealId}
+            onChange={(event) => setDealId(event.target.value)}
+          >
             <option value="">—</option>
-            {deals.map((deal) => (
+            {filteredDeals.map((deal) => (
               <option key={deal.id} value={deal.id}>
                 {deal.title}
               </option>

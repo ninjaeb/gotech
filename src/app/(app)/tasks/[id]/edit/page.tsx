@@ -18,7 +18,10 @@ export default async function EditTaskPage({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
-    db.deal.findMany({ orderBy: { createdAt: "desc" }, select: { id: true, title: true } }),
+    db.deal.findMany({
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, companyId: true, contactId: true },
+    }),
   ]);
   if (!task) notFound();
 
