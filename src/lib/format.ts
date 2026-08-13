@@ -35,6 +35,13 @@ export function formatDateInput(value: Date | string | null | undefined) {
   return date.toISOString().slice(0, 10);
 }
 
+// WhatsApp's click-to-chat scheme wants the number as bare digits
+// (country code included, no "+", spaces, or punctuation).
+export function whatsAppUrl(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  return `https://wa.me/${digits}`;
+}
+
 export function fullName(firstName: string, lastName?: string | null) {
   return [firstName, lastName].filter(Boolean).join(" ");
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -16,6 +17,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { LinkContactForm } from "@/components/contacts/link-contact-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
+import { WhatsAppLink } from "@/components/ui/channel-links";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -87,7 +89,17 @@ export default async function CompanyDetailPage({
             <CardBody className="grid gap-3 text-sm sm:grid-cols-2">
               <DetailRow label="Domain" value={company.domain} />
               <DetailRow label="Industry" value={company.industry} />
-              <DetailRow label="Phone" value={company.phone} />
+              <DetailRow
+                label="Phone"
+                value={
+                  company.phone && (
+                    <span className="inline-flex items-center gap-1.5">
+                      {company.phone}
+                      <WhatsAppLink phone={company.phone} />
+                    </span>
+                  )
+                }
+              />
               <DetailRow label="Address" value={company.address} />
               {company.notes && (
                 <div className="sm:col-span-2">
@@ -205,7 +217,7 @@ export default async function CompanyDetailPage({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null }) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>

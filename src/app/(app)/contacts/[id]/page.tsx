@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
+import { WhatsAppLink, MailLink } from "@/components/ui/channel-links";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
@@ -96,8 +98,28 @@ export default async function ContactDetailPage({
                 </div>
               </div>
               <div className="grid gap-3 text-sm sm:grid-cols-2">
-                <DetailRow label="Email" value={contact.email} />
-                <DetailRow label="Phone" value={contact.phone} />
+                <DetailRow
+                  label="Email"
+                  value={
+                    contact.email && (
+                      <span className="inline-flex items-center gap-1.5">
+                        {contact.email}
+                        <MailLink email={contact.email} />
+                      </span>
+                    )
+                  }
+                />
+                <DetailRow
+                  label="Phone"
+                  value={
+                    contact.phone && (
+                      <span className="inline-flex items-center gap-1.5">
+                        {contact.phone}
+                        <WhatsAppLink phone={contact.phone} />
+                      </span>
+                    )
+                  }
+                />
                 <DetailRow label="Title" value={contact.title} />
               </div>
               {contact.notes && (
@@ -181,7 +203,7 @@ export default async function ContactDetailPage({
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null }) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
