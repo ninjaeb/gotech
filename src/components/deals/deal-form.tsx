@@ -35,8 +35,16 @@ export function DealForm({
   currency?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
-  const [companyId, setCompanyId] = useState(deal?.companyId ?? defaultCompanyId ?? "");
   const [contactId, setContactId] = useState(deal?.contactId ?? defaultContactId ?? "");
+  // Lazy initializer: when a deal is pre-seeded with a contact but no explicit
+  // company (e.g. "Add deal" from a Contact's own page), fall back to that
+  // contact's own company — mirrors what handleContactChange already does on
+  // manual selection, just applied once at mount too.
+  const [companyId, setCompanyId] = useState(() => {
+    if (deal?.companyId) return deal.companyId;
+    if (defaultCompanyId) return defaultCompanyId;
+    return contacts.find((contact) => contact.id === contactId)?.companyId ?? "";
+  });
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
