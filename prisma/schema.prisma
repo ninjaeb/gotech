@@ -79,6 +79,13 @@ model Contact {
   phone     String?
   title     String?
   notes     String?  @db.Text
+  // Stored as a data: URL (base64), not a file path — this app's cPanel
+  // deploy copies public/ on every deploy and the git checkout can double
+  // as the live app directory, both of which make filesystem-persisted
+  // uploads fragile. Keeping the photo in the same row as everything else
+  // sidesteps that entirely. @db.LongText because a base64-encoded image
+  // comfortably exceeds the default column's size.
+  photoUrl  String?  @db.LongText
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

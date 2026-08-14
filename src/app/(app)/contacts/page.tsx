@@ -6,7 +6,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { fullName, initials } from "@/lib/format";
+import { ContactAvatar } from "@/components/contacts/contact-avatar";
+import { fullName } from "@/lib/format";
 
 export default async function ContactsPage({
   searchParams,
@@ -89,9 +90,11 @@ export default async function ContactsPage({
                   href={`/contacts/${contact.id}`}
                   className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-xs font-semibold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                    {initials(fullName(contact.firstName, contact.lastName))}
-                  </div>
+                  <ContactAvatar
+                    photoUrl={contact.photoUrl}
+                    name={fullName(contact.firstName, contact.lastName)}
+                    className="h-9 w-9 text-xs"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                       {fullName(contact.firstName, contact.lastName)}
