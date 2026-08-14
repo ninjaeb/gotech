@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import type { Company, Contact, Deal } from "@/generated/prisma/client";
+import type { DealFormState } from "@/app/actions/deals";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -20,7 +21,7 @@ export function DealForm({
   submitLabel = "Save deal",
   currency = "USD",
 }: {
-  action: (formData: FormData) => void;
+  action: (prevState: DealFormState, formData: FormData) => Promise<DealFormState> | DealFormState;
   // Omit + override value: Deal's own type has value as a Prisma Decimal,
   // which can't cross the Server -> Client Component boundary as a prop
   // (only plain serializable objects can) — see EditDealPage, which converts
@@ -33,6 +34,7 @@ export function DealForm({
   submitLabel?: string;
   currency?: string;
 }) {
+  const [state, formAction, pending] = useActionState(action, undefined);
   const [companyId, setCompanyId] = useState(deal?.companyId ?? defaultCompanyId ?? "");
   const [contactId, setContactId] = useState(deal?.contactId ?? defaultContactId ?? "");
 
@@ -56,7 +58,7 @@ export function DealForm({
   }
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <FieldGroup label="Deal title" htmlFor="title" required>
         <Input
           id="title"
@@ -141,8 +143,12 @@ export function DealForm({
         />
       </FieldGroup>
 
+      {state?.error && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
+
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit">{submitLabel}</Button>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : submitLabel}
+        </Button>
       </div>
     </form>
   );
