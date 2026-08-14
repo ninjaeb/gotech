@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Flag, Pencil, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteDeal } from "@/app/actions/deals";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,6 +14,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
+import { needsFollowUp } from "@/lib/deal-hygiene";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
@@ -117,6 +118,12 @@ export default async function DealDetailPage({
               <CardTitle>Tasks</CardTitle>
             </CardHeader>
             <CardBody>
+              {needsFollowUp(deal) && (
+                <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
+                  <Flag className="h-3.5 w-3.5 shrink-0" />
+                  No next step scheduled — add one below.
+                </div>
+              )}
               <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
               <TaskQuickForm dealId={deal.id} />
             </CardBody>

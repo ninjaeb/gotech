@@ -12,7 +12,7 @@ export function StatCard({
   value: string;
   description?: string;
   icon: LucideIcon;
-  accent?: "indigo" | "emerald" | "amber" | "sky" | "rose";
+  accent?: "indigo" | "emerald" | "amber" | "sky" | "rose" | "orange";
 }) {
   const accents: Record<string, string> = {
     indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
@@ -21,6 +21,7 @@ export function StatCard({
     amber: "bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     sky: "bg-sky-50 text-sky-600 dark:bg-sky-950 dark:text-sky-400",
     rose: "bg-rose-50 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+    orange: "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
   };
 
   return (

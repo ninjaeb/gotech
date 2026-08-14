@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CheckSquare, Clock, Plus, Users } from "lucide-react";
+import { Building2, CheckSquare, Clock, Flag, Plus, Users } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -27,6 +27,7 @@ export default async function DashboardPage() {
     allDeals,
     tasksDueTodayCount,
     overdueTasksCount,
+    needsFollowUpCount,
     upcomingTasks,
     topOpenDeals,
   ] = await Promise.all([
@@ -39,6 +40,12 @@ export default async function DashboardPage() {
     }),
     db.task.count({
       where: { completed: false, dueDate: { lt: startOfToday } },
+    }),
+    db.deal.count({
+      where: {
+        stage: { notIn: ["WON", "LOST"] },
+        tasks: { none: { completed: false, dueDate: { not: null } } },
+      },
     }),
     db.task.findMany({
       where: { completed: false },
@@ -119,7 +126,7 @@ export default async function DashboardPage() {
         <AiPipelineDiagnosis />
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard label="Companies" value={companyCount.toString()} icon={Building2} accent="indigo" />
         <StatCard label="Contacts" value={contactCount.toString()} icon={Users} accent="sky" />
         <StatCard
@@ -135,6 +142,15 @@ export default async function DashboardPage() {
           accent="rose"
           description={overdueTasksCount > 0 ? "Needs attention" : "All caught up"}
         />
+        <Link href="/deals?flag=needs-follow-up" className="block">
+          <StatCard
+            label="Needs follow-up"
+            value={needsFollowUpCount.toString()}
+            icon={Flag}
+            accent="orange"
+            description={needsFollowUpCount > 0 ? "Open deals, no next step" : "All deals on track"}
+          />
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
