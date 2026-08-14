@@ -57,3 +57,9 @@ next-env.d.ts
 /tmp/
 /stderr.log
 /stdout.log
+
+# Locally-hosted contact photos (see scripts/download-xchievers-photos.mjs)
+# — instance data written at runtime, not application code. Same "only
+# matters if Application root is the Git checkout" caveat as above: if it
+# isn't, these just live outside the checkout entirely and this is a no-op.
+/public/uploads/
