@@ -1,10 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { Company, Contact } from "@/generated/prisma/client";
 import type { ContactFormState } from "@/app/actions/contacts";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { compressImage, formatBytes } from "@/lib/image-compression";
+
+// Below this, compressing wouldn't meaningfully shrink the file — not worth
+// the (small but non-zero) delay of decoding and re-encoding on selection.
+const COMPRESS_ABOVE_BYTES = 800 * 1024;
 
 export function ContactForm({
   action,
@@ -20,6 +25,25 @@ export function ContactForm({
   submitLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !file.type.startsWith("image/") || file.size <= COMPRESS_ABOVE_BYTES) {
+      setPhotoStatus(null);
+      return;
+    }
+    setPhotoStatus("Compressing…");
+    const compressed = await compressImage(file);
+    if (compressed === file) {
+      setPhotoStatus(null);
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(compressed);
+    event.target.files = transfer.files;
+    setPhotoStatus(`Compressed from ${formatBytes(file.size)} to ${formatBytes(compressed.size)}.`);
+  }
 
   return (
     <form action={formAction} className="space-y-4">
@@ -102,11 +126,16 @@ export function ContactForm({
               name="photo"
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handlePhotoChange}
               className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 dark:text-slate-400 dark:file:bg-neutral-800 dark:file:text-slate-200 dark:hover:file:bg-neutral-700"
             />
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              JPEG, PNG, WebP, or GIF, up to 3MB.
+              JPEG, PNG, WebP, or GIF. Larger images are resized and
+              compressed automatically.
             </p>
+            {photoStatus && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">{photoStatus}</p>
+            )}
             {contact?.photoUrl && (
               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
