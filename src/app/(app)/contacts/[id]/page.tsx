@@ -17,7 +17,7 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
-import { ContactAvatar } from "@/components/contacts/contact-avatar";
+import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -80,14 +80,14 @@ export default async function ContactDetailPage({
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardBody>
-              <div className="flex items-center gap-3 pb-4">
-                <ContactAvatar
+              <div className="flex items-center gap-4 pb-4">
+                <ContactAvatarZoom
                   photoUrl={contact.photoUrl}
                   name={contactName}
-                  className="h-12 w-12 text-sm"
+                  className="h-24 w-24 text-2xl"
                 />
                 <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {contactName}
                   </p>
                   {contact.company && (
