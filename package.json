@@ -9,8 +9,7 @@
     "start:cpanel": "NODE_ENV=production node server.js",
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
-    "clear-data": "tsx scripts/clear-data.ts",
-    "postinstall": "node \"$npm_config_local_prefix/scripts/postinstall.mjs\""
+    "clear-data": "tsx scripts/clear-data.ts"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
