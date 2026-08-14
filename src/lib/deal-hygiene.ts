@@ -25,3 +25,25 @@ export function stageGateError(
   if (deal.quoteCount < 1) return "Attach a quote before marking this Won.";
   return null;
 }
+
+export const ROTTING_THRESHOLD_DAYS = 14;
+
+// "Days in stage" isn't a stored field — it's derived from the most recent
+// STAGE_CHANGE activity (already logged by changeDealStage/updateDeal), or
+// createdAt for a deal that's never moved out of the stage it was created
+// in. Callers pass that one timestamp in rather than a full activity list,
+// since it's cheap to select as just the latest STAGE_CHANGE row's
+// createdAt in the query itself (see the Deals kanban page).
+export function daysInStage(deal: { createdAt: Date; latestStageChangeAt: Date | null }): number {
+  const enteredAt = deal.latestStageChangeAt ?? deal.createdAt;
+  return Math.floor((Date.now() - enteredAt.getTime()) / 86_400_000);
+}
+
+export function isRotting(deal: {
+  stage: DealStage;
+  createdAt: Date;
+  latestStageChangeAt: Date | null;
+}): boolean {
+  if (deal.stage === "WON" || deal.stage === "LOST") return false;
+  return daysInStage(deal) >= ROTTING_THRESHOLD_DAYS;
+}

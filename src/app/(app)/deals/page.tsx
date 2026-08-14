@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { Flag, Plus, Search } from "lucide-react";
+import { Clock, Flag, Plus, Search } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
-import { needsFollowUp } from "@/lib/deal-hygiene";
+import { daysInStage, isRotting, needsFollowUp } from "@/lib/deal-hygiene";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import type { Prisma } from "@/generated/prisma/client";
@@ -49,6 +49,12 @@ export default async function DealsPage({
         company: true,
         contact: true,
         tasks: { select: { completed: true, dueDate: true } },
+        activities: {
+          where: { type: "STAGE_CHANGE" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
       },
     }),
   ]);
@@ -115,7 +121,12 @@ export default async function DealsPage({
                   {query || flagged ? "No matches" : "No deals"}
                 </p>
               ) : (
-                column.deals.map((deal) => (
+                column.deals.map((deal) => {
+                  const latestStageChangeAt = deal.activities[0]?.createdAt ?? null;
+                  const dealWithStageTiming = { ...deal, latestStageChangeAt };
+                  const rotting = isRotting(dealWithStageTiming);
+
+                  return (
                   <div
                     key={deal.id}
                     className="rounded-md border border-slate-200 bg-white p-3 shadow-sm transition-shadow hover:shadow dark:border-neutral-800 dark:bg-neutral-900"
@@ -125,14 +136,25 @@ export default async function DealsPage({
                         <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                           {deal.title}
                         </p>
-                        {needsFollowUp(deal) && (
-                          <span
-                            title="No next step scheduled"
-                            className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-950 dark:text-orange-400 dark:ring-orange-500/30"
-                          >
-                            <Flag className="h-3 w-3" />
-                          </span>
-                        )}
+                        <span className="flex shrink-0 items-center gap-1">
+                          {rotting && (
+                            <span
+                              title={`${daysInStage(dealWithStageTiming)} days in ${DEAL_STAGE_LABELS[deal.stage]}`}
+                              className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-950 dark:text-rose-400 dark:ring-rose-500/30"
+                            >
+                              <Clock className="h-3 w-3" />
+                              {daysInStage(dealWithStageTiming)}d
+                            </span>
+                          )}
+                          {needsFollowUp(deal) && (
+                            <span
+                              title="No next step scheduled"
+                              className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-950 dark:text-orange-400 dark:ring-orange-500/30"
+                            >
+                              <Flag className="h-3 w-3" />
+                            </span>
+                          )}
+                        </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
                         {deal.company?.name ??
@@ -157,7 +179,8 @@ export default async function DealsPage({
                       />
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
