@@ -118,6 +118,7 @@ model Deal {
 
   tasks      Task[]
   activities Activity[]
+  quotes     Quote[]
 
   @@index([companyId])
   @@index([contactId])
@@ -169,4 +170,66 @@ model Activity {
   @@index([companyId])
   @@index([dealId])
   @@index([createdAt])
+}
+
+// Reusable catalog of things GoTech sells, so quotes are built from
+// consistent line items instead of free-typed descriptions/prices every time.
+model ServicePackage {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  unitPrice   Decimal  @default(0) @db.Decimal(12, 2)
+  unit        String? // e.g. "project", "hour", "month" — free text, shown after the price
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quoteItems QuoteItem[]
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+}
+
+model Quote {
+  id     String      @id @default(cuid())
+  title  String
+  status QuoteStatus @default(DRAFT)
+  notes  String?     @db.Text // terms shown to the client under the line items
+
+  sentAt        DateTime?
+  firstViewedAt DateTime?
+  lastViewedAt  DateTime?
+  viewCount     Int       @default(0)
+  respondedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String
+
+  items QuoteItem[]
+
+  @@index([dealId])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  sortOrder   Int     @default(0)
+
+  quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId String
+
+  servicePackage   ServicePackage? @relation(fields: [servicePackageId], references: [id], onDelete: SetNull)
+  servicePackageId String?
+
+  @@index([quoteId])
+  @@index([servicePackageId])
 }

@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Flag, Pencil, Trash2 } from "lucide-react";
+import { FileText, Flag, Pencil, Plus, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteDeal } from "@/app/actions/deals";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
@@ -15,6 +17,8 @@ import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
+import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
+import { quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
@@ -34,6 +38,10 @@ export default async function DealDetailPage({
         contact: true,
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        quotes: {
+          orderBy: { createdAt: "desc" },
+          include: { items: true },
+        },
       },
     }),
   ]);
@@ -105,6 +113,47 @@ export default async function DealDetailPage({
                   </p>
                   <Linkify text={deal.notes} className="mt-1 text-slate-700 dark:text-slate-300" />
                 </div>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quotes ({deal.quotes.length})</CardTitle>
+              <Link href={`/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
+                <Plus className="h-4 w-4" />
+                New quote
+              </Link>
+            </CardHeader>
+            <CardBody>
+              {deal.quotes.length === 0 ? (
+                <EmptyState title="No quotes yet." />
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {deal.quotes.map((quote) => (
+                    <li key={quote.id}>
+                      <Link
+                        href={`/deals/${deal.id}/quotes/${quote.id}`}
+                        className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                          <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                            {quote.title}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-3">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            {formatCurrency(quoteTotal(quote.items), currency)}
+                          </span>
+                          <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>
+                            {QUOTE_STATUS_LABELS[quote.status]}
+                          </Badge>
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardBody>
           </Card>
