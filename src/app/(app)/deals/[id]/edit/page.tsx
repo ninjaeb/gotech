@@ -30,7 +30,7 @@ export default async function EditDealPage({
         <CardBody>
           <DealForm
             action={updateDeal.bind(null, deal.id)}
-            deal={deal}
+            deal={{ ...deal, value: Number(deal.value) }}
             companies={companies}
             contacts={contacts}
             submitLabel="Save changes"

@@ -1,4 +1,4 @@
-import { ActivityType, DealStage, QuoteStatus, TaskType } from "@/generated/prisma/client";
+import { ActivityType, DealStage, ProjectStatus, QuoteStatus, TaskType } from "@/generated/prisma/client";
 
 export const DEAL_STAGES: DealStage[] = [
   "LEAD",
@@ -35,6 +35,7 @@ export const TASK_TYPES: TaskType[] = [
   "EMAIL",
   "MEETING",
   "FOLLOW_UP",
+  "MILESTONE",
   "OTHER",
 ];
 
@@ -43,6 +44,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   EMAIL: "Email",
   MEETING: "Meeting",
   FOLLOW_UP: "Follow-up",
+  MILESTONE: "Milestone",
   OTHER: "Other",
 };
 
@@ -71,4 +73,29 @@ export const QUOTE_STATUS_BADGE_CLASSES: Record<QuoteStatus, string> = {
   ACCEPTED:
     "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
   DECLINED: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
+};
+
+export const PROJECT_STATUSES: ProjectStatus[] = [
+  "NOT_STARTED",
+  "IN_PROGRESS",
+  "ON_HOLD",
+  "COMPLETED",
+];
+
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  NOT_STARTED: "Not started",
+  IN_PROGRESS: "In progress",
+  ON_HOLD: "On hold",
+  COMPLETED: "Completed",
+};
+
+export const PROJECT_STATUS_BADGE_CLASSES: Record<ProjectStatus, string> = {
+  NOT_STARTED:
+    "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+  IN_PROGRESS:
+    "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  ON_HOLD:
+    "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
+  COMPLETED:
+    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
 };

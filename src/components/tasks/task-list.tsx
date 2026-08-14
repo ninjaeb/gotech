@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Company, Contact, Deal, Task } from "@/generated/prisma/client";
+import type { Company, Contact, Deal, Project, Task } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
 import { TASK_TYPE_LABELS } from "@/lib/labels";
 import { relativeToToday, fullName } from "@/lib/format";
@@ -12,6 +12,7 @@ export type TaskWithRelations = Task & {
   contact?: Pick<Contact, "id" | "firstName" | "lastName"> | null;
   company?: Pick<Company, "id" | "name"> | null;
   deal?: Pick<Deal, "id" | "title"> | null;
+  project?: Pick<Project, "id" | "name"> | null;
 };
 
 export function TaskList({
@@ -95,7 +96,7 @@ export function TaskList({
                   {task.description}
                 </p>
               )}
-              {showParent && (task.contact || task.company || task.deal) && (
+              {showParent && (task.contact || task.company || task.deal || task.project) && (
                 <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-400">
                   {task.contact && (
                     <Link
@@ -119,6 +120,14 @@ export function TaskList({
                       className="hover:text-indigo-600 hover:underline"
                     >
                       {task.deal.title}
+                    </Link>
+                  )}
+                  {task.project && (
+                    <Link
+                      href={`/projects/${task.project.id}`}
+                      className="hover:text-indigo-600 hover:underline"
+                    >
+                      {task.project.name}
                     </Link>
                   )}
                 </div>

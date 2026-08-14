@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { DealStage, ActivityType } from "@/generated/prisma/client";
 import { DEAL_STAGE_LABELS } from "@/lib/labels";
+import { ensureProjectForWonDeal } from "@/app/actions/projects";
 
 const dealSchema = z.object({
   title: z.string().trim().min(1, "Deal title is required"),
@@ -74,6 +75,9 @@ export async function updateDeal(id: string, formData: FormData) {
       },
     });
   }
+  if (data.stage === DealStage.WON) {
+    await ensureProjectForWonDeal({ id, title: data.title });
+  }
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
   revalidateDealPaths(id, data.companyId, data.contactId);
@@ -92,6 +96,9 @@ export async function changeDealStage(id: string, stage: DealStage) {
       dealId: id,
     },
   });
+  if (stage === DealStage.WON) {
+    await ensureProjectForWonDeal({ id, title: previous.title });
+  }
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
 }

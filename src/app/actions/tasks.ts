@@ -14,18 +14,21 @@ const taskSchema = z.object({
   contactId: z.string().trim().nullish(),
   companyId: z.string().trim().nullish(),
   dealId: z.string().trim().nullish(),
+  projectId: z.string().trim().nullish(),
 });
 
 function revalidateTaskPaths(task: {
   contactId?: string | null;
   companyId?: string | null;
   dealId?: string | null;
+  projectId?: string | null;
 }) {
   revalidatePath("/tasks");
   revalidatePath("/");
   if (task.contactId) revalidatePath(`/contacts/${task.contactId}`);
   if (task.companyId) revalidatePath(`/companies/${task.companyId}`);
   if (task.dealId) revalidatePath(`/deals/${task.dealId}`);
+  if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
 }
 
 export async function createTask(formData: FormData) {
@@ -37,6 +40,7 @@ export async function createTask(formData: FormData) {
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
+    projectId: formData.get("projectId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
@@ -51,11 +55,17 @@ export async function createTask(formData: FormData) {
       contactId: data.contactId || null,
       companyId: data.companyId || null,
       dealId: data.dealId || null,
+      projectId: data.projectId || null,
     },
   });
   revalidateTaskPaths(task);
 }
 
+// No projectId here deliberately — the generic task-edit form (TaskForm)
+// has no field for it, so parsing "projectId" from its FormData would
+// always be empty and silently unlink a milestone task from its project on
+// every edit. Project association is only ever set at creation (either
+// here via createTask, or by ensureProjectForWonDeal's seeding).
 export async function updateTask(id: string, formData: FormData) {
   const parsed = taskSchema.safeParse({
     title: formData.get("title"),
@@ -72,7 +82,7 @@ export async function updateTask(id: string, formData: FormData) {
   const data = parsed.data;
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
-    select: { contactId: true, companyId: true, dealId: true },
+    select: { contactId: true, companyId: true, dealId: true, projectId: true },
   });
   const task = await db.task.update({
     where: { id },
@@ -108,6 +118,7 @@ export async function toggleTaskComplete(id: string) {
         contactId: task.contactId,
         companyId: task.companyId,
         dealId: task.dealId,
+        projectId: task.projectId,
       },
     });
   }

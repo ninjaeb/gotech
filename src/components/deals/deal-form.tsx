@@ -21,7 +21,11 @@ export function DealForm({
   currency = "USD",
 }: {
   action: (formData: FormData) => void;
-  deal?: Deal;
+  // Omit + override value: Deal's own type has value as a Prisma Decimal,
+  // which can't cross the Server -> Client Component boundary as a prop
+  // (only plain serializable objects can) — see EditDealPage, which converts
+  // it with Number(...) before passing a deal down to this component.
+  deal?: Omit<Deal, "value"> & { value: number };
   companies: Company[];
   contacts: ContactOption[];
   defaultCompanyId?: string;

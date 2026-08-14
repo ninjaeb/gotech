@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CheckSquare,
+  FolderKanban,
   KanbanSquare,
   LayoutDashboard,
   LogOut,
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { href: "/companies", label: "Companies", icon: Building2 },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/deals", label: "Deals", icon: KanbanSquare },
+  { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

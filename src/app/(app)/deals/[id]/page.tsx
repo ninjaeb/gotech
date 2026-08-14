@@ -42,6 +42,7 @@ export default async function DealDetailPage({
           orderBy: { createdAt: "desc" },
           include: { items: true },
         },
+        project: { select: { id: true, name: true } },
       },
     }),
   ]);
@@ -106,6 +107,13 @@ export default async function DealDetailPage({
                 label="Expected close date"
                 value={deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : null}
               />
+              {deal.project && (
+                <DetailRow
+                  label="Project"
+                  value={deal.project.name}
+                  href={`/projects/${deal.project.id}`}
+                />
+              )}
               {deal.notes && (
                 <div className="sm:col-span-2">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">

@@ -24,7 +24,15 @@ enum TaskType {
   EMAIL
   MEETING
   FOLLOW_UP
+  MILESTONE
   OTHER
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
 }
 
 enum ActivityType {
@@ -119,10 +127,30 @@ model Deal {
   tasks      Task[]
   activities Activity[]
   quotes     Quote[]
+  project    Project?
 
   @@index([companyId])
   @@index([contactId])
   @@index([stage])
+}
+
+// The delivery-side counterpart to a won Deal — spun up automatically (see
+// ensureProjectForWonDeal) instead of dumping delivery work into the same
+// flat task list as sales to-dos. One deal converts into at most one
+// project, hence the unique dealId; the project's own status then tracks
+// delivery progress independently of the deal's (now-frozen) sales stage.
+model Project {
+  id        String        @id @default(cuid())
+  name      String
+  status    ProjectStatus @default(NOT_STARTED)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String @unique
+
+  tasks      Task[]
+  activities Activity[]
 }
 
 model Task {
@@ -145,9 +173,13 @@ model Task {
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String?
 
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
   @@index([contactId])
   @@index([companyId])
   @@index([dealId])
+  @@index([projectId])
   @@index([dueDate])
 }
 
@@ -166,9 +198,13 @@ model Activity {
   deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String?
 
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
   @@index([contactId])
   @@index([companyId])
   @@index([dealId])
+  @@index([projectId])
   @@index([createdAt])
 }
 

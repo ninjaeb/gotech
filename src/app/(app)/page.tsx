@@ -55,6 +55,7 @@ export default async function DashboardPage() {
         contact: { select: { id: true, firstName: true, lastName: true } },
         company: { select: { id: true, name: true } },
         deal: { select: { id: true, title: true } },
+        project: { select: { id: true, name: true } },
       },
     }),
     db.deal.findMany({

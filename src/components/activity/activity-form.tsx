@@ -9,10 +9,12 @@ export function ActivityForm({
   contactId,
   companyId,
   dealId,
+  projectId,
 }: {
   contactId?: string;
   companyId?: string;
   dealId?: string;
+  projectId?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -31,6 +33,7 @@ export function ActivityForm({
       {contactId && <input type="hidden" name="contactId" value={contactId} />}
       {companyId && <input type="hidden" name="companyId" value={companyId} />}
       {dealId && <input type="hidden" name="dealId" value={dealId} />}
+      {projectId && <input type="hidden" name="projectId" value={projectId} />}
       <Textarea
         name="content"
         rows={2}

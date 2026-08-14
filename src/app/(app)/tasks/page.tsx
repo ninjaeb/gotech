@@ -79,6 +79,7 @@ export default async function TasksPage({
         contact: { select: { id: true, firstName: true, lastName: true } },
         company: { select: { id: true, name: true } },
         deal: { select: { id: true, title: true } },
+        project: { select: { id: true, name: true } },
       },
     }),
     db.company.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
