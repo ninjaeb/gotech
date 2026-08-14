@@ -10,7 +10,7 @@
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
     "clear-data": "tsx scripts/clear-data.ts",
-    "postinstall": "node scripts/postinstall.mjs"
+    "postinstall": "node \"$npm_config_local_prefix/scripts/postinstall.mjs\""
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
