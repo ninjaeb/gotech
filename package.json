@@ -10,7 +10,7 @@
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
     "clear-data": "tsx scripts/clear-data.ts",
-    "postinstall": "cd \"$INIT_CWD\" && prisma generate 2>&1"
+    "postinstall": "node scripts/postinstall.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
