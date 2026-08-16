@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex h-full min-h-full">
       <Sidebar user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <MobileNav />
+        <MobileNav user={user} />
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
