@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Menu,
   Settings,
+  Trophy,
   Users,
   X,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/deals", label: "Deals", icon: KanbanSquare },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

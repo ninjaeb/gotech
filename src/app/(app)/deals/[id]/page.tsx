@@ -36,6 +36,7 @@ export default async function DealDetailPage({
       include: {
         company: true,
         contact: true,
+        owner: { select: { id: true, name: true } },
         pipelineStage: true,
         pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
@@ -99,6 +100,7 @@ export default async function DealDetailPage({
                 </div>
               </div>
               <DetailRow label="Value" value={formatCurrency(deal.value.toString(), currency)} />
+              <DetailRow label="Owner" value={deal.owner?.name ?? "Unassigned"} />
               <DetailRow
                 label="Company"
                 value={deal.company?.name ?? null}

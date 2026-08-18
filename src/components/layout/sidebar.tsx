@@ -9,6 +9,7 @@ import {
   KanbanSquare,
   LayoutDashboard,
   Settings,
+  Trophy,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/deals", label: "Deals", icon: KanbanSquare },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

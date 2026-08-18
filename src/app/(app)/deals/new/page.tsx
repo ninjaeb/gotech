@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
 import { getPipelinesWithStages, getDefaultPipeline } from "@/lib/pipelines";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function NewDealPage({
   searchParams,
@@ -12,7 +13,8 @@ export default async function NewDealPage({
   searchParams: Promise<{ companyId?: string; contactId?: string; pipelineId?: string }>;
 }) {
   const { companyId, contactId, pipelineId } = await searchParams;
-  const [currency, companies, contacts, pipelines, defaultPipeline] = await Promise.all([
+  const currentUser = await getCurrentUser();
+  const [currency, companies, contacts, pipelines, defaultPipeline, users] = await Promise.all([
     getCurrency(),
     db.company.findMany({ orderBy: { name: "asc" } }),
     db.contact.findMany({
@@ -21,6 +23,7 @@ export default async function NewDealPage({
     }),
     getPipelinesWithStages(),
     getDefaultPipeline(),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
@@ -33,9 +36,11 @@ export default async function NewDealPage({
             companies={companies}
             contacts={contacts}
             pipelines={pipelines}
+            users={users}
             defaultCompanyId={companyId}
             defaultContactId={contactId}
             defaultPipelineId={pipelineId ?? defaultPipeline.id}
+            defaultOwnerId={currentUser.id}
             submitLabel="Create deal"
             currency={currency}
           />

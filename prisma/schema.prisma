@@ -44,6 +44,7 @@ model User {
   createdAt    DateTime @default(now())
 
   emailAccount EmailAccount?
+  deals        Deal[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -213,6 +214,13 @@ model Deal {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  // Set/cleared automatically whenever the deal moves into/out of a
+  // pipeline's isWon stage (see app/actions/deals.ts) — not just "is this
+  // deal currently won" (pipelineStage.isWon already answers that) but
+  // *when* it most recently became won, for period-filtering the
+  // leaderboard (see src/app/(app)/leaderboard).
+  wonAt DateTime?
+
   pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
   pipelineId String
 
@@ -225,6 +233,9 @@ model Deal {
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
   contactId String?
 
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerId String?
+
   tasks      Task[]
   activities Activity[]
   quotes     Quote[]
@@ -234,6 +245,7 @@ model Deal {
   @@index([contactId])
   @@index([pipelineId])
   @@index([pipelineStageId])
+  @@index([ownerId])
 }
 
 // The delivery-side counterpart to a won Deal — spun up automatically (see

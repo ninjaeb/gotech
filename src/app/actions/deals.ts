@@ -16,6 +16,7 @@ const dealSchema = z.object({
   expectedCloseDate: z.string().trim().optional(),
   companyId: z.string().trim().optional(),
   contactId: z.string().trim().optional(),
+  ownerId: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
 
@@ -28,6 +29,7 @@ function parseDealForm(formData: FormData) {
     expectedCloseDate: formData.get("expectedCloseDate"),
     companyId: formData.get("companyId"),
     contactId: formData.get("contactId"),
+    ownerId: formData.get("ownerId"),
     notes: formData.get("notes"),
   });
   if (!parsed.success) {
@@ -44,6 +46,7 @@ function parseDealForm(formData: FormData) {
       : null,
     companyId: data.companyId || null,
     contactId: data.contactId || null,
+    ownerId: data.ownerId || null,
     notes: data.notes || null,
   };
 }
@@ -122,9 +125,13 @@ export async function updateDeal(
   const gateError = stageGateError({ ...data, quoteCount: previous._count.quotes }, targetStage);
   if (gateError) return { error: gateError };
 
-  await db.deal.update({ where: { id }, data });
+  const stageChanged = previous.pipelineStageId !== data.pipelineStageId;
+  await db.deal.update({
+    where: { id },
+    data: stageChanged ? { ...data, wonAt: targetStage.isWon ? new Date() : null } : data,
+  });
 
-  if (previous.pipelineStageId !== data.pipelineStageId) {
+  if (stageChanged) {
     await db.activity.create({
       data: {
         type: ActivityType.STAGE_CHANGE,
@@ -160,7 +167,10 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
   );
   if (gateError) return { error: gateError };
 
-  await db.deal.update({ where: { id }, data: { pipelineStageId } });
+  await db.deal.update({
+    where: { id },
+    data: { pipelineStageId, wonAt: targetStage.isWon ? new Date() : null },
+  });
   await db.activity.create({
     data: {
       type: ActivityType.STAGE_CHANGE,

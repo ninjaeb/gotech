@@ -10,6 +10,7 @@ import { formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = Pick<Contact, "id" | "firstName" | "lastName" | "companyId">;
 type PipelineOption = { id: string; name: string; stages: { id: string; name: string }[] };
+type UserOption = { id: string; name: string };
 
 // Plain-number/plain-object shape, not the Prisma-generated Deal type —
 // that carries `value` as a Decimal, which can't cross the Server -> Client
@@ -22,6 +23,7 @@ type DealDraft = {
   pipelineStageId: string;
   companyId: string | null;
   contactId: string | null;
+  ownerId: string | null;
   expectedCloseDate: Date | null;
   notes: string | null;
 };
@@ -32,9 +34,11 @@ export function DealForm({
   companies,
   contacts,
   pipelines,
+  users,
   defaultCompanyId,
   defaultContactId,
   defaultPipelineId,
+  defaultOwnerId,
   submitLabel = "Save deal",
   currency = "USD",
 }: {
@@ -43,9 +47,11 @@ export function DealForm({
   companies: Company[];
   contacts: ContactOption[];
   pipelines: PipelineOption[];
+  users: UserOption[];
   defaultCompanyId?: string;
   defaultContactId?: string;
   defaultPipelineId?: string;
+  defaultOwnerId?: string;
   submitLabel?: string;
   currency?: string;
 }) {
@@ -120,6 +126,17 @@ export function DealForm({
           {pipelines.map((pipeline) => (
             <option key={pipeline.id} value={pipeline.id}>
               {pipeline.name}
+            </option>
+          ))}
+        </Select>
+      </FieldGroup>
+
+      <FieldGroup label="Owner" htmlFor="ownerId">
+        <Select id="ownerId" name="ownerId" defaultValue={deal?.ownerId ?? defaultOwnerId ?? ""}>
+          <option value="">Unassigned</option>
+          {users.map((user) => (
+            <option key={user.id} value={user.id}>
+              {user.name}
             </option>
           ))}
         </Select>

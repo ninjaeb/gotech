@@ -13,7 +13,7 @@ export default async function EditDealPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [currency, deal, companies, contacts, pipelines] = await Promise.all([
+  const [currency, deal, companies, contacts, pipelines, users] = await Promise.all([
     getCurrency(),
     db.deal.findUnique({ where: { id } }),
     db.company.findMany({ orderBy: { name: "asc" } }),
@@ -22,6 +22,7 @@ export default async function EditDealPage({
       select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
     getPipelinesWithStages(),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   if (!deal) notFound();
 
@@ -36,6 +37,7 @@ export default async function EditDealPage({
             companies={companies}
             contacts={contacts}
             pipelines={pipelines}
+            users={users}
             submitLabel="Save changes"
             currency={currency}
           />
