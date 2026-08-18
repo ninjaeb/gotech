@@ -53,11 +53,21 @@ model User {
   createdAt    DateTime @default(now())
 }
 
-// Single-row table for CRM-wide settings (currently just currency).
-// Always read/written at id "singleton" — see src/lib/settings.ts.
+// Single-row table for CRM-wide settings (currency, booking-link
+// availability). Always read/written at id "singleton" — see src/lib/settings.ts.
 model Settings {
   id       String @id @default("singleton")
   currency String @default("USD")
+
+  // Booking link (see src/lib/booking.ts). A fixed UTC offset rather than an
+  // IANA timezone — simpler and DST-free, and the org this ships for doesn't
+  // observe DST — labeled clearly in the Settings UI rather than pretending
+  // to be a full tz database.
+  bookingUtcOffsetMinutes Int    @default(480) // UTC+8
+  bookingSlotMinutes      Int    @default(30)
+  // JSON-encoded WeeklyHours (see src/lib/booking.ts) — 7 entries,
+  // index 0 = Sunday..6 = Saturday, each { enabled, start: "HH:mm", end: "HH:mm" }.
+  bookingWeeklyHours      String @default("[{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"}]") @db.Text
 }
 
 model Company {
@@ -103,9 +113,31 @@ model Contact {
   deals      Deal[]
   tasks      Task[]
   activities Activity[]
+  bookings   Booking[]
 
   @@index([companyId])
   @@index([lastName, firstName])
+}
+
+// A confirmed slot from the public booking page (see src/app/book). The
+// unique startAt is the actual double-booking guard — two people can't
+// reserve the same fixed-duration slot even under a concurrent submit race
+// (the DB rejects the second insert; see submitBooking's error handling).
+model Booking {
+  id        String   @id @default(cuid())
+  startAt   DateTime
+  endAt     DateTime
+  name      String
+  email     String
+  phone     String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  @@unique([startAt])
+  @@index([contactId])
 }
 
 model Deal {

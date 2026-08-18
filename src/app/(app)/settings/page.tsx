@@ -16,19 +16,23 @@ import { CreateUserForm } from "@/components/settings/create-user-form";
 import { ResetPasswordButton } from "@/components/settings/reset-password-button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
+import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { getSiteOrigin } from "@/lib/site-url";
+import { getBookingSettings } from "@/lib/settings";
 
 export default async function SettingsPage() {
-  const [currency, currentUser, users, servicePackages, siteOrigin] = await Promise.all([
+  const [currency, currentUser, users, servicePackages, siteOrigin, bookingSettings] = await Promise.all([
     getCurrency(),
     getCurrentUser(),
     db.user.findMany({ orderBy: { createdAt: "asc" } }),
     db.servicePackage.findMany({ orderBy: { name: "asc" } }),
     getSiteOrigin(),
+    getBookingSettings(),
   ]);
   const leadFormUrl = `${siteOrigin}/lead`;
   const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
+  const bookingUrl = `${siteOrigin}/book`;
 
   return (
     <div className="max-w-lg space-y-6">
@@ -156,6 +160,30 @@ export default async function SettingsPage() {
               <CopyLinkButton text={leadFormEmbed} label="Copy embed code" />
             </div>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Meeting scheduler</CardTitle>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            A public booking link for discovery calls. A booking auto-creates a Contact and a follow-up
+            Task at the chosen time — no back-and-forth over email.
+          </p>
+          <div>
+            <Label htmlFor="booking-link">Direct link</Label>
+            <div className="flex items-center gap-2">
+              <Input id="booking-link" readOnly value={bookingUrl} className="font-mono text-xs" />
+              <CopyLinkButton text={bookingUrl} />
+            </div>
+          </div>
+          <BookingSettingsForm
+            initialUtcOffsetMinutes={bookingSettings.utcOffsetMinutes}
+            initialSlotMinutes={bookingSettings.slotMinutes}
+            initialWeeklyHours={bookingSettings.weeklyHours}
+          />
         </CardBody>
       </Card>
 

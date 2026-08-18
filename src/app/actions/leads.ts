@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { splitFullName } from "@/lib/format";
+import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -38,7 +38,6 @@ export async function submitLead(
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Invalid submission" };
   }
   const data = parsed.data;
-  const { firstName, lastName } = splitFullName(data.name);
 
   let companyId: string | null = null;
   const companyName = data.companyName?.trim();
@@ -47,30 +46,12 @@ export async function submitLead(
     companyId = company?.id ?? (await db.company.create({ data: { name: companyName }, select: { id: true } })).id;
   }
 
-  const existingContact = await db.contact.findFirst({
-    where: { email: data.email },
-    select: { id: true, companyId: true },
+  const contact = await findOrCreateContactByEmail({
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    companyId,
   });
-
-  const contact = existingContact
-    ? await db.contact.update({
-        where: { id: existingContact.id },
-        // Only fill in a company if the contact doesn't already have one —
-        // an inbound form submission shouldn't override a CRM record a rep
-        // has already curated.
-        data: existingContact.companyId ? {} : { companyId },
-        select: { id: true, companyId: true },
-      })
-    : await db.contact.create({
-        data: {
-          firstName: firstName || data.name,
-          lastName: lastName || null,
-          email: data.email,
-          phone: data.phone || null,
-          companyId,
-        },
-        select: { id: true, companyId: true },
-      });
 
   const deal = await db.deal.create({
     data: {
