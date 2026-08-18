@@ -62,6 +62,14 @@ export function initials(name: string) {
     .join("");
 }
 
+export function formatMinutes(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
 export function relativeToToday(value: Date | string | null | undefined) {
   if (!value) return null;
   const date = typeof value === "string" ? new Date(value) : value;

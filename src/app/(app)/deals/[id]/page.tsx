@@ -19,7 +19,7 @@ import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
 import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
 import { quoteTotal } from "@/lib/quotes";
-import { formatCurrency, formatDate, fullName } from "@/lib/format";
+import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function DealDetailPage({
@@ -29,7 +29,7 @@ export default async function DealDetailPage({
 }) {
   const { id } = await params;
 
-  const [currency, deal] = await Promise.all([
+  const [currency, deal, timeLogged] = await Promise.all([
     getCurrency(),
     db.deal.findUnique({
       where: { id },
@@ -48,9 +48,11 @@ export default async function DealDetailPage({
         project: { select: { id: true, name: true } },
       },
     }),
+    db.timeEntry.aggregate({ where: { task: { dealId: id } }, _sum: { minutes: true } }),
   ]);
 
   if (!deal) notFound();
+  const totalMinutes = timeLogged._sum.minutes ?? 0;
 
   return (
     <div>
@@ -181,6 +183,7 @@ export default async function DealDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Tasks</CardTitle>
+              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
               {needsFollowUp(deal) && (

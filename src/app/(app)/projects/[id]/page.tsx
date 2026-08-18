@@ -5,13 +5,14 @@ import { db } from "@/lib/db";
 import { deleteProject } from "@/app/actions/projects";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { ProjectStatusSelect } from "@/components/projects/project-status-select";
-import { formatCurrency, fullName } from "@/lib/format";
+import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function ProjectDetailPage({
@@ -21,7 +22,7 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
 
-  const [currency, project] = await Promise.all([
+  const [currency, project, timeLogged] = await Promise.all([
     getCurrency(),
     db.project.findUnique({
       where: { id },
@@ -31,9 +32,11 @@ export default async function ProjectDetailPage({
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
       },
     }),
+    db.timeEntry.aggregate({ where: { task: { projectId: id } }, _sum: { minutes: true } }),
   ]);
 
   if (!project) notFound();
+  const totalMinutes = timeLogged._sum.minutes ?? 0;
 
   return (
     <div>
@@ -88,6 +91,7 @@ export default async function ProjectDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Milestones</CardTitle>
+              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
               <TaskList tasks={project.tasks} emptyMessage="No milestones yet." />

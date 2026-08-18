@@ -19,7 +19,7 @@ import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { WhatsAppLink } from "@/components/ui/channel-links";
 import { stageBadgeClasses } from "@/lib/labels";
-import { formatCurrency, fullName } from "@/lib/format";
+import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function CompanyDetailPage({
@@ -29,7 +29,7 @@ export default async function CompanyDetailPage({
 }) {
   const { id } = await params;
 
-  const [currency, company, allContacts] = await Promise.all([
+  const [currency, company, allContacts, timeLogged] = await Promise.all([
     getCurrency(),
     db.company.findUnique({
       where: { id },
@@ -50,9 +50,11 @@ export default async function CompanyDetailPage({
         company: { select: { name: true } },
       },
     }),
+    db.timeEntry.aggregate({ where: { task: { companyId: id } }, _sum: { minutes: true } }),
   ]);
 
   if (!company) notFound();
+  const totalMinutes = timeLogged._sum.minutes ?? 0;
 
   const linkableContacts = allContacts.filter((contact) => contact.companyId !== id);
 
@@ -195,6 +197,7 @@ export default async function CompanyDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Tasks</CardTitle>
+              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
               <TaskList tasks={company.tasks} emptyMessage="No tasks yet." />

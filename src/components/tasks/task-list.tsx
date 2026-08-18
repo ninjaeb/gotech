@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
 import type { Company, Contact, Deal, Project, Task } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
 import { TASK_TYPE_LABELS } from "@/lib/labels";
@@ -135,6 +135,13 @@ export function TaskList({
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
+              <Link
+                href={`/tasks/${task.id}/time`}
+                aria-label="Log time"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+              >
+                <Clock className="h-4 w-4" />
+              </Link>
               <Link
                 href={`/tasks/${task.id}/edit`}
                 aria-label="Edit task"

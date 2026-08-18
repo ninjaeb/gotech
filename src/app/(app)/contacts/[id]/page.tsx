@@ -20,7 +20,7 @@ import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { stageBadgeClasses } from "@/lib/labels";
-import { formatCurrency, fullName } from "@/lib/format";
+import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
 
@@ -32,7 +32,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
 
   const currentUser = await getCurrentUser();
-  const [currency, contact, hasEmailAccount] = await Promise.all([
+  const [currency, contact, hasEmailAccount, timeLogged] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -44,9 +44,11 @@ export default async function ContactDetailPage({
       },
     }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
+    db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
   ]);
 
   if (!contact) notFound();
+  const totalMinutes = timeLogged._sum.minutes ?? 0;
 
   const contactName = fullName(contact.firstName, contact.lastName);
 
@@ -191,6 +193,7 @@ export default async function ContactDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>Tasks</CardTitle>
+              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
               <TaskList tasks={contact.tasks} emptyMessage="No tasks yet." />
