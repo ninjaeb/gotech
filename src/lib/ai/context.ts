@@ -1,11 +1,7 @@
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import {
-  ACTIVITY_TYPE_LABELS,
-  DEAL_STAGE_LABELS,
-  TASK_TYPE_LABELS,
-} from "@/lib/labels";
+import { ACTIVITY_TYPE_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
 
 export type EntityRef =
   | { contactId: string }
@@ -45,7 +41,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
     where: { id: contactId },
     include: {
       company: true,
-      deals: { orderBy: { createdAt: "desc" }, take: 5 },
+      deals: { orderBy: { createdAt: "desc" }, take: 5, include: { pipelineStage: true } },
       tasks: { where: { completed: false }, orderBy: { dueDate: "asc" }, take: 10 },
       activities: { orderBy: { createdAt: "desc" }, take: 15 },
     },
@@ -63,7 +59,7 @@ async function buildContactContext(contactId: string): Promise<EntityContext | n
     lines.push("", "Deals:");
     for (const deal of contact.deals) {
       lines.push(
-        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}`,
+        `- ${deal.title} — ${deal.pipelineStage.name}, ${formatCurrency(deal.value.toString(), currency)}`,
       );
     }
   }
@@ -79,7 +75,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
     where: { id: companyId },
     include: {
       contacts: { take: 10 },
-      deals: { orderBy: { createdAt: "desc" }, take: 10 },
+      deals: { orderBy: { createdAt: "desc" }, take: 10, include: { pipelineStage: true } },
       tasks: { where: { completed: false }, orderBy: { dueDate: "asc" }, take: 10 },
       activities: { orderBy: { createdAt: "desc" }, take: 15 },
     },
@@ -96,7 +92,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
     lines.push("", "Deals:");
     for (const deal of company.deals) {
       lines.push(
-        `- ${deal.title} — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}`,
+        `- ${deal.title} — ${deal.pipelineStage.name}, ${formatCurrency(deal.value.toString(), currency)}`,
       );
     }
   }
@@ -113,6 +109,8 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
     include: {
       company: true,
       contact: true,
+      pipeline: true,
+      pipelineStage: true,
       tasks: { where: { completed: false }, orderBy: { dueDate: "asc" }, take: 10 },
       activities: { orderBy: { createdAt: "desc" }, take: 15 },
     },
@@ -121,7 +119,9 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
 
   const lines: string[] = [];
   lines.push(`Deal: ${deal.title}`);
-  lines.push(`Stage: ${DEAL_STAGE_LABELS[deal.stage]} | Value: ${formatCurrency(deal.value.toString(), currency)}`);
+  lines.push(
+    `Pipeline: ${deal.pipeline.name} | Stage: ${deal.pipelineStage.name} | Value: ${formatCurrency(deal.value.toString(), currency)}`,
+  );
   if (deal.expectedCloseDate) lines.push(`Expected close: ${formatDate(deal.expectedCloseDate)}`);
   if (deal.company) lines.push(`Company: ${deal.company.name}`);
   if (deal.contact) lines.push(`Contact: ${fullName(deal.contact.firstName, deal.contact.lastName)}`);
@@ -145,9 +145,9 @@ export async function buildPipelineContext(): Promise<string> {
   const [currency, openDeals, overdueTasks, dueTodayTasks] = await Promise.all([
     getCurrency(),
     db.deal.findMany({
-      where: { stage: { notIn: ["WON", "LOST"] } },
+      where: { pipelineStage: { isWon: false, isLost: false } },
       orderBy: { value: "desc" },
-      include: { company: true, contact: true },
+      include: { company: true, contact: true, pipeline: true, pipelineStage: true },
     }),
     db.task.findMany({
       where: { completed: false, dueDate: { lt: startOfToday } },
@@ -169,7 +169,7 @@ export async function buildPipelineContext(): Promise<string> {
     for (const deal of openDeals.slice(0, 20)) {
       const who = deal.company?.name ?? (deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : "no company");
       lines.push(
-        `- ${deal.title} (${who}) — ${DEAL_STAGE_LABELS[deal.stage]}, ${formatCurrency(deal.value.toString(), currency)}${deal.expectedCloseDate ? `, expected close ${formatDate(deal.expectedCloseDate)}` : ""}`,
+        `- ${deal.title} (${who}) — ${deal.pipeline.name} / ${deal.pipelineStage.name}, ${formatCurrency(deal.value.toString(), currency)}${deal.expectedCloseDate ? `, expected close ${formatDate(deal.expectedCloseDate)}` : ""}`,
       );
     }
   }

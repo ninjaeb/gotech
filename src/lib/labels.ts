@@ -1,34 +1,28 @@
-import { ActivityType, DealStage, ProjectStatus, QuoteStatus, TaskType } from "@/generated/prisma/client";
+import { ActivityType, ProjectStatus, QuoteStatus, TaskType } from "@/generated/prisma/client";
 
-export const DEAL_STAGES: DealStage[] = [
-  "LEAD",
-  "QUALIFIED",
-  "PROPOSAL",
-  "NEGOTIATION",
-  "WON",
-  "LOST",
+// Stage names are now per-pipeline data, not a fixed enum, so there's no
+// static label map — a badge's color comes from its isWon/isLost flags (won
+// and lost always read as emerald/rose, matching every existing WON/LOST
+// convention in this app) and a small rotating palette for stages in
+// between, so an arbitrary-length pipeline still reads as visually varied
+// without per-stage color configuration.
+const MID_STAGE_BADGE_PALETTE = [
+  "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+  "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
+  "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-500/30",
+  "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-600/20 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:ring-fuchsia-500/30",
 ];
+const WON_BADGE_CLASSES =
+  "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30";
+const LOST_BADGE_CLASSES =
+  "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30";
 
-export const DEAL_STAGE_LABELS: Record<DealStage, string> = {
-  LEAD: "Lead",
-  QUALIFIED: "Qualified",
-  PROPOSAL: "Proposal",
-  NEGOTIATION: "Negotiation",
-  WON: "Won",
-  LOST: "Lost",
-};
-
-export const DEAL_STAGE_BADGE_CLASSES: Record<DealStage, string> = {
-  LEAD: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
-  QUALIFIED:
-    "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
-  PROPOSAL:
-    "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
-  NEGOTIATION:
-    "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-500/30",
-  WON: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
-  LOST: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
-};
+export function stageBadgeClasses(stage: { isWon: boolean; isLost: boolean; sortOrder: number }) {
+  if (stage.isWon) return WON_BADGE_CLASSES;
+  if (stage.isLost) return LOST_BADGE_CLASSES;
+  return MID_STAGE_BADGE_PALETTE[stage.sortOrder % MID_STAGE_BADGE_PALETTE.length];
+}
 
 export const TASK_TYPES: TaskType[] = [
   "CALL",

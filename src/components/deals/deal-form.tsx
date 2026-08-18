@@ -1,36 +1,51 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import type { Company, Contact, Deal } from "@/generated/prisma/client";
+import type { Company, Contact } from "@/generated/prisma/client";
 import type { DealFormState } from "@/app/actions/deals";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = Pick<Contact, "id" | "firstName" | "lastName" | "companyId">;
+type PipelineOption = { id: string; name: string; stages: { id: string; name: string }[] };
+
+// Plain-number/plain-object shape, not the Prisma-generated Deal type —
+// that carries `value` as a Decimal, which can't cross the Server -> Client
+// Component boundary as a prop. See EditDealPage, which converts it with
+// Number(...) before passing a deal down to this component.
+type DealDraft = {
+  title: string;
+  value: number;
+  pipelineId: string;
+  pipelineStageId: string;
+  companyId: string | null;
+  contactId: string | null;
+  expectedCloseDate: Date | null;
+  notes: string | null;
+};
 
 export function DealForm({
   action,
   deal,
   companies,
   contacts,
+  pipelines,
   defaultCompanyId,
   defaultContactId,
+  defaultPipelineId,
   submitLabel = "Save deal",
   currency = "USD",
 }: {
   action: (prevState: DealFormState, formData: FormData) => Promise<DealFormState> | DealFormState;
-  // Omit + override value: Deal's own type has value as a Prisma Decimal,
-  // which can't cross the Server -> Client Component boundary as a prop
-  // (only plain serializable objects can) — see EditDealPage, which converts
-  // it with Number(...) before passing a deal down to this component.
-  deal?: Omit<Deal, "value"> & { value: number };
+  deal?: DealDraft;
   companies: Company[];
   contacts: ContactOption[];
+  pipelines: PipelineOption[];
   defaultCompanyId?: string;
   defaultContactId?: string;
+  defaultPipelineId?: string;
   submitLabel?: string;
   currency?: string;
 }) {
@@ -45,6 +60,24 @@ export function DealForm({
     if (defaultCompanyId) return defaultCompanyId;
     return contacts.find((contact) => contact.id === contactId)?.companyId ?? "";
   });
+
+  const [pipelineId, setPipelineId] = useState(
+    deal?.pipelineId ?? defaultPipelineId ?? pipelines[0]?.id ?? "",
+  );
+  const selectedPipeline = useMemo(
+    () => pipelines.find((pipeline) => pipeline.id === pipelineId) ?? pipelines[0],
+    [pipelines, pipelineId],
+  );
+  const [pipelineStageId, setPipelineStageId] = useState(
+    deal?.pipelineStageId ?? selectedPipeline?.stages[0]?.id ?? "",
+  );
+
+  function handlePipelineChange(nextPipelineId: string) {
+    setPipelineId(nextPipelineId);
+    const nextPipeline = pipelines.find((pipeline) => pipeline.id === nextPipelineId);
+    const stageStillValid = nextPipeline?.stages.some((stage) => stage.id === pipelineStageId);
+    if (!stageStillValid) setPipelineStageId(nextPipeline?.stages[0]?.id ?? "");
+  }
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
@@ -77,6 +110,21 @@ export function DealForm({
         />
       </FieldGroup>
 
+      <FieldGroup label="Pipeline" htmlFor="pipelineId">
+        <Select
+          id="pipelineId"
+          name="pipelineId"
+          value={pipelineId}
+          onChange={(event) => handlePipelineChange(event.target.value)}
+        >
+          {pipelines.map((pipeline) => (
+            <option key={pipeline.id} value={pipeline.id}>
+              {pipeline.name}
+            </option>
+          ))}
+        </Select>
+      </FieldGroup>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label={`Value (${currency})`} htmlFor="value">
           <Input
@@ -88,11 +136,16 @@ export function DealForm({
             defaultValue={deal ? deal.value.toString() : "0"}
           />
         </FieldGroup>
-        <FieldGroup label="Stage" htmlFor="stage">
-          <Select id="stage" name="stage" defaultValue={deal?.stage ?? "LEAD"}>
-            {DEAL_STAGES.map((stage) => (
-              <option key={stage} value={stage}>
-                {DEAL_STAGE_LABELS[stage]}
+        <FieldGroup label="Stage" htmlFor="pipelineStageId">
+          <Select
+            id="pipelineStageId"
+            name="pipelineStageId"
+            value={pipelineStageId}
+            onChange={(event) => setPipelineStageId(event.target.value)}
+          >
+            {selectedPipeline?.stages.map((stage) => (
+              <option key={stage.id} value={stage.id}>
+                {stage.name}
               </option>
             ))}
           </Select>

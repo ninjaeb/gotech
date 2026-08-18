@@ -5,22 +5,33 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
-import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/labels";
+import { getPipelinesWithStages, getDefaultPipeline } from "@/lib/pipelines";
 import { daysInStage, isRotting, needsFollowUp } from "@/lib/deal-hygiene";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { cn } from "@/lib/utils";
 import type { Prisma } from "@/generated/prisma/client";
 
 export default async function DealsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; flag?: string }>;
+  searchParams: Promise<{ q?: string; flag?: string; pipeline?: string }>;
 }) {
-  const { q, flag } = await searchParams;
+  const { q, flag, pipeline: pipelineParam } = await searchParams;
   const query = q?.trim();
   const flagged = flag === "needs-follow-up";
 
-  const conditions: Prisma.DealWhereInput[] = [];
+  const [currency, pipelines, defaultPipeline] = await Promise.all([
+    getCurrency(),
+    getPipelinesWithStages(),
+    getDefaultPipeline(),
+  ]);
+  const selectedPipeline =
+    pipelines.find((pipeline) => pipeline.id === pipelineParam) ??
+    pipelines.find((pipeline) => pipeline.id === defaultPipeline.id) ??
+    pipelines[0];
+
+  const conditions: Prisma.DealWhereInput[] = [{ pipelineId: selectedPipeline.id }];
   if (query) {
     conditions.push({
       OR: [
@@ -34,33 +45,30 @@ export default async function DealsPage({
   }
   if (flagged) {
     conditions.push({
-      stage: { notIn: ["WON", "LOST"] },
+      pipelineStage: { isWon: false, isLost: false },
       tasks: { none: { completed: false, dueDate: { not: null } } },
     });
   }
-  const where: Prisma.DealWhereInput | undefined = conditions.length > 0 ? { AND: conditions } : undefined;
 
-  const [currency, deals] = await Promise.all([
-    getCurrency(),
-    db.deal.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        company: true,
-        contact: true,
-        tasks: { select: { completed: true, dueDate: true } },
-        activities: {
-          where: { type: "STAGE_CHANGE" },
-          orderBy: { createdAt: "desc" },
-          take: 1,
-          select: { createdAt: true },
-        },
+  const deals = await db.deal.findMany({
+    where: { AND: conditions },
+    orderBy: { createdAt: "desc" },
+    include: {
+      company: true,
+      contact: true,
+      pipelineStage: true,
+      tasks: { select: { completed: true, dueDate: true } },
+      activities: {
+        where: { type: "STAGE_CHANGE" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { createdAt: true },
       },
-    }),
-  ]);
+    },
+  });
 
-  const columns = DEAL_STAGES.map((stage) => {
-    const stageDeals = deals.filter((deal) => deal.stage === stage);
+  const columns = selectedPipeline.stages.map((stage) => {
+    const stageDeals = deals.filter((deal) => deal.pipelineStageId === stage.id);
     const total = stageDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
     return { stage, deals: stageDeals, total };
   });
@@ -69,16 +77,36 @@ export default async function DealsPage({
     <div>
       <PageHeader
         title="Deals"
-        description={`${deals.length} ${deals.length === 1 ? "deal" : "deals"} in the pipeline`}
+        description={`${deals.length} ${deals.length === 1 ? "deal" : "deals"} in ${selectedPipeline.name}`}
         actions={
-          <Link href="/deals/new" className={buttonClasses()}>
+          <Link href={`/deals/new?pipelineId=${selectedPipeline.id}`} className={buttonClasses()}>
             <Plus className="h-4 w-4" />
             New deal
           </Link>
         }
       />
 
+      {pipelines.length > 1 && (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {pipelines.map((pipeline) => (
+            <Link
+              key={pipeline.id}
+              href={`/deals?pipeline=${pipeline.id}`}
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-medium",
+                pipeline.id === selectedPipeline.id
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-neutral-800 dark:text-slate-300 dark:hover:bg-neutral-700",
+              )}
+            >
+              {pipeline.name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       <form className="mb-4">
+        <input type="hidden" name="pipeline" value={selectedPipeline.id} />
         <div className="relative max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
@@ -95,7 +123,10 @@ export default async function DealsPage({
         <div className="mb-4 flex items-center gap-2 text-sm text-orange-700 dark:text-orange-400">
           <Flag className="h-4 w-4" />
           Showing open deals with no next step scheduled
-          <Link href="/deals" className="text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+          <Link
+            href={`/deals?pipeline=${selectedPipeline.id}`}
+            className="text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
             Clear
           </Link>
         </div>
@@ -103,10 +134,10 @@ export default async function DealsPage({
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <div key={column.stage} className="w-72 shrink-0">
+          <div key={column.stage.id} className="w-72 shrink-0">
             <div className="mb-2 flex items-center justify-between px-1">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                {DEAL_STAGE_LABELS[column.stage]}
+                {column.stage.name}
                 <span className="ml-1.5 text-xs font-normal text-slate-400">
                   {column.deals.length}
                 </span>
@@ -139,7 +170,7 @@ export default async function DealsPage({
                         <span className="flex shrink-0 items-center gap-1">
                           {rotting && (
                             <span
-                              title={`${daysInStage(dealWithStageTiming)} days in ${DEAL_STAGE_LABELS[deal.stage]}`}
+                              title={`${daysInStage(dealWithStageTiming)} days in ${deal.pipelineStage.name}`}
                               className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20 dark:bg-rose-950 dark:text-rose-400 dark:ring-rose-500/30"
                             >
                               <Clock className="h-3 w-3" />
@@ -174,7 +205,8 @@ export default async function DealsPage({
                     <div className="mt-2">
                       <DealStageSelect
                         dealId={deal.id}
-                        stage={deal.stage}
+                        pipelineStageId={deal.pipelineStageId}
+                        stages={selectedPipeline.stages}
                         className="h-7 w-full text-xs"
                       />
                     </div>

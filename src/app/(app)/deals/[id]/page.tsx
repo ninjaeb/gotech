@@ -36,6 +36,8 @@ export default async function DealDetailPage({
       include: {
         company: true,
         contact: true,
+        pipelineStage: true,
+        pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
         quotes: {
@@ -86,10 +88,14 @@ export default async function DealDetailPage({
             <CardBody className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  Stage
+                  Stage · {deal.pipeline.name}
                 </p>
                 <div className="mt-1">
-                  <DealStageSelect dealId={deal.id} stage={deal.stage} />
+                  <DealStageSelect
+                    dealId={deal.id}
+                    pipelineStageId={deal.pipelineStageId}
+                    stages={deal.pipeline.stages}
+                  />
                 </div>
               </div>
               <DetailRow label="Value" value={formatCurrency(deal.value.toString(), currency)} />

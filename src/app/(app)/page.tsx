@@ -8,11 +8,10 @@ import { TaskList } from "@/components/tasks/task-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
-import { DEAL_STAGES, DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
+import { stageBadgeClasses } from "@/lib/labels";
+import { getDefaultPipeline } from "@/lib/pipelines";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-
-const OPEN_STAGES = DEAL_STAGES.filter((stage) => stage !== "WON" && stage !== "LOST");
 
 export default async function DashboardPage() {
   const startOfToday = new Date();
@@ -30,11 +29,14 @@ export default async function DashboardPage() {
     needsFollowUpCount,
     upcomingTasks,
     topOpenDeals,
+    defaultPipeline,
   ] = await Promise.all([
     getCurrency(),
     db.company.count(),
     db.contact.count(),
-    db.deal.findMany({ select: { value: true, stage: true } }),
+    db.deal.findMany({
+      select: { value: true, pipelineStageId: true, pipelineStage: { select: { isWon: true, isLost: true } } },
+    }),
     db.task.count({
       where: { completed: false, dueDate: { gte: startOfToday, lt: endOfToday } },
     }),
@@ -43,7 +45,7 @@ export default async function DashboardPage() {
     }),
     db.deal.count({
       where: {
-        stage: { notIn: ["WON", "LOST"] },
+        pipelineStage: { isWon: false, isLost: false },
         tasks: { none: { completed: false, dueDate: { not: null } } },
       },
     }),
@@ -59,16 +61,17 @@ export default async function DashboardPage() {
       },
     }),
     db.deal.findMany({
-      where: { stage: { notIn: ["WON", "LOST"] } },
+      where: { pipelineStage: { isWon: false, isLost: false } },
       orderBy: { value: "desc" },
       take: 5,
-      include: { company: true, contact: true },
+      include: { company: true, contact: true, pipelineStage: true },
     }),
+    getDefaultPipeline(),
   ]);
 
-  const openDeals = allDeals.filter((deal) => deal.stage !== "WON" && deal.stage !== "LOST");
-  const wonDeals = allDeals.filter((deal) => deal.stage === "WON");
-  const lostDeals = allDeals.filter((deal) => deal.stage === "LOST");
+  const openDeals = allDeals.filter((deal) => !deal.pipelineStage.isWon && !deal.pipelineStage.isLost);
+  const wonDeals = allDeals.filter((deal) => deal.pipelineStage.isWon);
+  const lostDeals = allDeals.filter((deal) => deal.pipelineStage.isLost);
 
   const openPipelineValue = openDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
   const closedRevenue = wonDeals.reduce((sum, deal) => sum + Number(deal.value), 0);
@@ -81,14 +84,19 @@ export default async function DashboardPage() {
   const openShare = totalTracked > 0 ? (openPipelineValue / totalTracked) * 100 : 0;
   const lostShare = totalTracked > 0 ? (lostValue / totalTracked) * 100 : 0;
 
-  const stageBreakdown = OPEN_STAGES.map((stage) => {
-    const deals = openDeals.filter((deal) => deal.stage === stage);
-    return {
-      stage,
-      count: deals.length,
-      value: deals.reduce((sum, deal) => sum + Number(deal.value), 0),
-    };
-  });
+  // Scoped to the default pipeline — stage names (and which stages even
+  // exist) vary by pipeline, so a stage-by-stage breakdown can't be summed
+  // across all of them the way the totals above can.
+  const stageBreakdown = defaultPipeline.stages
+    .filter((stage) => !stage.isWon && !stage.isLost)
+    .map((stage) => {
+      const deals = openDeals.filter((deal) => deal.pipelineStageId === stage.id);
+      return {
+        stage,
+        count: deals.length,
+        value: deals.reduce((sum, deal) => sum + Number(deal.value), 0),
+      };
+    });
   const maxStageValue = Math.max(1, ...stageBreakdown.map((s) => s.value));
 
   return (
@@ -158,18 +166,17 @@ export default async function DashboardPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Pipeline by stage</CardTitle>
+              <CardTitle>{defaultPipeline.name} by stage</CardTitle>
               <Link href="/deals" className="text-sm font-medium text-indigo-600 hover:underline">
                 View board
               </Link>
             </CardHeader>
             <CardBody className="space-y-4">
               {stageBreakdown.map(({ stage, count, value }) => (
-                <div key={stage}>
+                <div key={stage.id}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {DEAL_STAGE_LABELS[stage]}{" "}
-                      <span className="font-normal text-slate-400">({count})</span>
+                      {stage.name} <span className="font-normal text-slate-400">({count})</span>
                     </span>
                     <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value, currency)}</span>
                   </div>
@@ -217,8 +224,8 @@ export default async function DashboardPage() {
                           <span className="font-medium text-slate-700 dark:text-slate-300">
                             {formatCurrency(deal.value.toString(), currency)}
                           </span>
-                          <Badge className={DEAL_STAGE_BADGE_CLASSES[deal.stage]}>
-                            {DEAL_STAGE_LABELS[deal.stage]}
+                          <Badge className={stageBadgeClasses(deal.pipelineStage)}>
+                            {deal.pipelineStage.name}
                           </Badge>
                         </div>
                       </Link>

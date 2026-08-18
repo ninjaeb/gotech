@@ -18,7 +18,7 @@ import { LinkContactForm } from "@/components/contacts/link-contact-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { WhatsAppLink } from "@/components/ui/channel-links";
-import { DEAL_STAGE_BADGE_CLASSES, DEAL_STAGE_LABELS } from "@/lib/labels";
+import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
@@ -35,7 +35,7 @@ export default async function CompanyDetailPage({
       where: { id },
       include: {
         contacts: { orderBy: { firstName: "asc" } },
-        deals: { orderBy: { createdAt: "desc" } },
+        deals: { orderBy: { createdAt: "desc" }, include: { pipelineStage: true } },
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
       },
@@ -176,8 +176,8 @@ export default async function CompanyDetailPage({
                           <span className="text-slate-500 dark:text-slate-400">
                             {formatCurrency(deal.value.toString(), currency)}
                           </span>
-                          <Badge className={DEAL_STAGE_BADGE_CLASSES[deal.stage]}>
-                            {DEAL_STAGE_LABELS[deal.stage]}
+                          <Badge className={stageBadgeClasses(deal.pipelineStage)}>
+                            {deal.pipelineStage.name}
                           </Badge>
                         </span>
                       </Link>

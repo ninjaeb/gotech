@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
+import { getDefaultPipeline } from "@/lib/pipelines";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -46,16 +47,20 @@ export async function submitLead(
     companyId = company?.id ?? (await db.company.create({ data: { name: companyName }, select: { id: true } })).id;
   }
 
-  const contact = await findOrCreateContactByEmail({
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
-    companyId,
-  });
+  const [contact, defaultPipeline] = await Promise.all([
+    findOrCreateContactByEmail({ name: data.name, email: data.email, phone: data.phone, companyId }),
+    getDefaultPipeline(),
+  ]);
+  const firstStage = defaultPipeline.stages[0];
+  if (!firstStage) {
+    return { status: "error", message: "The pipeline isn't set up yet — try again shortly." };
+  }
 
   const deal = await db.deal.create({
     data: {
       title: `${companyName || data.name} — Website inquiry`,
+      pipelineId: defaultPipeline.id,
+      pipelineStageId: firstStage.id,
       companyId: contact.companyId ?? companyId,
       contactId: contact.id,
     },

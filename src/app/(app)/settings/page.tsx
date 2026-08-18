@@ -1,4 +1,5 @@
-import { Trash2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Trash2 } from "lucide-react";
 import { updateCurrency } from "@/app/actions/settings";
 import { deleteUser } from "@/app/actions/users";
 import { deleteServicePackage } from "@/app/actions/service-packages";
@@ -58,6 +59,24 @@ export default async function SettingsPage() {
             </div>
             <Button type="submit">Save</Button>
           </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody>
+          <Link
+            href="/settings/pipelines"
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <div>
+              <p className="font-medium text-slate-800 dark:text-slate-200">Pipelines</p>
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                Give each deal type its own stage list — a new-build project, a retainer, a referral don&apos;t
+                have to share one kanban.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+          </Link>
         </CardBody>
       </Card>
 

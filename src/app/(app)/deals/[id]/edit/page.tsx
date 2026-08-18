@@ -5,6 +5,7 @@ import { DealForm } from "@/components/deals/deal-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
+import { getPipelinesWithStages } from "@/lib/pipelines";
 
 export default async function EditDealPage({
   params,
@@ -12,7 +13,7 @@ export default async function EditDealPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [currency, deal, companies, contacts] = await Promise.all([
+  const [currency, deal, companies, contacts, pipelines] = await Promise.all([
     getCurrency(),
     db.deal.findUnique({ where: { id } }),
     db.company.findMany({ orderBy: { name: "asc" } }),
@@ -20,6 +21,7 @@ export default async function EditDealPage({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
+    getPipelinesWithStages(),
   ]);
   if (!deal) notFound();
 
@@ -33,6 +35,7 @@ export default async function EditDealPage({
             deal={{ ...deal, value: Number(deal.value) }}
             companies={companies}
             contacts={contacts}
+            pipelines={pipelines}
             submitLabel="Save changes"
             currency={currency}
           />

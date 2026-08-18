@@ -10,15 +10,6 @@ datasource db {
   provider = "mysql"
 }
 
-enum DealStage {
-  LEAD
-  QUALIFIED
-  PROPOSAL
-  NEGOTIATION
-  WON
-  LOST
-}
-
 enum TaskType {
   CALL
   EMAIL
@@ -140,15 +131,59 @@ model Booking {
   @@index([contactId])
 }
 
+// A deal type's own ordered stage list (Zoho-style "Blueprint"), so a
+// new-build project, a maintenance retainer, and a referral don't have to
+// share one kanban. Every install gets exactly one pipeline seeded with
+// today's original 6 stages (see the add_pipelines migration) — additional
+// pipelines are opt-in, created from Settings.
+model Pipeline {
+  id        String   @id @default(cuid())
+  name      String
+  isDefault Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  stages PipelineStage[]
+  deals  Deal[]
+
+  @@index([sortOrder])
+}
+
+// isWon/isLost replace the old fixed WON/LOST enum values — every stage-gate,
+// rotting, and project-handoff check that used to compare against those
+// strings now checks these flags instead, so each pipeline can name its own
+// terminal stages ("Closed Won", "Signed", ...) while that logic stays
+// pipeline-agnostic. Exactly one stage in a pipeline should carry each flag,
+// enforced by the pipeline editor rather than the schema.
+model PipelineStage {
+  id        String  @id @default(cuid())
+  name      String
+  sortOrder Int
+  isWon     Boolean @default(false)
+  isLost    Boolean @default(false)
+
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId String
+
+  deals Deal[]
+
+  @@index([pipelineId])
+}
+
 model Deal {
   id                String    @id @default(cuid())
   title             String
   value             Decimal   @default(0) @db.Decimal(12, 2)
-  stage             DealStage @default(LEAD)
   expectedCloseDate DateTime?
   notes             String?   @db.Text
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id])
+  pipelineId String
+
+  pipelineStage   PipelineStage @relation(fields: [pipelineStageId], references: [id])
+  pipelineStageId String
 
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
@@ -163,7 +198,8 @@ model Deal {
 
   @@index([companyId])
   @@index([contactId])
-  @@index([stage])
+  @@index([pipelineId])
+  @@index([pipelineStageId])
 }
 
 // The delivery-side counterpart to a won Deal — spun up automatically (see

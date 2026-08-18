@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "../src/lib/db";
 import { hashPassword } from "../src/lib/auth/password";
-import { ActivityType, DealStage, TaskType } from "../src/generated/prisma/client";
+import { ActivityType, TaskType } from "../src/generated/prisma/client";
 
 function daysFromNow(days: number) {
   const date = new Date();
@@ -172,12 +172,23 @@ async function main() {
     ]);
 
   console.log("Seeding deals…");
+  const salesPipeline = await db.pipeline.findFirstOrThrow({
+    where: { isDefault: true },
+    include: { stages: true },
+  });
+  const stageId = (name: string) => {
+    const stage = salesPipeline.stages.find((s) => s.name === name);
+    if (!stage) throw new Error(`Default pipeline is missing a "${name}" stage`);
+    return stage.id;
+  };
+
   const deals = await Promise.all([
     db.deal.create({
       data: {
         title: "Acme Inc. — Annual supply contract",
         value: 84000,
-        stage: DealStage.NEGOTIATION,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Negotiation"),
         expectedCloseDate: daysFromNow(12),
         companyId: acme.id,
         contactId: sarah.id,
@@ -188,7 +199,8 @@ async function main() {
       data: {
         title: "Acme Inc. — Warehouse automation add-on",
         value: 21000,
-        stage: DealStage.PROPOSAL,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Proposal"),
         expectedCloseDate: daysFromNow(25),
         companyId: acme.id,
         contactId: michael.id,
@@ -198,7 +210,8 @@ async function main() {
       data: {
         title: "Globex Corporation — Fleet tracking platform",
         value: 156000,
-        stage: DealStage.QUALIFIED,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Qualified"),
         expectedCloseDate: daysFromNow(40),
         companyId: globex.id,
         contactId: priya.id,
@@ -209,7 +222,8 @@ async function main() {
       data: {
         title: "Initech — Enterprise platform migration",
         value: 240000,
-        stage: DealStage.NEGOTIATION,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Negotiation"),
         expectedCloseDate: daysFromNow(8),
         companyId: initech.id,
         contactId: david.id,
@@ -220,7 +234,8 @@ async function main() {
       data: {
         title: "Initech — Developer tooling seats",
         value: 18000,
-        stage: DealStage.WON,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Won"),
         expectedCloseDate: daysFromNow(-5),
         companyId: initech.id,
         contactId: elena.id,
@@ -230,7 +245,8 @@ async function main() {
       data: {
         title: "Umbrella Health — Compliance suite",
         value: 62000,
-        stage: DealStage.LEAD,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Lead"),
         expectedCloseDate: daysFromNow(60),
         companyId: umbrella.id,
         contactId: marcus.id,
@@ -240,7 +256,8 @@ async function main() {
       data: {
         title: "Hooli — Company-wide rollout",
         value: 310000,
-        stage: DealStage.QUALIFIED,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Qualified"),
         expectedCloseDate: daysFromNow(35),
         companyId: hooli.id,
         contactId: aisha.id,
@@ -251,7 +268,8 @@ async function main() {
       data: {
         title: "Hooli — Legacy system replacement",
         value: 45000,
-        stage: DealStage.LOST,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Lost"),
         expectedCloseDate: daysFromNow(-20),
         companyId: hooli.id,
         notes: "Lost to a competitor on price.",
@@ -261,7 +279,8 @@ async function main() {
       data: {
         title: "Whitfield Consulting — Advisory retainer",
         value: 9000,
-        stage: DealStage.PROPOSAL,
+        pipelineId: salesPipeline.id,
+        pipelineStageId: stageId("Proposal"),
         expectedCloseDate: daysFromNow(15),
         contactId: tom.id,
       },

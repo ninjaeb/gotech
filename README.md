@@ -8,7 +8,8 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Companies** — track organizations with industry, domain, and contact details
 - **Contacts** — people linked to companies, with notes and history
 - **Contact import** — upload a Google Contacts CSV export (`/contacts/import`) and preview matched/duplicate/skipped rows before anything is saved
-- **Deals** — a kanban-style sales pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost) with per-stage totals, in one CRM-wide currency you can change any time in *Settings*
+- **Deals** — a kanban-style pipeline with per-stage totals, in one CRM-wide currency you can change any time in *Settings*
+- **Pipelines** (*Settings → Pipelines*) — a new-build project, a maintenance retainer, and a referral don't have to share one kanban. Every install starts with one default "Sales" pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost); add more from Settings, each with its own ordered stage list and its own Won/Lost stage. The kanban board, stage-gate, deal-rotting flag, and Deal → Project handoff all key off a stage's Won/Lost flag rather than a fixed stage name, so they work the same way in every pipeline
 - **Tasks** — follow-ups and to-dos with due dates, linked to contacts/companies/deals, filterable by Open / Overdue / Due today / Completed
 - **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal
 - **Dashboard** — pipeline overview (open value, closed-won, win rate), stage-by-stage breakdown, high-value open deals, and upcoming tasks
