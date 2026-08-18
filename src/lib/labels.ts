@@ -1,4 +1,11 @@
-import { ActivityType, InvoiceStatus, ProjectStatus, QuoteStatus, TaskType } from "@/generated/prisma/client";
+import {
+  ActivityType,
+  EnrollmentStatus,
+  InvoiceStatus,
+  ProjectStatus,
+  QuoteStatus,
+  TaskType,
+} from "@/generated/prisma/client";
 
 // Stage names are now per-pipeline data, not a fixed enum, so there's no
 // static label map — a badge's color comes from its isWon/isLost flags (won
@@ -115,4 +122,23 @@ export const INVOICE_STATUS_BADGE_CLASSES: Record<InvoiceStatus, string> = {
     "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
   PAID_IN_FULL:
     "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+};
+
+export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
+  ACTIVE: "Active",
+  COMPLETED: "Completed",
+  STOPPED_REPLY: "Stopped — replied",
+  STOPPED_MANUAL: "Stopped",
+  FAILED: "Failed",
+};
+
+export const ENROLLMENT_STATUS_BADGE_CLASSES: Record<EnrollmentStatus, string> = {
+  ACTIVE: "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  COMPLETED:
+    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+  STOPPED_REPLY:
+    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+  STOPPED_MANUAL:
+    "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+  FAILED: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
 };

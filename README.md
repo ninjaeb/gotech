@@ -21,6 +21,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Time tracking** — log time against any task (the clock icon next to it) with minutes, a date, and an optional note; Deals, Projects, Contacts, and Companies each roll up the total time logged across their tasks in the Tasks/Milestones card
 - **Invoices** (on a Project page) — track payment milestones against a won deal's project: Draft → Deposit sent → Progress billed → Paid in full, with an amount, due date, and notes per invoice
 - **Client portal** (`/portal`) — invite a Contact (from their Contact page, once they have an email and a company) and they get their own login, entirely separate from staff accounts, scoped strictly to their own Company's data: their Projects and milestones, their Quotes, their Invoices. Nothing internal — Activities, task descriptions, non-milestone tasks, deal notes — is ever exposed. Invite generates a one-time setup link (same copy-and-send pattern as quotes and the booking link); staff can revoke access at any time from the Contact page
+- **Sequences** (*Settings → Sequences*) — multi-step automated email cadences. Build a sequence (subject, message, and a day-delay per step), then enroll any Contact with an email from their Contact page. Each step sends from your own connected mailbox on schedule; the whole sequence stops itself the moment the contact replies — checked against email sync's inbound record, no extra setup. Runs on the same cron-job pattern as email sync (see *Deploying on cPanel* below)
 
 ## Stack
 
@@ -126,6 +127,10 @@ Each user connects their own mailbox from *Settings → Connect your email* — 
 
 "Sync now" in Settings runs it immediately; for it to run on its own, add a cron job (see the cPanel deploy steps below).
 
+### 8. Enable sequences (optional)
+
+No separate setup — a sequence sends through whichever staff member enrolled the contact, using their already-connected mailbox from step 7 above, so at least one user needs email sync set up first. Build a sequence from *Settings → Sequences*, then enroll a contact from their Contact page. Like email sync, this only runs on its own once you add a cron job — see the cPanel deploy steps below.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
@@ -155,11 +160,13 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 6. **Restart** the app from the Node.js Selector UI, then visit the Application URL. `server.js` builds the production bundle itself on every start (there's no separate "build" step to run) — the app takes ~20-30s to come up while `next build` runs each time; check `stderr.log` in the Application root if it doesn't come up.
 
-7. **(Optional) Schedule email sync.** If anyone connects a mailbox (*Settings → Connect your email*), add a cPanel *Cron Jobs* entry — e.g. every 10 minutes — running:
+7. **(Optional) Schedule background jobs.** If anyone connects a mailbox (*Settings → Connect your email*), add a cPanel *Cron Jobs* entry — e.g. every 10 minutes — running:
    ```bash
    cd /home/USERNAME/APPLICATION_ROOT && source /home/USERNAME/nodevenv/APPLICATION_ROOT/*/bin/activate && npm run sync-email
    ```
    (the exact `source` path is the same one the Node app screen shows for running commands by hand). Without this, connected mailboxes only sync when someone clicks *Sync now*.
+
+   If anyone uses Sequences too, add a second entry the same way for `npm run process-sequences` — an hourly schedule is plenty, since a step's delay is day-granularity. Without this, enrolled contacts never actually get their emails, even though enrolling still "succeeds."
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
@@ -187,6 +194,7 @@ scripts/
   create-user.ts         CLI to add more logins (npm run create-user)
   clear-data.ts           CLI to wipe sample/CRM data without touching logins
   sync-email.ts           CLI to sync every connected mailbox (npm run sync-email) — for cron
+  process-sequences.ts    CLI to send due sequence steps (npm run process-sequences) — for cron
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
 proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)
@@ -231,6 +239,7 @@ src/
 | `npm run create-user -- --email=… --name=…` | Add another login |
 | `npm run clear-data -- --yes` | Delete all CRM data (companies/contacts/deals/tasks/activity), keep logins |
 | `npm run sync-email` | Sync every connected mailbox once (what the cron job runs) |
+| `npm run process-sequences` | Send any due sequence steps once (what the cron job runs) |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |

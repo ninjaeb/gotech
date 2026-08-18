@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
+import { enrollContact, stopEnrollment } from "@/app/actions/sequence-enrollments";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Select } from "@/components/ui/field";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { WhatsAppLink, MailLink } from "@/components/ui/channel-links";
@@ -21,9 +23,10 @@ import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
-import { stageBadgeClasses } from "@/lib/labels";
-import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
+import { ENROLLMENT_STATUS_BADGE_CLASSES, ENROLLMENT_STATUS_LABELS, stageBadgeClasses } from "@/lib/labels";
+import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getActiveSequences } from "@/lib/sequences";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
 
@@ -35,7 +38,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
 
   const currentUser = await getCurrentUser();
-  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin] = await Promise.all([
+  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin, activeSequences] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -45,11 +48,16 @@ export default async function ContactDetailPage({
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
         clientUser: { select: { passwordHash: true, inviteToken: true } },
+        sequenceEnrollments: {
+          orderBy: { enrolledAt: "desc" },
+          include: { sequence: { select: { id: true, name: true } } },
+        },
       },
     }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
     getSiteOrigin(),
+    getActiveSequences(),
   ]);
 
   if (!contact) notFound();
@@ -213,6 +221,84 @@ export default async function ContactDetailPage({
             <CardBody className="space-y-4">
               <ActivityForm contactId={contact.id} />
               <ActivityFeed activities={contact.activities} />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sequences</CardTitle>
+            </CardHeader>
+            <CardBody className="space-y-3 text-sm">
+              {contact.sequenceEnrollments.length > 0 && (
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {contact.sequenceEnrollments.map((enrollment) => (
+                    <li key={enrollment.id} className="flex items-center justify-between gap-2 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-slate-800 dark:text-slate-200">
+                          {enrollment.sequence.name}
+                        </p>
+                        {enrollment.status === "ACTIVE" && (
+                          <p className="text-xs text-slate-400">
+                            Next email {formatDate(enrollment.nextStepDueAt)}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Badge className={ENROLLMENT_STATUS_BADGE_CLASSES[enrollment.status]}>
+                          {ENROLLMENT_STATUS_LABELS[enrollment.status]}
+                        </Badge>
+                        {enrollment.status === "ACTIVE" && (
+                          <form action={stopEnrollment.bind(null, enrollment.id)}>
+                            <ConfirmSubmitButton
+                              confirmMessage="Stop this sequence for this contact?"
+                              size="sm"
+                            >
+                              Stop
+                            </ConfirmSubmitButton>
+                          </form>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {hasEmailAccount && contact.email && activeSequences.length > 0 ? (
+                <form
+                  action={enrollContact.bind(null, contact.id)}
+                  className="flex items-end gap-2 border-t border-slate-100 pt-3 dark:border-neutral-800"
+                >
+                  <Select name="sequenceId" required defaultValue="" className="flex-1">
+                    <option value="" disabled>
+                      Enroll in…
+                    </option>
+                    {activeSequences
+                      .filter(
+                        (s) =>
+                          !contact.sequenceEnrollments.some(
+                            (e) => e.sequenceId === s.id && e.status === "ACTIVE",
+                          ),
+                      )
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </Select>
+                  <Button type="submit" size="sm">
+                    Enroll
+                  </Button>
+                </form>
+              ) : (
+                contact.sequenceEnrollments.length === 0 && (
+                  <p className="text-slate-500 dark:text-slate-400">
+                    {!contact.email
+                      ? "Add an email address to enroll this contact in a sequence."
+                      : !hasEmailAccount
+                        ? "Connect your email in Settings to enroll contacts in sequences."
+                        : "No active sequences — create one in Settings."}
+                  </p>
+                )
+              )}
             </CardBody>
           </Card>
 

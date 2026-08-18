@@ -167,6 +167,14 @@ async function syncFolder(
             },
           });
           logged += 1;
+          // Lets an outbound sequence (src/lib/sequences.ts) auto-stop the
+          // moment this contact replies, without re-scanning Activity rows.
+          if (direction === "received") {
+            await db.contact.update({
+              where: { id: contact.id },
+              data: { lastInboundEmailAt: parsed.date ?? new Date() },
+            });
+          }
         } catch (error) {
           // P2002 = unique constraint violation on externalId — already logged.
           if (!(error instanceof Object && "code" in error && error.code === "P2002")) throw error;

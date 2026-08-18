@@ -86,6 +86,24 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
+        <CardBody>
+          <Link
+            href="/settings/sequences"
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <div>
+              <p className="font-medium text-slate-800 dark:text-slate-200">Sequences</p>
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                Multi-step automated email cadences — enroll a contact from their page and it sends itself,
+                stopping the moment they reply.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+          </Link>
+        </CardBody>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
         </CardHeader>

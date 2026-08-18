@@ -10,7 +10,8 @@
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
     "clear-data": "tsx scripts/clear-data.ts",
-    "sync-email": "tsx scripts/sync-email.ts"
+    "sync-email": "tsx scripts/sync-email.ts",
+    "process-sequences": "tsx scripts/process-sequences.ts"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",

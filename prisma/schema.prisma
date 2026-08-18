@@ -43,28 +43,29 @@ model User {
   title        String?
   createdAt    DateTime @default(now())
 
-  emailAccount EmailAccount?
-  deals        Deal[]
-  timeEntries  TimeEntry[]
+  emailAccount        EmailAccount?
+  deals               Deal[]
+  timeEntries         TimeEntry[]
+  sequenceEnrollments SequenceEnrollment[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
 // team one) — see src/lib/email-sync.ts. Credentials are never stored in
 // plaintext.
 model EmailAccount {
-  id         String  @id @default(cuid())
-  email      String
-  imapHost   String
-  imapPort   Int     @default(993)
-  imapSecure Boolean @default(true)
-  smtpHost   String
-  smtpPort   Int     @default(465)
-  smtpSecure Boolean @default(true)
-  username   String
+  id                String  @id @default(cuid())
+  email             String
+  imapHost          String
+  imapPort          Int     @default(993)
+  imapSecure        Boolean @default(true)
+  smtpHost          String
+  smtpPort          Int     @default(465)
+  smtpSecure        Boolean @default(true)
+  username          String
   // AES-256-GCM ciphertext ("iv:authTag:ciphertext", base64) — the key is
   // derived from SESSION_SECRET via HKDF (see src/lib/email-crypto.ts), so
   // connecting a mailbox needs no extra required env var to deploy.
-  encryptedPassword String @db.Text
+  encryptedPassword String  @db.Text
 
   // JSON: { [folderPath]: highestUidSeen } — an IMAP UID only ever increases
   // within a folder, so "highest UID synced" is a cheap, correct incremental
@@ -134,14 +135,22 @@ model Contact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Last time email sync saw an inbound message from this contact — not
+  // shown anywhere yet, but it's what lets an outbound sequence
+  // (src/lib/sequences.ts) auto-stop the moment a contact replies, by
+  // comparing this against the enrollment's enrolledAt rather than
+  // re-scanning Activity rows.
+  lastInboundEmailAt DateTime?
+
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 
-  deals      Deal[]
-  tasks      Task[]
-  activities Activity[]
-  bookings   Booking[]
-  clientUser ClientUser?
+  deals               Deal[]
+  tasks               Task[]
+  activities          Activity[]
+  bookings            Booking[]
+  clientUser          ClientUser?
+  sequenceEnrollments SequenceEnrollment[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -463,4 +472,77 @@ model Invoice {
   projectId String
 
   @@index([projectId])
+}
+
+// Outbound cadence: an ordered list of templated emails sent automatically
+// to enrolled Contacts, spaced by each step's delayDays. See
+// src/lib/sequences.ts and scripts/process-sequences.ts (the cron
+// processor) for how enrollments actually advance.
+model Sequence {
+  id        String   @id @default(cuid())
+  name      String
+  // Gates new enrollments only — flipping this off never touches
+  // already-active enrollments; use SequenceEnrollment.status to stop those.
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  steps       SequenceStep[]
+  enrollments SequenceEnrollment[]
+}
+
+model SequenceStep {
+  id        String @id @default(cuid())
+  subject   String
+  body      String @db.Text
+  // Days after the previous step was sent (or after enrollment, for the
+  // first step) before this step becomes due.
+  delayDays Int    @default(0)
+  sortOrder Int    @default(0)
+
+  sequence   Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  sequenceId String
+
+  // Enrollments currently queued on this step. onDelete: SetNull rather
+  // than Cascade — editing a live sequence's steps shouldn't silently
+  // delete anyone's enrollment; the processor treats a null currentStepId
+  // on an ACTIVE enrollment as FAILED instead (see process-sequences.ts).
+  enrollments SequenceEnrollment[]
+
+  @@index([sequenceId])
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  STOPPED_REPLY
+  STOPPED_MANUAL
+  FAILED
+}
+
+model SequenceEnrollment {
+  id             String           @id @default(cuid())
+  status         EnrollmentStatus @default(ACTIVE)
+  enrolledAt     DateTime         @default(now())
+  nextStepDueAt  DateTime
+  lastStepSentAt DateTime?
+  lastError      String?          @db.Text
+
+  sequence   Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  sequenceId String
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  // Whose connected mailbox sends each step — needs an EmailAccount at
+  // processing time (see scripts/process-sequences.ts).
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  currentStep   SequenceStep? @relation(fields: [currentStepId], references: [id], onDelete: SetNull)
+  currentStepId String?
+
+  @@unique([sequenceId, contactId])
+  @@index([contactId])
+  @@index([status, nextStepDueAt])
 }
