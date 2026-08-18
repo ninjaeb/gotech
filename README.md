@@ -16,6 +16,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **AI Assistant** *(optional, requires a Gemini API key)* — on each Contact/Company/Deal page: AI-generated summary + suggested next action, and a draftable follow-up message. On the dashboard: an "AI Pipeline Diagnosis" that reads pipeline health and overdue work and names the single highest-priority thing to do next
 - **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for GoTech's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. The direct link and a ready-to-paste `<iframe>` snippet are both in *Settings*
 - **Meeting scheduler** (`/book`) — a public booking link for discovery calls, built from a weekly-hours schedule you set in *Settings* (timezone as a fixed UTC offset, call length, per-day hours). A booking finds-or-creates a Contact and auto-adds a follow-up Task at the chosen time — no email back-and-forth
+- **Email sync** (*Settings → Connect your email*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs
 
 ## Stack
 
@@ -111,6 +112,16 @@ GEMINI_API_KEY="..."
 
 Restart the dev server. "Generate insights", "Draft follow-up", and "AI Pipeline Diagnosis" buttons will now call Gemini; without a key they show a "not configured" message instead of erroring. No other setup needed — see `src/lib/ai/` and `src/app/actions/ai-insights.ts`.
 
+### 7. Enable email sync (optional)
+
+Each user connects their own mailbox from *Settings → Connect your email* — no env var to set (the encryption key for stored credentials is derived from `SESSION_SECRET`, which you've already got from step 2). It needs the mailbox's IMAP and SMTP host/port, and a password:
+
+- **Gmail** — `imap.gmail.com:993` (SSL) / `smtp.gmail.com:465` (SSL). Needs an [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification), not the regular account password.
+- **Outlook / Microsoft 365** — `outlook.office365.com:993` (SSL) / `smtp.office365.com:587` (uncheck "uses SSL/TLS" — it's STARTTLS on that port). Microsoft has phased out basic auth for IMAP/SMTP on Exchange Online mailboxes; an App Password (or your tenant's modern-auth equivalent) is required.
+- **A cPanel-hosted mailbox** (e.g. one on the same account as this app) — usually `mail.yourdomain.com` on `993`/`465`, plain password, no App Password needed. Check *Email Accounts → Connect Devices* in cPanel for the exact settings.
+
+"Sync now" in Settings runs it immediately; for it to run on its own, add a cron job (see the cPanel deploy steps below).
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
@@ -140,6 +151,12 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 6. **Restart** the app from the Node.js Selector UI, then visit the Application URL. `server.js` builds the production bundle itself on every start (there's no separate "build" step to run) — the app takes ~20-30s to come up while `next build` runs each time; check `stderr.log` in the Application root if it doesn't come up.
 
+7. **(Optional) Schedule email sync.** If anyone connects a mailbox (*Settings → Connect your email*), add a cPanel *Cron Jobs* entry — e.g. every 10 minutes — running:
+   ```bash
+   cd /home/USERNAME/APPLICATION_ROOT && source /home/USERNAME/nodevenv/APPLICATION_ROOT/*/bin/activate && npm run sync-email
+   ```
+   (the exact `source` path is the same one the Node app screen shows for running commands by hand). Without this, connected mailboxes only sync when someone clicks *Sync now*.
+
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
 To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, then restart the app — `server.js` rebuilds from the new source on every start, so there's no `.next` folder to manually clear.
@@ -165,6 +182,7 @@ prisma/
 scripts/
   create-user.ts         CLI to add more logins (npm run create-user)
   clear-data.ts           CLI to wipe sample/CRM data without touching logins
+  sync-email.ts           CLI to sync every connected mailbox (npm run sync-email) — for cron
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
 proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)
@@ -208,6 +226,7 @@ src/
 | `npm run lint` | Run ESLint |
 | `npm run create-user -- --email=… --name=…` | Add another login |
 | `npm run clear-data -- --yes` | Delete all CRM data (companies/contacts/deals/tasks/activity), keep logins |
+| `npm run sync-email` | Sync every connected mailbox once (what the cron job runs) |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |

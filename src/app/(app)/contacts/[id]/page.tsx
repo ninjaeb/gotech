@@ -18,9 +18,11 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
+import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function ContactDetailPage({
   params,
@@ -29,7 +31,8 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params;
 
-  const [currency, contact] = await Promise.all([
+  const currentUser = await getCurrentUser();
+  const [currency, contact, hasEmailAccount] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -40,6 +43,7 @@ export default async function ContactDetailPage({
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
       },
     }),
+    db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
   ]);
 
   if (!contact) notFound();
@@ -108,6 +112,9 @@ export default async function ContactDetailPage({
                       <span className="inline-flex items-center gap-1.5">
                         {contact.email}
                         <MailLink email={contact.email} />
+                        {hasEmailAccount && (
+                          <SendEmailButton contactId={contact.id} contactName={contactName} />
+                        )}
                       </span>
                     )
                   }

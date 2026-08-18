@@ -18,18 +18,23 @@ import { ResetPasswordButton } from "@/components/settings/reset-password-button
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
+import { EmailAccountForm } from "@/components/settings/email-account-form";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { getSiteOrigin } from "@/lib/site-url";
 import { getBookingSettings } from "@/lib/settings";
 
 export default async function SettingsPage() {
-  const [currency, currentUser, users, servicePackages, siteOrigin, bookingSettings] = await Promise.all([
+  const currentUser = await getCurrentUser();
+  const [currency, users, servicePackages, siteOrigin, bookingSettings, emailAccount] = await Promise.all([
     getCurrency(),
-    getCurrentUser(),
     db.user.findMany({ orderBy: { createdAt: "asc" } }),
     db.servicePackage.findMany({ orderBy: { name: "asc" } }),
     getSiteOrigin(),
     getBookingSettings(),
+    db.emailAccount.findUnique({
+      where: { userId: currentUser.id },
+      select: { email: true, lastSyncedAt: true, lastSyncError: true },
+    }),
   ]);
   const leadFormUrl = `${siteOrigin}/lead`;
   const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
@@ -203,6 +208,20 @@ export default async function SettingsPage() {
             initialSlotMinutes={bookingSettings.slotMinutes}
             initialWeeklyHours={bookingSettings.weeklyHours}
           />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Connect your email</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Personal, not shared — this is your own inbox. New mail to/from an address that matches a
+            Contact gets logged automatically, and you can send from here too. Runs on a schedule (see the
+            README&apos;s cron job setup) plus whenever you hit Sync now.
+          </p>
+          <EmailAccountForm account={emailAccount} />
         </CardBody>
       </Card>
 

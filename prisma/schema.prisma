@@ -42,6 +42,40 @@ model User {
   passwordHash String
   title        String?
   createdAt    DateTime @default(now())
+
+  emailAccount EmailAccount?
+}
+
+// One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
+// team one) — see src/lib/email-sync.ts. Credentials are never stored in
+// plaintext.
+model EmailAccount {
+  id         String  @id @default(cuid())
+  email      String
+  imapHost   String
+  imapPort   Int     @default(993)
+  imapSecure Boolean @default(true)
+  smtpHost   String
+  smtpPort   Int     @default(465)
+  smtpSecure Boolean @default(true)
+  username   String
+  // AES-256-GCM ciphertext ("iv:authTag:ciphertext", base64) — the key is
+  // derived from SESSION_SECRET via HKDF (see src/lib/email-crypto.ts), so
+  // connecting a mailbox needs no extra required env var to deploy.
+  encryptedPassword String @db.Text
+
+  // JSON: { [folderPath]: highestUidSeen } — an IMAP UID only ever increases
+  // within a folder, so "highest UID synced" is a cheap, correct incremental
+  // checkpoint per folder (INBOX and the account's Sent folder are tracked
+  // separately, since their UID sequences are independent).
+  syncState     String    @default("{}") @db.Text
+  lastSyncedAt  DateTime?
+  lastSyncError String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 }
 
 // Single-row table for CRM-wide settings (currency, booking-link
@@ -256,6 +290,13 @@ model Activity {
   type      ActivityType
   content   String       @db.Text
   createdAt DateTime     @default(now())
+
+  // Set only for activities auto-logged by email sync — a stable dedup key
+  // ("<accountId>:<folder>:<uid>:<contactId>", one row per matched contact
+  // since a single email can match several) so a re-run over the same IMAP
+  // UID range can never double-log the same message. Null for every
+  // manually-created activity.
+  externalId String? @unique
 
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
   contactId String?
