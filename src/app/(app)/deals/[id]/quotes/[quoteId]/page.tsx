@@ -8,7 +8,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
-import { CopyLinkButton } from "@/components/quotes/copy-link-button";
+import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
 import { lineItemTotal, quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDateTime, whatsAppUrl } from "@/lib/format";
@@ -128,7 +128,7 @@ export default async function QuoteDetailPage({
                 {publicUrl}
               </p>
               <div className="flex flex-wrap gap-2">
-                <CopyLinkButton url={publicUrl} />
+                <CopyLinkButton text={publicUrl} />
                 <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={buttonClasses("secondary", "sm")}>
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp

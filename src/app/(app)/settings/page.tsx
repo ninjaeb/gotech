@@ -9,21 +9,26 @@ import { CURRENCIES } from "@/lib/currency";
 import { formatDate, formatCurrency } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label, Select } from "@/components/ui/field";
+import { Input, Label, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CreateUserForm } from "@/components/settings/create-user-form";
 import { ResetPasswordButton } from "@/components/settings/reset-password-button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
+import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export default async function SettingsPage() {
-  const [currency, currentUser, users, servicePackages] = await Promise.all([
+  const [currency, currentUser, users, servicePackages, siteOrigin] = await Promise.all([
     getCurrency(),
     getCurrentUser(),
     db.user.findMany({ orderBy: { createdAt: "asc" } }),
     db.servicePackage.findMany({ orderBy: { name: "asc" } }),
+    getSiteOrigin(),
   ]);
+  const leadFormUrl = `${siteOrigin}/lead`;
+  const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
 
   return (
     <div className="max-w-lg space-y-6">
@@ -125,6 +130,32 @@ export default async function SettingsPage() {
             </ul>
           )}
           <ServicePackageForm />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Lead capture form</CardTitle>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            A public form for GoTech&apos;s marketing site. Each submission creates a Contact (and Company,
+            if named) plus a new Deal in Lead stage — no manual re-entry.
+          </p>
+          <div>
+            <Label htmlFor="lead-form-link">Direct link</Label>
+            <div className="flex items-center gap-2">
+              <Input id="lead-form-link" readOnly value={leadFormUrl} className="font-mono text-xs" />
+              <CopyLinkButton text={leadFormUrl} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="lead-form-embed">Embed on your site</Label>
+            <div className="flex items-center gap-2">
+              <Input id="lead-form-embed" readOnly value={leadFormEmbed} className="font-mono text-xs" />
+              <CopyLinkButton text={leadFormEmbed} label="Copy embed code" />
+            </div>
+          </div>
         </CardBody>
       </Card>
 

@@ -46,6 +46,13 @@ export function fullName(firstName: string, lastName?: string | null) {
   return [firstName, lastName].filter(Boolean).join(" ");
 }
 
+// Inverse of fullName: a visitor types one "Name" field, we store first/last
+// separately like every other Contact source in this app.
+export function splitFullName(full: string) {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") };
+}
+
 export function initials(name: string) {
   return name
     .split(" ")

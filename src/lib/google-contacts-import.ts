@@ -1,4 +1,5 @@
 import { parse } from "csv-parse/sync";
+import { splitFullName } from "@/lib/format";
 
 export type ParsedContactRow = {
   row: number;
@@ -115,9 +116,7 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
     if (!firstName && !lastName && fullNameHeader) {
       const full = readHeader(record, fullNameHeader);
       if (full) {
-        const parts = full.split(/\s+/);
-        firstName = parts[0] ?? "";
-        lastName = parts.slice(1).join(" ");
+        ({ firstName, lastName } = splitFullName(full));
       }
     }
 

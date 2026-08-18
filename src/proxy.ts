@@ -5,7 +5,7 @@ import { decrypt } from "@/lib/auth/session";
 const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // Routes that stay public even for a logged-in user — e.g. a shared quote
 // link, which staff previewing it shouldn't get bounced away from.
-const ALWAYS_PUBLIC_PREFIXES = ["/q/"];
+const ALWAYS_PUBLIC_PREFIXES = ["/q/", "/lead"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
