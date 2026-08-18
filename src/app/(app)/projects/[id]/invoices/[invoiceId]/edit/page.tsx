@@ -1,0 +1,32 @@
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { updateInvoice } from "@/app/actions/invoices";
+import { InvoiceForm } from "@/components/invoices/invoice-form";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardBody } from "@/components/ui/card";
+
+export default async function EditInvoicePage({
+  params,
+}: {
+  params: Promise<{ id: string; invoiceId: string }>;
+}) {
+  const { id: projectId, invoiceId } = await params;
+
+  const invoice = await db.invoice.findUnique({ where: { id: invoiceId, projectId } });
+  if (!invoice) notFound();
+
+  return (
+    <div className="max-w-2xl">
+      <PageHeader title={`Edit ${invoice.title}`} />
+      <Card>
+        <CardBody>
+          <InvoiceForm
+            action={updateInvoice.bind(null, invoice.id)}
+            invoice={{ ...invoice, amount: Number(invoice.amount) }}
+            submitLabel="Save changes"
+          />
+        </CardBody>
+      </Card>
+    </div>
+  );
+}

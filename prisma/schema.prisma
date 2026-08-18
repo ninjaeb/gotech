@@ -266,6 +266,7 @@ model Project {
 
   tasks      Task[]
   activities Activity[]
+  invoices   Invoice[]
 }
 
 model Task {
@@ -412,4 +413,35 @@ model QuoteItem {
 
   @@index([quoteId])
   @@index([servicePackageId])
+}
+
+// Payment-milestone billing for a Project (post-sale — a Quote is the
+// pre-sale document). A project typically carries several Invoices over its
+// life (deposit, progress billing, final), each walking its own status
+// through these milestones rather than a generic sent/paid pair.
+enum InvoiceStatus {
+  DRAFT
+  DEPOSIT_SENT
+  PROGRESS_BILLED
+  PAID_IN_FULL
+}
+
+model Invoice {
+  id      String        @id @default(cuid())
+  title   String
+  amount  Decimal       @db.Decimal(12, 2)
+  status  InvoiceStatus @default(DRAFT)
+  dueDate DateTime?
+  notes   String?       @db.Text
+
+  sentAt DateTime?
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@index([projectId])
 }

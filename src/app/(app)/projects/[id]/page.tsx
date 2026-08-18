@@ -1,18 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteProject } from "@/app/actions/projects";
+import { deleteInvoice } from "@/app/actions/invoices";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { ProjectStatusSelect } from "@/components/projects/project-status-select";
-import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
+import { InvoiceStatusSelect } from "@/components/invoices/invoice-status-select";
+import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 
 export default async function ProjectDetailPage({
@@ -30,6 +34,7 @@ export default async function ProjectDetailPage({
         deal: { include: { company: true, contact: true } },
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        invoices: { orderBy: { createdAt: "desc" } },
       },
     }),
     db.timeEntry.aggregate({ where: { task: { projectId: id } }, _sum: { minutes: true } }),
@@ -96,6 +101,53 @@ export default async function ProjectDetailPage({
             <CardBody>
               <TaskList tasks={project.tasks} emptyMessage="No milestones yet." />
               <TaskQuickForm projectId={project.id} />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoices ({project.invoices.length})</CardTitle>
+              <Link href={`/projects/${project.id}/invoices/new`} className={buttonClasses("secondary", "sm")}>
+                <Plus className="h-4 w-4" />
+                New invoice
+              </Link>
+            </CardHeader>
+            <CardBody>
+              {project.invoices.length === 0 ? (
+                <EmptyState title="No invoices yet." />
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {project.invoices.map((invoice) => (
+                    <li key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/projects/${project.id}/invoices/${invoice.id}/edit`}
+                          className="truncate font-medium text-slate-800 hover:text-indigo-600 dark:text-slate-200"
+                        >
+                          {invoice.title}
+                        </Link>
+                        <p className="text-xs text-slate-400">
+                          {formatCurrency(invoice.amount.toString(), currency)}
+                          {invoice.dueDate && ` · Due ${formatDate(invoice.dueDate)}`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <InvoiceStatusSelect invoiceId={invoice.id} status={invoice.status} />
+                        <form action={deleteInvoice.bind(null, invoice.id)}>
+                          <ConfirmSubmitButton
+                            confirmMessage="Delete this invoice?"
+                            variant="ghost"
+                            size="sm"
+                            className="!px-1.5 text-slate-400 hover:text-rose-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </ConfirmSubmitButton>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardBody>
           </Card>
         </div>

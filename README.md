@@ -19,6 +19,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Email sync** (*Settings → Connect your email*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs
 - **Leaderboard** (`/leaderboard`) — every deal has an assignable Owner (set from the deal form, defaulting to whoever creates it); the leaderboard ranks teammates by deals won and value closed, filterable by this month / this quarter / this year / all time
 - **Time tracking** — log time against any task (the clock icon next to it) with minutes, a date, and an optional note; Deals, Projects, Contacts, and Companies each roll up the total time logged across their tasks in the Tasks/Milestones card
+- **Invoices** (on a Project page) — track payment milestones against a won deal's project: Draft → Deposit sent → Progress billed → Paid in full, with an amount, due date, and notes per invoice
 
 ## Stack
 
