@@ -141,9 +141,28 @@ model Contact {
   tasks      Task[]
   activities Activity[]
   bookings   Booking[]
+  clientUser ClientUser?
 
   @@index([companyId])
   @@index([lastName, firstName])
+}
+
+// A client-side portal login, entirely separate from the internal User
+// model/session (see src/lib/portal/session.ts — a distinct signed cookie,
+// distinct signing key). Scoped through its Contact to that Contact's
+// Company, never directly to a companyId, so portal access can never
+// outlive or outgrow the underlying CRM relationship. passwordHash is null
+// until the invite (inviteToken) is accepted.
+model ClientUser {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String?   @db.Text
+  inviteToken          String?   @unique
+  inviteTokenExpiresAt DateTime?
+  createdAt            DateTime  @default(now())
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String  @unique
 }
 
 // A confirmed slot from the public booking page (see src/app/book). The

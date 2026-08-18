@@ -20,6 +20,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Leaderboard** (`/leaderboard`) — every deal has an assignable Owner (set from the deal form, defaulting to whoever creates it); the leaderboard ranks teammates by deals won and value closed, filterable by this month / this quarter / this year / all time
 - **Time tracking** — log time against any task (the clock icon next to it) with minutes, a date, and an optional note; Deals, Projects, Contacts, and Companies each roll up the total time logged across their tasks in the Tasks/Milestones card
 - **Invoices** (on a Project page) — track payment milestones against a won deal's project: Draft → Deposit sent → Progress billed → Paid in full, with an amount, due date, and notes per invoice
+- **Client portal** (`/portal`) — invite a Contact (from their Contact page, once they have an email and a company) and they get their own login, entirely separate from staff accounts, scoped strictly to their own Company's data: their Projects and milestones, their Quotes, their Invoices. Nothing internal — Activities, task descriptions, non-milestone tasks, deal notes — is ever exposed. Invite generates a one-time setup link (same copy-and-send pattern as quotes and the booking link); staff can revoke access at any time from the Contact page
 
 ## Stack
 

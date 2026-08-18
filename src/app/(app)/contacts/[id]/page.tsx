@@ -4,11 +4,13 @@ import { notFound } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
+import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { buttonClasses } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
@@ -23,6 +25,7 @@ import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { getSiteOrigin } from "@/lib/site-url";
 
 export default async function ContactDetailPage({
   params,
@@ -32,7 +35,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
 
   const currentUser = await getCurrentUser();
-  const [currency, contact, hasEmailAccount, timeLogged] = await Promise.all([
+  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -41,10 +44,12 @@ export default async function ContactDetailPage({
         deals: { orderBy: { createdAt: "desc" }, include: { pipelineStage: true } },
         tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        clientUser: { select: { passwordHash: true, inviteToken: true } },
       },
     }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
+    getSiteOrigin(),
   ]);
 
   if (!contact) notFound();
@@ -208,6 +213,48 @@ export default async function ContactDetailPage({
             <CardBody className="space-y-4">
               <ActivityForm contactId={contact.id} />
               <ActivityFeed activities={contact.activities} />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Client portal</CardTitle>
+            </CardHeader>
+            <CardBody className="space-y-3 text-sm">
+              {contact.clientUser ? (
+                <>
+                  {contact.clientUser.passwordHash ? (
+                    <p className="text-emerald-600 dark:text-emerald-400">Portal access is active.</p>
+                  ) : (
+                    <>
+                      <p className="text-slate-600 dark:text-slate-400">
+                        Invited — share this link so they can set a password:
+                      </p>
+                      <CopyLinkButton
+                        text={`${siteOrigin}/portal/accept-invite/${contact.clientUser.inviteToken}`}
+                      />
+                    </>
+                  )}
+                  <form action={revokePortalAccess.bind(null, contact.id)}>
+                    <ConfirmSubmitButton
+                      confirmMessage="Revoke this contact's portal access? They'll be signed out immediately."
+                      size="sm"
+                    >
+                      Revoke access
+                    </ConfirmSubmitButton>
+                  </form>
+                </>
+              ) : contact.email && contact.company ? (
+                <form action={inviteToPortal.bind(null, contact.id)}>
+                  <Button type="submit" variant="secondary" size="sm">
+                    Invite to portal
+                  </Button>
+                </form>
+              ) : (
+                <p className="text-slate-500 dark:text-slate-400">
+                  Add an email and link a company to invite this contact to the portal.
+                </p>
+              )}
             </CardBody>
           </Card>
         </div>
