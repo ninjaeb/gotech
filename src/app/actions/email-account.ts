@@ -21,6 +21,26 @@ const connectSchema = z.object({
 
 export type EmailAccountFormState = { error: string } | undefined;
 
+// imapflow rejects a bad IMAP response (most often a rejected login) with
+// the bare message "Command failed" — the server's actual explanation
+// ("Invalid credentials", "Application-specific password required", etc.)
+// lands separately on `.responseText`, which this surfaces instead.
+// nodemailer's SMTP errors already fold the server response into `.message`
+// (see _formatError in smtp-connection), so they need no such lookup.
+function describeEmailError(error: unknown): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "responseText" in error &&
+    typeof error.responseText === "string" &&
+    error.responseText
+  ) {
+    return error.responseText;
+  }
+  if (error instanceof Error) return error.message;
+  return "check your host/port/password";
+}
+
 export async function connectEmailAccount(
   _prevState: EmailAccountFormState,
   formData: FormData,
@@ -44,9 +64,7 @@ export async function connectEmailAccount(
   try {
     await testEmailConnection(data);
   } catch (error) {
-    return {
-      error: `Couldn't connect: ${error instanceof Error ? error.message : "check your host/port/password"}`,
-    };
+    return { error: `Couldn't connect: ${describeEmailError(error)}` };
   }
 
   const user = await getCurrentUser();
