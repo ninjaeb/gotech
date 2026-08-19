@@ -45,7 +45,10 @@ export default async function ContactDetailPage({
       include: {
         company: true,
         deals: { orderBy: { createdAt: "desc" }, include: { pipelineStage: true } },
-        tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
+        tasks: {
+          orderBy: [{ completed: "asc" }, { dueDate: "asc" }],
+          include: { assignee: { select: { id: true, name: true } }, _count: { select: { followers: true } } },
+        },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
         clientUser: { select: { passwordHash: true, inviteToken: true } },
         sequenceEnrollments: {

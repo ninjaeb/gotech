@@ -68,7 +68,7 @@ export default async function TasksPage({
       }
     : buildWhere(filter);
 
-  const [tasks, companies, contacts, deals] = await Promise.all([
+  const [tasks, companies, contacts, deals, users] = await Promise.all([
     db.task.findMany({
       where,
       orderBy:
@@ -80,6 +80,8 @@ export default async function TasksPage({
         company: { select: { id: true, name: true } },
         deal: { select: { id: true, title: true } },
         project: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true } },
+        _count: { select: { followers: true } },
       },
     }),
     db.company.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -91,6 +93,7 @@ export default async function TasksPage({
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, companyId: true, contactId: true },
     }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (
@@ -99,7 +102,7 @@ export default async function TasksPage({
 
       <Card className="mb-6">
         <CardBody>
-          <GlobalTaskForm companies={companies} contacts={contacts} deals={deals} />
+          <GlobalTaskForm companies={companies} contacts={contacts} deals={deals} users={users} />
         </CardBody>
       </Card>
 

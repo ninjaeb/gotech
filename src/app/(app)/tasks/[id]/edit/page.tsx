@@ -11,8 +11,8 @@ export default async function EditTaskPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [task, companies, contacts, deals] = await Promise.all([
-    db.task.findUnique({ where: { id } }),
+  const [task, companies, contacts, deals, users] = await Promise.all([
+    db.task.findUnique({ where: { id }, include: { followers: { select: { userId: true } } } }),
     db.company.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.contact.findMany({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
@@ -22,6 +22,7 @@ export default async function EditTaskPage({
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, companyId: true, contactId: true },
     }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   if (!task) notFound();
 
@@ -36,6 +37,8 @@ export default async function EditTaskPage({
             companies={companies}
             contacts={contacts}
             deals={deals}
+            users={users}
+            followerIds={task.followers.map((f) => f.userId)}
             submitLabel="Save changes"
           />
         </CardBody>

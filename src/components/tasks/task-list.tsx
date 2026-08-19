@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Clock, Pencil, Trash2 } from "lucide-react";
-import type { Company, Contact, Deal, Project, Task } from "@/generated/prisma/client";
+import { Clock, Pencil, Trash2, User as UserIcon, Users } from "lucide-react";
+import type { Company, Contact, Deal, Project, Task, User } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
 import { TASK_TYPE_LABELS } from "@/lib/labels";
 import { relativeToToday, fullName } from "@/lib/format";
@@ -13,6 +13,8 @@ export type TaskWithRelations = Task & {
   company?: Pick<Company, "id" | "name"> | null;
   deal?: Pick<Deal, "id" | "title"> | null;
   project?: Pick<Project, "id" | "name"> | null;
+  assignee?: Pick<User, "id" | "name"> | null;
+  _count?: { followers: number };
 };
 
 export function TaskList({
@@ -88,6 +90,18 @@ export function TaskList({
                   >
                     {overdue ? "Overdue: " : ""}
                     {dueLabel}
+                  </span>
+                )}
+                {task.assignee && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <UserIcon className="h-3 w-3" />
+                    {task.assignee.name}
+                  </span>
+                )}
+                {!!task._count?.followers && (
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <Users className="h-3 w-3" />
+                    {task._count.followers}
                   </span>
                 )}
               </div>

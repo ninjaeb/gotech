@@ -15,7 +15,12 @@ const taskSchema = z.object({
   companyId: z.string().trim().nullish(),
   dealId: z.string().trim().nullish(),
   projectId: z.string().trim().nullish(),
+  assigneeId: z.string().trim().nullish(),
 });
+
+function parseFollowerIds(formData: FormData): string[] {
+  return [...new Set(formData.getAll("followerIds").map(String).filter(Boolean))];
+}
 
 function revalidateTaskPaths(task: {
   contactId?: string | null;
@@ -41,11 +46,13 @@ export async function createTask(formData: FormData) {
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
     projectId: formData.get("projectId"),
+    assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const followerIds = parseFollowerIds(formData);
   const task = await db.task.create({
     data: {
       title: data.title,
@@ -56,6 +63,8 @@ export async function createTask(formData: FormData) {
       companyId: data.companyId || null,
       dealId: data.dealId || null,
       projectId: data.projectId || null,
+      assigneeId: data.assigneeId || null,
+      followers: { create: followerIds.map((userId) => ({ userId })) },
     },
   });
   revalidateTaskPaths(task);
@@ -75,11 +84,13 @@ export async function updateTask(id: string, formData: FormData) {
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
+    assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const followerIds = parseFollowerIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
     select: { contactId: true, companyId: true, dealId: true, projectId: true },
@@ -94,6 +105,8 @@ export async function updateTask(id: string, formData: FormData) {
       contactId: data.contactId || null,
       companyId: data.companyId || null,
       dealId: data.dealId || null,
+      assigneeId: data.assigneeId || null,
+      followers: { deleteMany: {}, create: followerIds.map((userId) => ({ userId })) },
     },
   });
   revalidateTaskPaths(previous);

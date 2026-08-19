@@ -10,6 +10,7 @@ import { formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = { id: string; firstName: string; lastName: string | null; companyId: string | null };
 type DealOption = { id: string; title: string; companyId: string | null; contactId: string | null };
+type UserOption = { id: string; name: string };
 
 function dealMatches(deal: DealOption, companyId: string, contactId: string) {
   if (!companyId && !contactId) return true;
@@ -22,6 +23,8 @@ export function TaskForm({
   companies,
   contacts,
   deals,
+  users,
+  followerIds = [],
   submitLabel = "Save task",
 }: {
   action: (formData: FormData) => void;
@@ -29,6 +32,8 @@ export function TaskForm({
   companies: { id: string; name: string }[];
   contacts: ContactOption[];
   deals: DealOption[];
+  users: UserOption[];
+  followerIds?: string[];
   submitLabel?: string;
 }) {
   const [companyId, setCompanyId] = useState(task?.companyId ?? "");
@@ -74,7 +79,7 @@ export function TaskForm({
         <Textarea id="description" name="description" rows={3} defaultValue={task?.description ?? ""} />
       </FieldGroup>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <FieldGroup label="Type" htmlFor="type">
           <Select id="type" name="type" defaultValue={task?.type ?? "OTHER"}>
             {TASK_TYPES.map((type) => (
@@ -86,6 +91,16 @@ export function TaskForm({
         </FieldGroup>
         <FieldGroup label="Due date" htmlFor="dueDate">
           <DatePicker id="dueDate" name="dueDate" defaultValue={formatDateInput(task?.dueDate)} />
+        </FieldGroup>
+        <FieldGroup label="Assignee" htmlFor="assigneeId">
+          <Select id="assigneeId" name="assigneeId" defaultValue={task?.assigneeId ?? ""}>
+            <option value="">Unassigned</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </Select>
         </FieldGroup>
       </div>
 
@@ -136,6 +151,32 @@ export function TaskForm({
           </Select>
         </FieldGroup>
       </div>
+
+      <FieldGroup label="Followers" htmlFor="followerIds-group">
+        {users.length === 0 ? (
+          <p className="text-sm text-slate-400">No other users to follow this task.</p>
+        ) : (
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {users.map((user, index) => (
+              <label
+                key={user.id}
+                htmlFor={`followerIds-${index}`}
+                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
+              >
+                <input
+                  id={`followerIds-${index}`}
+                  type="checkbox"
+                  name="followerIds"
+                  value={user.id}
+                  defaultChecked={followerIds.includes(user.id)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+                />
+                {user.name}
+              </label>
+            ))}
+          </div>
+        )}
+      </FieldGroup>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit">{submitLabel}</Button>

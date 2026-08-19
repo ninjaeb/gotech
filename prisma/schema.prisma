@@ -47,6 +47,8 @@ model User {
   deals               Deal[]
   timeEntries         TimeEntry[]
   sequenceEnrollments SequenceEnrollment[]
+  assignedTasks       Task[]         @relation("TaskAssignee")
+  followingTasks      TaskFollower[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -320,13 +322,35 @@ model Task {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeId String?
+
   timeEntries TimeEntry[]
+  followers   TaskFollower[]
 
   @@index([contactId])
   @@index([companyId])
   @@index([dealId])
   @@index([projectId])
   @@index([dueDate])
+  @@index([assigneeId])
+}
+
+// Who gets visibility on a Task without being the one responsible for it
+// (that's `Task.assignee`) — a plain many-to-many via an explicit join
+// model, matching this schema's convention of never using Prisma's implicit
+// m:n tables.
+model TaskFollower {
+  id String @id @default(cuid())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }
 
 // A logged block of work on a Task. Rollup totals on Deal/Project/Contact/

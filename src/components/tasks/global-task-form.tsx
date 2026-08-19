@@ -19,10 +19,12 @@ export function GlobalTaskForm({
   companies,
   contacts,
   deals,
+  users,
 }: {
   companies: { id: string; name: string }[];
   contacts: { id: string; firstName: string; lastName: string | null; companyId: string | null }[];
   deals: DealOption[];
+  users: { id: string; name: string }[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -78,7 +80,7 @@ export function GlobalTaskForm({
           <Input id="g-title" name="title" required placeholder="Follow up on proposal" />
         </FieldGroup>
       </div>
-      <div className="grid gap-3 sm:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-6">
         <FieldGroup label="Type" htmlFor="g-type">
           <Select id="g-type" name="type" defaultValue="OTHER">
             {TASK_TYPES.map((type) => (
@@ -90,6 +92,16 @@ export function GlobalTaskForm({
         </FieldGroup>
         <FieldGroup label="Due date" htmlFor="g-dueDate">
           <DatePicker id="g-dueDate" name="dueDate" />
+        </FieldGroup>
+        <FieldGroup label="Assignee" htmlFor="g-assigneeId">
+          <Select id="g-assigneeId" name="assigneeId" defaultValue="">
+            <option value="">Unassigned</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </Select>
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="g-companyId">
           <Select

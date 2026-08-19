@@ -32,7 +32,10 @@ export default async function ProjectDetailPage({
       where: { id },
       include: {
         deal: { include: { company: true, contact: true } },
-        tasks: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }] },
+        tasks: {
+          orderBy: [{ completed: "asc" }, { dueDate: "asc" }],
+          include: { assignee: { select: { id: true, name: true } }, _count: { select: { followers: true } } },
+        },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
         invoices: { orderBy: { createdAt: "desc" } },
       },
