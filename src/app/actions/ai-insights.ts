@@ -22,6 +22,9 @@ function describeAiError(error: unknown): string {
     if (error.status === 429) {
       return "AI request was rate-limited — try again in a moment.";
     }
+    if (error.status && error.status >= 500) {
+      return "The AI service is temporarily overloaded — try again in a moment.";
+    }
     return `AI request failed: ${error.message}`;
   }
   return "AI request failed unexpectedly.";
