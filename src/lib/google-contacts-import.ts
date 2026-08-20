@@ -43,6 +43,11 @@ const ORG_TITLE_HEADERS = [
 const NOTES_HEADERS = [/^notes$/i, /^note$/i];
 const EMAIL_FALLBACK_HEADERS = [/^email$/i, /^e-?mail$/i, /^email address$/i];
 const PHONE_FALLBACK_HEADERS = [/^phone$/i, /^phone number$/i];
+// No Contact field of their own — folded into notes instead of dropped, so
+// context from event/attendee-list style exports (as opposed to Google's
+// own format) survives the import rather than silently disappearing.
+const CATEGORY_HEADERS = [/^category$/i];
+const INDUSTRY_HEADERS = [/^industry$/i];
 
 // Google's numbered multi-value columns, e.g. "E-mail 1 - Value",
 // "E-mail 2 - Value", "Phone 1 - Value" (works for both the pre- and
@@ -108,6 +113,8 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
   const notesHeader = findHeader(headers, NOTES_HEADERS);
   const emailFallbackHeader = findHeader(headers, EMAIL_FALLBACK_HEADERS);
   const phoneFallbackHeader = findHeader(headers, PHONE_FALLBACK_HEADERS);
+  const categoryHeader = findHeader(headers, CATEGORY_HEADERS);
+  const industryHeader = findHeader(headers, INDUSTRY_HEADERS);
 
   const rows: ParsedContactRow[] = records.map((record, index) => {
     const issues: string[] = [];
@@ -145,6 +152,13 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       issues.push("No email or phone");
     }
 
+    const category = readHeader(record, categoryHeader);
+    const industry = readHeader(record, industryHeader);
+    const extraContext = [category && `Category: ${category}`, industry && `Industry: ${industry}`]
+      .filter(Boolean)
+      .join(" | ");
+    const notes = [readHeader(record, notesHeader), extraContext].filter(Boolean).join("\n") || null;
+
     return {
       row: index + 1,
       firstName,
@@ -153,7 +167,7 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       phone,
       title: readHeader(record, orgTitleHeader) || null,
       companyName,
-      notes: readHeader(record, notesHeader) || null,
+      notes,
       issues,
       importable: Boolean(firstName || lastName),
     };
