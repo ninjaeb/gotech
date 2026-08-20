@@ -36,6 +36,8 @@ const ORG_TITLE_HEADERS = [
   /^organization title$/i,
   /^organization 1 - title$/i,
   /^job title$/i,
+  /^position$/i,
+  /^role$/i,
   /^title$/i,
 ];
 const NOTES_HEADERS = [/^notes$/i, /^note$/i];
