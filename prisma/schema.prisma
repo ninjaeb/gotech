@@ -57,6 +57,7 @@ model User {
   sequenceEnrollments SequenceEnrollment[]
   assignedTasks       TaskAssignee[]
   followingTasks      TaskFollower[]
+  notifications       Notification[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -440,11 +441,33 @@ model Activity {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
+  notifications Notification[]
+
   @@index([contactId])
   @@index([companyId])
   @@index([dealId])
   @@index([projectId])
   @@index([createdAt])
+}
+
+// An @mention in an Activity note. content is composed once at creation
+// time (who mentioned you, on what) rather than re-derived on every read —
+// same tradeoff as the task digest email: simpler to render, and stays
+// meaningful even if the activity or mentioning user is later edited.
+model Notification {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId String?
+
+  @@index([userId, read])
+  @@index([activityId])
 }
 
 // Reusable catalog of things GoTech sells, so quotes are built from

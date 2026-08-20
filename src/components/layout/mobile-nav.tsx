@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -33,9 +34,13 @@ const NAV_ITEMS = [
 export function MobileNav({
   user,
   myTaskAlertCount = 0,
+  notifications = [],
+  unreadNotificationCount = 0,
 }: {
   user: { name: string; email: string; title: string | null };
   myTaskAlertCount?: number;
+  notifications?: NotificationItem[];
+  unreadNotificationCount?: number;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -64,7 +69,10 @@ export function MobileNav({
           G
         </div>
         <span className="truncate text-sm font-semibold text-slate-100">GoTech CRM</span>
-        <ThemeToggle className="ml-auto shrink-0" />
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} />
+          <ThemeToggle />
+        </div>
       </div>
 
       {open && (

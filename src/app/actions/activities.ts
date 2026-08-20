@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ActivityType } from "@/generated/prisma/client";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { findMentionedUserIds } from "@/lib/mentions";
+import { fullName } from "@/lib/format";
 
 const noteSchema = z.object({
   content: z.string().trim().min(1, "Note cannot be empty"),
@@ -13,6 +16,36 @@ const noteSchema = z.object({
   dealId: z.string().trim().nullish(),
   projectId: z.string().trim().nullish(),
 });
+
+// Whichever one of these is set names the page the mentioning note lives
+// on, for the notification text ("mentioned you in a note on Acme Corp").
+async function describeActivityParent(data: {
+  contactId?: string | null;
+  companyId?: string | null;
+  dealId?: string | null;
+  projectId?: string | null;
+}): Promise<string | null> {
+  if (data.contactId) {
+    const contact = await db.contact.findUnique({
+      where: { id: data.contactId },
+      select: { firstName: true, lastName: true },
+    });
+    return contact ? fullName(contact.firstName, contact.lastName) : null;
+  }
+  if (data.companyId) {
+    const company = await db.company.findUnique({ where: { id: data.companyId }, select: { name: true } });
+    return company?.name ?? null;
+  }
+  if (data.dealId) {
+    const deal = await db.deal.findUnique({ where: { id: data.dealId }, select: { title: true } });
+    return deal?.title ?? null;
+  }
+  if (data.projectId) {
+    const project = await db.project.findUnique({ where: { id: data.projectId }, select: { name: true } });
+    return project?.name ?? null;
+  }
+  return null;
+}
 
 export async function addActivity(formData: FormData) {
   const parsed = noteSchema.safeParse({
@@ -28,7 +61,12 @@ export async function addActivity(formData: FormData) {
   }
   const data = parsed.data;
 
-  await db.activity.create({
+  const [currentUser, users] = await Promise.all([
+    getCurrentUser(),
+    db.user.findMany({ select: { id: true, name: true } }),
+  ]);
+
+  const activity = await db.activity.create({
     data: {
       type: data.type,
       content: data.content,
@@ -38,6 +76,15 @@ export async function addActivity(formData: FormData) {
       projectId: data.projectId || null,
     },
   });
+
+  const mentionedUserIds = findMentionedUserIds(data.content, users).filter((id) => id !== currentUser.id);
+  if (mentionedUserIds.length > 0) {
+    const parentLabel = await describeActivityParent(data);
+    const content = `${currentUser.name} mentioned you in a note${parentLabel ? ` on ${parentLabel}` : ""}`;
+    await db.notification.createMany({
+      data: mentionedUserIds.map((userId) => ({ userId, activityId: activity.id, content })),
+    });
+  }
 
   if (data.contactId) revalidatePath(`/contacts/${data.contactId}`);
   if (data.companyId) revalidatePath(`/companies/${data.companyId}`);

@@ -255,8 +255,8 @@ export default async function DealDetailPage({
               <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardBody className="space-y-4">
-              <ActivityForm dealId={deal.id} />
-              <ActivityFeed activities={deal.activities} />
+              <ActivityForm dealId={deal.id} users={users} />
+              <ActivityFeed activities={deal.activities} users={users} />
             </CardBody>
           </Card>
         </div>

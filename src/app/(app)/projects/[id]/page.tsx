@@ -167,8 +167,8 @@ export default async function ProjectDetailPage({
               <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardBody className="space-y-4">
-              <ActivityForm projectId={project.id} />
-              <ActivityFeed activities={project.activities} />
+              <ActivityForm projectId={project.id} users={users} />
+              <ActivityFeed activities={project.activities} users={users} />
             </CardBody>
           </Card>
         </div>

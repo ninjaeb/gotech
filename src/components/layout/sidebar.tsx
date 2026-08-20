@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
+import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -30,9 +31,13 @@ const NAV_ITEMS = [
 export function Sidebar({
   user,
   myTaskAlertCount = 0,
+  notifications = [],
+  unreadNotificationCount = 0,
 }: {
   user: { name: string; email: string; title: string | null };
   myTaskAlertCount?: number;
+  notifications?: NotificationItem[];
+  unreadNotificationCount?: number;
 }) {
   const pathname = usePathname();
 
@@ -43,7 +48,10 @@ export function Sidebar({
           G
         </div>
         <span className="text-sm font-semibold text-slate-100">GoTech CRM</span>
-        <ThemeToggle className="ml-auto" />
+        <div className="ml-auto flex items-center gap-1">
+          <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} />
+          <ThemeToggle />
+        </div>
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {NAV_ITEMS.map((item) => {

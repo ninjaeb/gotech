@@ -219,8 +219,8 @@ export default async function CompanyDetailPage({
               <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardBody className="space-y-4">
-              <ActivityForm companyId={company.id} />
-              <ActivityFeed activities={company.activities} />
+              <ActivityForm companyId={company.id} users={users} />
+              <ActivityFeed activities={company.activities} users={users} />
             </CardBody>
           </Card>
         </div>

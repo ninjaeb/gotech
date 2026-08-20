@@ -226,8 +226,8 @@ export default async function ContactDetailPage({
               <CardTitle>Activity</CardTitle>
             </CardHeader>
             <CardBody className="space-y-4">
-              <ActivityForm contactId={contact.id} />
-              <ActivityFeed activities={contact.activities} />
+              <ActivityForm contactId={contact.id} users={users} />
+              <ActivityFeed activities={contact.activities} users={users} />
             </CardBody>
           </Card>
 
