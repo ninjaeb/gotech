@@ -116,7 +116,7 @@ export function SectionBoard({
         ref={(el) => {
           zoneRefs.current[zone] = el;
         }}
-        className="space-y-6"
+        className="min-w-0 space-y-6"
       >
         {keys.map((key, index) => {
           if (!sections[key]) return null;
@@ -184,7 +184,7 @@ export function SectionBoard({
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <div className="space-y-6 lg:col-span-2">
+      <div className="min-w-0 space-y-6 lg:col-span-2">
         {pinnedMain}
         {renderZone("main")}
       </div>

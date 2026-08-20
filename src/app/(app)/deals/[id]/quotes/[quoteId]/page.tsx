@@ -70,7 +70,7 @@ export default async function QuoteDetailPage({
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Line items</CardTitle>
@@ -110,7 +110,7 @@ export default async function QuoteDetailPage({
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Share</CardTitle>
