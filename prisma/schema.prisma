@@ -51,6 +51,12 @@ model User {
   title        String?
   createdAt    DateTime @default(now())
 
+  // JSON: { [pageType]: { main: string[], sidebar: string[] } } — which
+  // sections this user has dragged where on the Deal/Company/Contact detail
+  // pages. A personal display preference, so it lives on User rather than
+  // on the entities being viewed.
+  sectionLayout String? @db.Text
+
   emailAccount        EmailAccount?
   deals               Deal[]
   timeEntries         TimeEntry[]
@@ -352,9 +358,10 @@ model Task {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
-  timeEntries TimeEntry[]
-  assignees   TaskAssignee[]
-  followers   TaskFollower[]
+  timeEntries   TimeEntry[]
+  assignees     TaskAssignee[]
+  followers     TaskFollower[]
+  notifications Notification[]
 
   @@index([contactId])
   @@index([companyId])
@@ -466,8 +473,12 @@ model Notification {
   activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
   activityId String?
 
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String?
+
   @@index([userId, read])
   @@index([activityId])
+  @@index([taskId])
 }
 
 // Reusable catalog of things GoTech sells, so quotes are built from

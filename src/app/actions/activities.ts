@@ -77,7 +77,7 @@ export async function addActivity(formData: FormData) {
     },
   });
 
-  const mentionedUserIds = findMentionedUserIds(data.content, users).filter((id) => id !== currentUser.id);
+  const mentionedUserIds = findMentionedUserIds(data.content, users);
   if (mentionedUserIds.length > 0) {
     const parentLabel = await describeActivityParent(data);
     const content = `${currentUser.name} mentioned you in a note${parentLabel ? ` on ${parentLabel}` : ""}`;

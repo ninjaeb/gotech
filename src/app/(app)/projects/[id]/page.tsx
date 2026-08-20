@@ -108,7 +108,7 @@ export default async function ProjectDetailPage({
               {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
-              <TaskList tasks={project.tasks} emptyMessage="No milestones yet." />
+              <TaskList tasks={project.tasks} users={users} emptyMessage="No milestones yet." />
               <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>

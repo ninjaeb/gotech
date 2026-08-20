@@ -16,12 +16,16 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { LinkContactForm } from "@/components/contacts/link-contact-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
+import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { WhatsAppLink } from "@/components/ui/channel-links";
 import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { readSectionLayout } from "@/lib/section-layout";
+
+const DEFAULT_LAYOUT = { main: ["contacts", "deals"], sidebar: ["aiAssistant", "tasks", "activity"] };
 
 export default async function CompanyDetailPage({
   params,
@@ -64,6 +68,7 @@ export default async function CompanyDetailPage({
 
   if (!company) notFound();
   const totalMinutes = timeLogged._sum.minutes ?? 0;
+  const layout = readSectionLayout(currentUser.sectionLayout, "company", DEFAULT_LAYOUT);
 
   const linkableContacts = allContacts.filter((contact) => contact.companyId !== id);
 
@@ -91,8 +96,10 @@ export default async function CompanyDetailPage({
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <SectionBoard
+        pageType="company"
+        initialLayout={layout}
+        pinnedMain={
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>
@@ -122,109 +129,112 @@ export default async function CompanyDetailPage({
               )}
             </CardBody>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Contacts ({company.contacts.length})</CardTitle>
-              <Link
-                href={`/contacts/new?companyId=${company.id}`}
-                className={buttonClasses("secondary", "sm")}
-              >
-                <Plus className="h-4 w-4" />
-                Add contact
-              </Link>
-            </CardHeader>
-            <CardBody className="space-y-3">
-              {company.contacts.length === 0 ? (
-                <EmptyState title="No contacts linked to this company yet." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {company.contacts.map((contact) => (
-                    <li key={contact.id}>
-                      <Link
-                        href={`/contacts/${contact.id}`}
-                        className="flex items-center justify-between py-2.5 text-sm hover:text-indigo-600"
-                      >
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {fullName(contact.firstName, contact.lastName)}
-                        </span>
-                        <span className="text-slate-400">{contact.title}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <LinkContactForm companyId={company.id} contacts={linkableContacts} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Deals ({company.deals.length})</CardTitle>
-              <Link
-                href={`/deals/new?companyId=${company.id}`}
-                className={buttonClasses("secondary", "sm")}
-              >
-                <Plus className="h-4 w-4" />
-                Add deal
-              </Link>
-            </CardHeader>
-            <CardBody>
-              {company.deals.length === 0 ? (
-                <EmptyState title="No deals linked to this company yet." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {company.deals.map((deal) => (
-                    <li key={deal.id}>
-                      <Link
-                        href={`/deals/${deal.id}`}
-                        className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
-                      >
-                        <span className="min-w-0 truncate font-medium text-slate-800 dark:text-slate-200">
-                          {deal.title}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-3">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            {formatCurrency(deal.value.toString(), currency)}
+        }
+        sections={{
+          aiAssistant: <AiInsightsPanel entity={{ companyId: company.id }} />,
+          contacts: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Contacts ({company.contacts.length})</CardTitle>
+                <Link
+                  href={`/contacts/new?companyId=${company.id}`}
+                  className={buttonClasses("secondary", "sm")}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add contact
+                </Link>
+              </CardHeader>
+              <CardBody className="space-y-3">
+                {company.contacts.length === 0 ? (
+                  <EmptyState title="No contacts linked to this company yet." />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {company.contacts.map((contact) => (
+                      <li key={contact.id}>
+                        <Link
+                          href={`/contacts/${contact.id}`}
+                          className="flex items-center justify-between py-2.5 text-sm hover:text-indigo-600"
+                        >
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {fullName(contact.firstName, contact.lastName)}
                           </span>
-                          <Badge className={stageBadgeClasses(deal.pipelineStage)}>
-                            {deal.pipelineStage.name}
-                          </Badge>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <AiInsightsPanel entity={{ companyId: company.id }} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
-            </CardHeader>
-            <CardBody>
-              <TaskList tasks={company.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm companyId={company.id} users={users} defaultAssigneeId={currentUser.id} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-4">
-              <ActivityForm companyId={company.id} users={users} />
-              <ActivityFeed activities={company.activities} users={users} />
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+                          <span className="text-slate-400">{contact.title}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <LinkContactForm companyId={company.id} contacts={linkableContacts} />
+              </CardBody>
+            </Card>
+          ),
+          deals: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Deals ({company.deals.length})</CardTitle>
+                <Link
+                  href={`/deals/new?companyId=${company.id}`}
+                  className={buttonClasses("secondary", "sm")}
+                >
+                  <Plus className="h-4 w-4" />
+                  Add deal
+                </Link>
+              </CardHeader>
+              <CardBody>
+                {company.deals.length === 0 ? (
+                  <EmptyState title="No deals linked to this company yet." />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {company.deals.map((deal) => (
+                      <li key={deal.id}>
+                        <Link
+                          href={`/deals/${deal.id}`}
+                          className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                        >
+                          <span className="min-w-0 truncate font-medium text-slate-800 dark:text-slate-200">
+                            {deal.title}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-3">
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {formatCurrency(deal.value.toString(), currency)}
+                            </span>
+                            <Badge className={stageBadgeClasses(deal.pipelineStage)}>
+                              {deal.pipelineStage.name}
+                            </Badge>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardBody>
+            </Card>
+          ),
+          tasks: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tasks</CardTitle>
+                {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+              </CardHeader>
+              <CardBody>
+                <TaskList tasks={company.tasks} users={users} emptyMessage="No tasks yet." />
+                <TaskQuickForm companyId={company.id} users={users} defaultAssigneeId={currentUser.id} />
+              </CardBody>
+            </Card>
+          ),
+          activity: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                <ActivityForm companyId={company.id} users={users} />
+                <ActivityFeed activities={company.activities} users={users} />
+              </CardBody>
+            </Card>
+          ),
+        }}
+      />
     </div>
   );
 }

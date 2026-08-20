@@ -16,7 +16,7 @@ import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
-import { ReorderableDealSections } from "@/components/deals/reorderable-deal-sections";
+import { SectionBoard } from "@/components/layout/section-board";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
@@ -25,6 +25,9 @@ import { quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { readSectionLayout } from "@/lib/section-layout";
+
+const DEFAULT_LAYOUT = { main: ["tasks", "quotes", "resources", "activity"], sidebar: ["aiAssistant"] };
 
 export default async function DealDetailPage({
   params,
@@ -66,6 +69,7 @@ export default async function DealDetailPage({
 
   if (!deal) notFound();
   const totalMinutes = timeLogged._sum.minutes ?? 0;
+  const layout = readSectionLayout(currentUser.sectionLayout, "deal", DEFAULT_LAYOUT);
 
   return (
     <div>
@@ -95,8 +99,10 @@ export default async function DealDetailPage({
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <SectionBoard
+        pageType="deal"
+        initialLayout={layout}
+        pinnedMain={
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>
@@ -147,10 +153,10 @@ export default async function DealDetailPage({
               )}
             </CardBody>
           </Card>
-
-          <ReorderableDealSections
-            sections={{
-              tasks: (
+        }
+        sections={{
+          aiAssistant: <AiInsightsPanel entity={{ dealId: deal.id }} />,
+          tasks: (
                 <Card>
                   <CardHeader>
                     <CardTitle>Tasks</CardTitle>
@@ -163,7 +169,7 @@ export default async function DealDetailPage({
                         No next step scheduled — add one below.
                       </div>
                     )}
-                    <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
+                    <TaskList tasks={deal.tasks} users={users} emptyMessage="No tasks yet." />
                     <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
                   </CardBody>
                 </Card>
@@ -266,14 +272,8 @@ export default async function DealDetailPage({
                   </CardBody>
                 </Card>
               ),
-            }}
-          />
-        </div>
-
-        <div className="space-y-6">
-          <AiInsightsPanel entity={{ dealId: deal.id }} />
-        </div>
-      </div>
+        }}
+      />
     </div>
   );
 }

@@ -10,17 +10,23 @@ type UserOption = { id: string; name: string };
 const MENTION_IN_PROGRESS = /(?:^|\s)@([^\s@]*)$/;
 
 export function MentionTextarea({
+  id,
   name,
   users,
   placeholder,
   rows = 2,
+  defaultValue = "",
+  required = true,
 }: {
+  id?: string;
   name: string;
   users: UserOption[];
   placeholder?: string;
   rows?: number;
+  defaultValue?: string;
+  required?: boolean;
 }) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(defaultValue);
   const [query, setQuery] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -31,12 +37,12 @@ export function MentionTextarea({
     const form = textareaRef.current?.form;
     if (!form) return;
     const handleReset = () => {
-      setValue("");
+      setValue(defaultValue);
       setQuery(null);
     };
     form.addEventListener("reset", handleReset);
     return () => form.removeEventListener("reset", handleReset);
-  }, []);
+  }, [defaultValue]);
 
   useEffect(() => {
     if (query === null) return;
@@ -83,9 +89,10 @@ export function MentionTextarea({
     <div ref={containerRef} className="relative">
       <Textarea
         ref={textareaRef}
+        id={id}
         name={name}
         rows={rows}
-        required
+        required={required}
         placeholder={placeholder}
         value={value}
         onChange={handleChange}

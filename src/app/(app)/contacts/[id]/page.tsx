@@ -20,6 +20,7 @@ import { WhatsAppLink, MailLink } from "@/components/ui/channel-links";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
+import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
@@ -29,6 +30,12 @@ import { getCurrency } from "@/lib/settings";
 import { getActiveSequences } from "@/lib/sequences";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
+import { readSectionLayout } from "@/lib/section-layout";
+
+const DEFAULT_LAYOUT = {
+  main: ["deals"],
+  sidebar: ["aiAssistant", "tasks", "activity", "sequences", "clientPortal"],
+};
 
 export default async function ContactDetailPage({
   params,
@@ -69,6 +76,7 @@ export default async function ContactDetailPage({
 
   if (!contact) notFound();
   const totalMinutes = timeLogged._sum.minutes ?? 0;
+  const layout = readSectionLayout(currentUser.sectionLayout, "contact", DEFAULT_LAYOUT);
 
   const contactName = fullName(contact.firstName, contact.lastName);
 
@@ -99,8 +107,10 @@ export default async function ContactDetailPage({
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
+      <SectionBoard
+        pageType="contact"
+        initialLayout={layout}
+        pinnedMain={
           <Card>
             <CardHeader>
               <CardTitle>Details</CardTitle>
@@ -164,194 +174,198 @@ export default async function ContactDetailPage({
               )}
             </CardBody>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Deals ({contact.deals.length})</CardTitle>
-              <Link
-                href={`/deals/new?contactId=${contact.id}`}
-                className={buttonClasses("secondary", "sm")}
-              >
-                <Plus className="h-4 w-4" />
-                Add deal
-              </Link>
-            </CardHeader>
-            <CardBody>
-              {contact.deals.length === 0 ? (
-                <EmptyState title="No deals linked to this contact yet." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {contact.deals.map((deal) => (
-                    <li key={deal.id}>
-                      <Link
-                        href={`/deals/${deal.id}`}
-                        className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
-                      >
-                        <span className="min-w-0 truncate font-medium text-slate-800 dark:text-slate-200">
-                          {deal.title}
-                        </span>
-                        <span className="flex shrink-0 items-center gap-3">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            {formatCurrency(deal.value.toString(), currency)}
-                          </span>
-                          <Badge className={stageBadgeClasses(deal.pipelineStage)}>
-                            {deal.pipelineStage.name}
-                          </Badge>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <AiInsightsPanel entity={{ contactId: contact.id }} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
-            </CardHeader>
-            <CardBody>
-              <TaskList tasks={contact.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm contactId={contact.id} users={users} defaultAssigneeId={currentUser.id} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-4">
-              <ActivityForm contactId={contact.id} users={users} />
-              <ActivityFeed activities={contact.activities} users={users} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Sequences</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-3 text-sm">
-              {contact.sequenceEnrollments.length > 0 && (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {contact.sequenceEnrollments.map((enrollment) => (
-                    <li key={enrollment.id} className="flex items-center justify-between gap-2 py-2">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-800 dark:text-slate-200">
-                          {enrollment.sequence.name}
-                        </p>
-                        {enrollment.status === "ACTIVE" && (
-                          <p className="text-xs text-slate-400">
-                            Next email {formatDate(enrollment.nextStepDueAt)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Badge className={ENROLLMENT_STATUS_BADGE_CLASSES[enrollment.status]}>
-                          {ENROLLMENT_STATUS_LABELS[enrollment.status]}
-                        </Badge>
-                        {enrollment.status === "ACTIVE" && (
-                          <form action={stopEnrollment.bind(null, enrollment.id)}>
-                            <ConfirmSubmitButton
-                              confirmMessage="Stop this sequence for this contact?"
-                              size="sm"
-                            >
-                              Stop
-                            </ConfirmSubmitButton>
-                          </form>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {hasEmailAccount && contact.email && activeSequences.length > 0 ? (
-                <form
-                  action={enrollContact.bind(null, contact.id)}
-                  className="flex items-end gap-2 border-t border-slate-100 pt-3 dark:border-neutral-800"
+        }
+        sections={{
+          aiAssistant: <AiInsightsPanel entity={{ contactId: contact.id }} />,
+          deals: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Deals ({contact.deals.length})</CardTitle>
+                <Link
+                  href={`/deals/new?contactId=${contact.id}`}
+                  className={buttonClasses("secondary", "sm")}
                 >
-                  <Select name="sequenceId" required defaultValue="" className="flex-1">
-                    <option value="" disabled>
-                      Enroll in…
-                    </option>
-                    {activeSequences
-                      .filter(
-                        (s) =>
-                          !contact.sequenceEnrollments.some(
-                            (e) => e.sequenceId === s.id && e.status === "ACTIVE",
-                          ),
-                      )
-                      .map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                  </Select>
-                  <Button type="submit" size="sm">
-                    Enroll
-                  </Button>
-                </form>
-              ) : (
-                contact.sequenceEnrollments.length === 0 && (
-                  <p className="text-slate-500 dark:text-slate-400">
-                    {!contact.email
-                      ? "Add an email address to enroll this contact in a sequence."
-                      : !hasEmailAccount
-                        ? "Connect your email in Settings to enroll contacts in sequences."
-                        : "No active sequences — create one in Settings."}
-                  </p>
-                )
-              )}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Client portal</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-3 text-sm">
-              {contact.clientUser ? (
-                <>
-                  {contact.clientUser.passwordHash ? (
-                    <p className="text-emerald-600 dark:text-emerald-400">Portal access is active.</p>
-                  ) : (
-                    <>
-                      <p className="text-slate-600 dark:text-slate-400">
-                        Invited — share this link so they can set a password:
-                      </p>
-                      <CopyLinkButton
-                        text={`${siteOrigin}/portal/accept-invite/${contact.clientUser.inviteToken}`}
-                      />
-                    </>
-                  )}
-                  <form action={revokePortalAccess.bind(null, contact.id)}>
-                    <ConfirmSubmitButton
-                      confirmMessage="Revoke this contact's portal access? They'll be signed out immediately."
-                      size="sm"
-                    >
-                      Revoke access
-                    </ConfirmSubmitButton>
+                  <Plus className="h-4 w-4" />
+                  Add deal
+                </Link>
+              </CardHeader>
+              <CardBody>
+                {contact.deals.length === 0 ? (
+                  <EmptyState title="No deals linked to this contact yet." />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {contact.deals.map((deal) => (
+                      <li key={deal.id}>
+                        <Link
+                          href={`/deals/${deal.id}`}
+                          className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                        >
+                          <span className="min-w-0 truncate font-medium text-slate-800 dark:text-slate-200">
+                            {deal.title}
+                          </span>
+                          <span className="flex shrink-0 items-center gap-3">
+                            <span className="text-slate-500 dark:text-slate-400">
+                              {formatCurrency(deal.value.toString(), currency)}
+                            </span>
+                            <Badge className={stageBadgeClasses(deal.pipelineStage)}>
+                              {deal.pipelineStage.name}
+                            </Badge>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardBody>
+            </Card>
+          ),
+          tasks: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tasks</CardTitle>
+                {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+              </CardHeader>
+              <CardBody>
+                <TaskList tasks={contact.tasks} users={users} emptyMessage="No tasks yet." />
+                <TaskQuickForm contactId={contact.id} users={users} defaultAssigneeId={currentUser.id} />
+              </CardBody>
+            </Card>
+          ),
+          activity: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Activity</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                <ActivityForm contactId={contact.id} users={users} />
+                <ActivityFeed activities={contact.activities} users={users} />
+              </CardBody>
+            </Card>
+          ),
+          sequences: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Sequences</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-3 text-sm">
+                {contact.sequenceEnrollments.length > 0 && (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {contact.sequenceEnrollments.map((enrollment) => (
+                      <li key={enrollment.id} className="flex items-center justify-between gap-2 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-800 dark:text-slate-200">
+                            {enrollment.sequence.name}
+                          </p>
+                          {enrollment.status === "ACTIVE" && (
+                            <p className="text-xs text-slate-400">
+                              Next email {formatDate(enrollment.nextStepDueAt)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <Badge className={ENROLLMENT_STATUS_BADGE_CLASSES[enrollment.status]}>
+                            {ENROLLMENT_STATUS_LABELS[enrollment.status]}
+                          </Badge>
+                          {enrollment.status === "ACTIVE" && (
+                            <form action={stopEnrollment.bind(null, enrollment.id)}>
+                              <ConfirmSubmitButton
+                                confirmMessage="Stop this sequence for this contact?"
+                                size="sm"
+                              >
+                                Stop
+                              </ConfirmSubmitButton>
+                            </form>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {hasEmailAccount && contact.email && activeSequences.length > 0 ? (
+                  <form
+                    action={enrollContact.bind(null, contact.id)}
+                    className="flex items-end gap-2 border-t border-slate-100 pt-3 dark:border-neutral-800"
+                  >
+                    <Select name="sequenceId" required defaultValue="" className="flex-1">
+                      <option value="" disabled>
+                        Enroll in…
+                      </option>
+                      {activeSequences
+                        .filter(
+                          (s) =>
+                            !contact.sequenceEnrollments.some(
+                              (e) => e.sequenceId === s.id && e.status === "ACTIVE",
+                            ),
+                        )
+                        .map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </Select>
+                    <Button type="submit" size="sm">
+                      Enroll
+                    </Button>
                   </form>
-                </>
-              ) : contact.email && contact.company ? (
-                <form action={inviteToPortal.bind(null, contact.id)}>
-                  <Button type="submit" variant="secondary" size="sm">
-                    Invite to portal
-                  </Button>
-                </form>
-              ) : (
-                <p className="text-slate-500 dark:text-slate-400">
-                  Add an email and link a company to invite this contact to the portal.
-                </p>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+                ) : (
+                  contact.sequenceEnrollments.length === 0 && (
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {!contact.email
+                        ? "Add an email address to enroll this contact in a sequence."
+                        : !hasEmailAccount
+                          ? "Connect your email in Settings to enroll contacts in sequences."
+                          : "No active sequences — create one in Settings."}
+                    </p>
+                  )
+                )}
+              </CardBody>
+            </Card>
+          ),
+          clientPortal: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Client portal</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-3 text-sm">
+                {contact.clientUser ? (
+                  <>
+                    {contact.clientUser.passwordHash ? (
+                      <p className="text-emerald-600 dark:text-emerald-400">Portal access is active.</p>
+                    ) : (
+                      <>
+                        <p className="text-slate-600 dark:text-slate-400">
+                          Invited — share this link so they can set a password:
+                        </p>
+                        <CopyLinkButton
+                          text={`${siteOrigin}/portal/accept-invite/${contact.clientUser.inviteToken}`}
+                        />
+                      </>
+                    )}
+                    <form action={revokePortalAccess.bind(null, contact.id)}>
+                      <ConfirmSubmitButton
+                        confirmMessage="Revoke this contact's portal access? They'll be signed out immediately."
+                        size="sm"
+                      >
+                        Revoke access
+                      </ConfirmSubmitButton>
+                    </form>
+                  </>
+                ) : contact.email && contact.company ? (
+                  <form action={inviteToPortal.bind(null, contact.id)}>
+                    <Button type="submit" variant="secondary" size="sm">
+                      Invite to portal
+                    </Button>
+                  </form>
+                ) : (
+                  <p className="text-slate-500 dark:text-slate-400">
+                    Add an email and link a company to invite this contact to the portal.
+                  </p>
+                )}
+              </CardBody>
+            </Card>
+          ),
+        }}
+      />
     </div>
   );
 }

@@ -31,8 +31,10 @@ export default async function DashboardPage() {
     overdueTasksCount,
     needsFollowUpCount,
     myTasks,
+    followedTasks,
     topOpenDeals,
     defaultPipeline,
+    users,
   ] = await Promise.all([
     getCurrency(),
     db.company.count(),
@@ -69,6 +71,19 @@ export default async function DashboardPage() {
         _count: { select: { followers: true } },
       },
     }),
+    db.task.findMany({
+      where: { followers: { some: { userId: currentUser.id } }, completed: false },
+      orderBy: [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
+      take: 6,
+      include: {
+        contact: { select: { id: true, firstName: true, lastName: true } },
+        company: { select: { id: true, name: true } },
+        deal: { select: { id: true, title: true } },
+        project: { select: { id: true, name: true } },
+        assignees: { include: { user: { select: { id: true, name: true } } } },
+        _count: { select: { followers: true } },
+      },
+    }),
     db.deal.findMany({
       where: { pipelineStage: { isWon: false, isLost: false } },
       orderBy: { value: "desc" },
@@ -76,6 +91,7 @@ export default async function DashboardPage() {
       include: { company: true, contact: true, pipelineStage: true },
     }),
     getDefaultPipeline(),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const openDeals = allDeals.filter((deal) => !deal.pipelineStage.isWon && !deal.pipelineStage.isLost);
@@ -246,17 +262,38 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>My Tasks</CardTitle>
-            <Link href="/tasks" className="text-sm font-medium text-indigo-600 hover:underline">
-              View all
-            </Link>
-          </CardHeader>
-          <CardBody>
-            <TaskList tasks={myTasks} showParent emptyMessage="Nothing assigned to you — nice work!" />
-          </CardBody>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Tasks</CardTitle>
+              <Link href="/tasks" className="text-sm font-medium text-indigo-600 hover:underline">
+                View all
+              </Link>
+            </CardHeader>
+            <CardBody>
+              <TaskList
+                tasks={myTasks}
+                users={users}
+                showParent
+                emptyMessage="Nothing assigned to you — nice work!"
+              />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Tasks I Follow</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <TaskList
+                tasks={followedTasks}
+                users={users}
+                showParent
+                emptyMessage="You're not following any open tasks."
+              />
+            </CardBody>
+          </Card>
+        </div>
       </div>
     </div>
   );

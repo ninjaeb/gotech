@@ -6,6 +6,8 @@ import { TASK_PRIORITY_BADGE_CLASSES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } f
 import { relativeToToday, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { ActivityContent } from "@/components/activity/activity-content";
+import type { UserOption } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
 
 export type TaskWithRelations = Task & {
@@ -19,10 +21,12 @@ export type TaskWithRelations = Task & {
 
 export function TaskList({
   tasks,
+  users = [],
   showParent = false,
   emptyMessage = "No tasks yet.",
 }: {
   tasks: TaskWithRelations[];
+  users?: UserOption[];
   showParent?: boolean;
   emptyMessage?: string;
 }) {
@@ -109,9 +113,11 @@ export function TaskList({
                 )}
               </div>
               {task.description && (
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {task.description}
-                </p>
+                <ActivityContent
+                  text={task.description}
+                  users={users}
+                  className="mt-1 text-sm text-slate-500 dark:text-slate-400"
+                />
               )}
               {showParent && (task.contact || task.company || task.deal || task.project) && (
                 <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-400">

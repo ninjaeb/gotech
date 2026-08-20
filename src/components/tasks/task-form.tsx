@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
-import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { FieldGroup, Input, Select } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
+import { MentionTextarea } from "@/components/activity/mention-textarea";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
@@ -78,7 +79,15 @@ export function TaskForm({
       </FieldGroup>
 
       <FieldGroup label="Description" htmlFor="description">
-        <Textarea id="description" name="description" rows={3} defaultValue={task?.description ?? ""} />
+        <MentionTextarea
+          id="description"
+          name="description"
+          rows={3}
+          users={users}
+          required={false}
+          defaultValue={task?.description ?? ""}
+          placeholder="@ to mention someone"
+        />
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-3">

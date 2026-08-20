@@ -5,6 +5,34 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
+import { getCurrentUser } from "@/lib/auth/dal";
+import { findMentionedUserIds } from "@/lib/mentions";
+
+// Notifies everyone newly @mentioned in a task's description. `previousDescription`
+// is null on create; on update it's the description before this edit, so
+// re-saving an unchanged description never re-notifies — only a mention
+// that's actually new to this save fires.
+async function notifyTaskMentions(
+  taskId: string,
+  taskTitle: string,
+  description: string | null,
+  previousDescription: string | null,
+) {
+  if (!description) return;
+  const [currentUser, users] = await Promise.all([
+    getCurrentUser(),
+    db.user.findMany({ select: { id: true, name: true } }),
+  ]);
+  const mentionedIds = findMentionedUserIds(description, users);
+  const previousIds = previousDescription ? findMentionedUserIds(previousDescription, users) : [];
+  const newlyMentioned = mentionedIds.filter((id) => !previousIds.includes(id));
+  if (newlyMentioned.length === 0) return;
+
+  const content = `${currentUser.name} mentioned you in a task: ${taskTitle}`;
+  await db.notification.createMany({
+    data: newlyMentioned.map((userId) => ({ userId, taskId, content })),
+  });
+}
 
 const taskSchema = z.object({
   title: z.string().trim().min(1, "Task title is required"),
@@ -73,6 +101,7 @@ export async function createTask(formData: FormData) {
       followers: { create: followerIds.map((userId) => ({ userId })) },
     },
   });
+  await notifyTaskMentions(task.id, task.title, task.description, null);
   revalidateTaskPaths(task);
 }
 
@@ -100,7 +129,7 @@ export async function updateTask(id: string, formData: FormData) {
   const followerIds = parseFollowerIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
-    select: { contactId: true, companyId: true, dealId: true, projectId: true },
+    select: { contactId: true, companyId: true, dealId: true, projectId: true, description: true },
   });
   const task = await db.task.update({
     where: { id },
@@ -117,6 +146,7 @@ export async function updateTask(id: string, formData: FormData) {
       followers: { deleteMany: {}, create: followerIds.map((userId) => ({ userId })) },
     },
   });
+  await notifyTaskMentions(task.id, task.title, task.description, previous.description);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
   redirect("/tasks");

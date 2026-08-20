@@ -141,6 +141,7 @@ export default async function TasksPage({
         <CardBody>
           <TaskList
             tasks={tasks}
+            users={users}
             showParent
             emptyMessage={
               query

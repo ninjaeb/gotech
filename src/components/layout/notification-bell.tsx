@@ -49,12 +49,20 @@ export function NotificationBell({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-label="Notifications"
-        className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-100"
+        className={cn(
+          "relative inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors",
+          unreadCount > 0
+            ? "text-indigo-400 hover:bg-slate-800 hover:text-indigo-300"
+            : "text-slate-400 hover:bg-slate-800 hover:text-slate-100",
+        )}
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
-            {unreadCount > 9 ? "9+" : unreadCount}
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
+            <span className="relative flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white ring-2 ring-slate-950">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
           </span>
         )}
       </button>
