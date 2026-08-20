@@ -30,7 +30,7 @@ export function describeAiError(error: unknown): string {
       return "AI request was rate-limited — try again in a moment.";
     }
     if (error.status && error.status >= 500) {
-      return "The AI service is temporarily overloaded — try again in a moment.";
+      return `The AI service is temporarily overloaded — try again in a moment. (${error.message})`;
     }
     return `AI request failed: ${error.message}`;
   }
