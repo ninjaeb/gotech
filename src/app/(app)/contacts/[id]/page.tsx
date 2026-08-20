@@ -38,7 +38,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
 
   const currentUser = await getCurrentUser();
-  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin, activeSequences] = await Promise.all([
+  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin, activeSequences, users] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -61,6 +61,7 @@ export default async function ContactDetailPage({
     db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
     getSiteOrigin(),
     getActiveSequences(),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!contact) notFound();
@@ -213,7 +214,7 @@ export default async function ContactDetailPage({
             </CardHeader>
             <CardBody>
               <TaskList tasks={contact.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm contactId={contact.id} />
+              <TaskQuickForm contactId={contact.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>
 

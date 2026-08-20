@@ -12,11 +12,15 @@ export function TaskQuickForm({
   companyId,
   dealId,
   projectId,
+  users,
+  defaultAssigneeId,
 }: {
   contactId?: string;
   companyId?: string;
   dealId?: string;
   projectId?: string;
+  users: { id: string; name: string }[];
+  defaultAssigneeId?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
@@ -46,6 +50,14 @@ export function TaskQuickForm({
         {TASK_TYPES.map((type) => (
           <option key={type} value={type}>
             {TASK_TYPE_LABELS[type]}
+          </option>
+        ))}
+      </Select>
+      <Select name="assigneeId" defaultValue={defaultAssigneeId ?? ""} className="w-36">
+        <option value="">Unassigned</option>
+        {users.map((user) => (
+          <option key={user.id} value={user.id}>
+            {user.name}
           </option>
         ))}
       </Select>

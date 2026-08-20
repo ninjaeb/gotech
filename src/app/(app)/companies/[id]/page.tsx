@@ -21,6 +21,7 @@ import { WhatsAppLink } from "@/components/ui/channel-links";
 import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function CompanyDetailPage({
   params,
@@ -28,8 +29,9 @@ export default async function CompanyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const currentUser = await getCurrentUser();
 
-  const [currency, company, allContacts, timeLogged] = await Promise.all([
+  const [currency, company, allContacts, timeLogged, users] = await Promise.all([
     getCurrency(),
     db.company.findUnique({
       where: { id },
@@ -54,6 +56,7 @@ export default async function CompanyDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { companyId: id } }, _sum: { minutes: true } }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!company) notFound();
@@ -204,7 +207,7 @@ export default async function CompanyDetailPage({
             </CardHeader>
             <CardBody>
               <TaskList tasks={company.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm companyId={company.id} />
+              <TaskQuickForm companyId={company.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>
 

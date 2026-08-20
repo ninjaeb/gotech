@@ -21,6 +21,7 @@ import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
 import { quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function DealDetailPage({
   params,
@@ -28,8 +29,9 @@ export default async function DealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const currentUser = await getCurrentUser();
 
-  const [currency, deal, timeLogged] = await Promise.all([
+  const [currency, deal, timeLogged, users] = await Promise.all([
     getCurrency(),
     db.deal.findUnique({
       where: { id },
@@ -52,6 +54,7 @@ export default async function DealDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { dealId: id } }, _sum: { minutes: true } }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!deal) notFound();
@@ -196,7 +199,7 @@ export default async function DealDetailPage({
                 </div>
               )}
               <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm dealId={deal.id} />
+              <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>
 

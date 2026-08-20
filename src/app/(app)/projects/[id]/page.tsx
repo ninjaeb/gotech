@@ -18,6 +18,7 @@ import { ProjectStatusSelect } from "@/components/projects/project-status-select
 import { InvoiceStatusSelect } from "@/components/invoices/invoice-status-select";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function ProjectDetailPage({
   params,
@@ -25,8 +26,9 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const currentUser = await getCurrentUser();
 
-  const [currency, project, timeLogged] = await Promise.all([
+  const [currency, project, timeLogged, users] = await Promise.all([
     getCurrency(),
     db.project.findUnique({
       where: { id },
@@ -41,6 +43,7 @@ export default async function ProjectDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { projectId: id } }, _sum: { minutes: true } }),
+    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!project) notFound();
@@ -103,7 +106,7 @@ export default async function ProjectDetailPage({
             </CardHeader>
             <CardBody>
               <TaskList tasks={project.tasks} emptyMessage="No milestones yet." />
-              <TaskQuickForm projectId={project.id} />
+              <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>
 
