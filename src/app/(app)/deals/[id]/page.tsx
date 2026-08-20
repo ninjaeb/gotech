@@ -16,6 +16,7 @@ import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
+import { ReorderableDealSections } from "@/components/deals/reorderable-deal-sections";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
@@ -147,118 +148,130 @@ export default async function DealDetailPage({
             </CardBody>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
-            </CardHeader>
-            <CardBody>
-              {needsFollowUp(deal) && (
-                <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
-                  <Flag className="h-3.5 w-3.5 shrink-0" />
-                  No next step scheduled — add one below.
-                </div>
-              )}
-              <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quotes ({deal.quotes.length})</CardTitle>
-              <Link href={`/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
-                <Plus className="h-4 w-4" />
-                New quote
-              </Link>
-            </CardHeader>
-            <CardBody>
-              {deal.quotes.length === 0 ? (
-                <EmptyState title="No quotes yet." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {deal.quotes.map((quote) => (
-                    <li key={quote.id}>
-                      <Link
-                        href={`/deals/${deal.id}/quotes/${quote.id}`}
-                        className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          <FileText className="h-4 w-4 shrink-0 text-slate-400" />
-                          <span className="truncate font-medium text-slate-800 dark:text-slate-200">
-                            {quote.title}
-                          </span>
-                        </span>
-                        <span className="flex shrink-0 items-center gap-3">
-                          <span className="text-slate-500 dark:text-slate-400">
-                            {formatCurrency(quoteTotal(quote.items), currency)}
-                          </span>
-                          <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>
-                            {QUOTE_STATUS_LABELS[quote.status]}
-                          </Badge>
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Resources ({deal.resources.length})</CardTitle>
-            </CardHeader>
-            <CardBody>
-              {deal.resources.length === 0 ? (
-                <EmptyState title="No resources yet." description="Add a link to a proposal, presentation, or anything else related to this deal." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {deal.resources.map((resource) => (
-                    <li key={resource.id} className="flex items-center justify-between gap-3 py-2.5">
-                      <a
-                        href={resource.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex min-w-0 items-center gap-2 text-sm hover:text-indigo-600"
-                      >
-                        <Link2 className="h-4 w-4 shrink-0 text-slate-400" />
-                        <span className="truncate font-medium text-slate-800 dark:text-slate-200">
-                          {resource.title}
-                        </span>
-                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      </a>
-                      <form action={deleteDealResource.bind(null, deal.id, resource.id)}>
-                        <ConfirmSubmitButton
-                          confirmMessage="Remove this resource link?"
-                          variant="ghost"
-                          size="sm"
-                          className="!px-1.5 text-slate-400 hover:text-rose-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </ConfirmSubmitButton>
-                      </form>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <DealResourceForm dealId={deal.id} />
-            </CardBody>
-          </Card>
+          <ReorderableDealSections
+            sections={{
+              tasks: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tasks</CardTitle>
+                    {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+                  </CardHeader>
+                  <CardBody>
+                    {needsFollowUp(deal) && (
+                      <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
+                        <Flag className="h-3.5 w-3.5 shrink-0" />
+                        No next step scheduled — add one below.
+                      </div>
+                    )}
+                    <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
+                    <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
+                  </CardBody>
+                </Card>
+              ),
+              quotes: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quotes ({deal.quotes.length})</CardTitle>
+                    <Link href={`/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
+                      <Plus className="h-4 w-4" />
+                      New quote
+                    </Link>
+                  </CardHeader>
+                  <CardBody>
+                    {deal.quotes.length === 0 ? (
+                      <EmptyState title="No quotes yet." />
+                    ) : (
+                      <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                        {deal.quotes.map((quote) => (
+                          <li key={quote.id}>
+                            <Link
+                              href={`/deals/${deal.id}/quotes/${quote.id}`}
+                              className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                            >
+                              <span className="flex min-w-0 items-center gap-2">
+                                <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                                <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                                  {quote.title}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-3">
+                                <span className="text-slate-500 dark:text-slate-400">
+                                  {formatCurrency(quoteTotal(quote.items), currency)}
+                                </span>
+                                <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>
+                                  {QUOTE_STATUS_LABELS[quote.status]}
+                                </Badge>
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardBody>
+                </Card>
+              ),
+              resources: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resources ({deal.resources.length})</CardTitle>
+                  </CardHeader>
+                  <CardBody>
+                    {deal.resources.length === 0 ? (
+                      <EmptyState
+                        title="No resources yet."
+                        description="Add a link to a proposal, presentation, or anything else related to this deal."
+                      />
+                    ) : (
+                      <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                        {deal.resources.map((resource) => (
+                          <li key={resource.id} className="flex items-center justify-between gap-3 py-2.5">
+                            <a
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex min-w-0 items-center gap-2 text-sm hover:text-indigo-600"
+                            >
+                              <Link2 className="h-4 w-4 shrink-0 text-slate-400" />
+                              <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                                {resource.title}
+                              </span>
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                            </a>
+                            <form action={deleteDealResource.bind(null, deal.id, resource.id)}>
+                              <ConfirmSubmitButton
+                                confirmMessage="Remove this resource link?"
+                                variant="ghost"
+                                size="sm"
+                                className="!px-1.5 text-slate-400 hover:text-rose-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </ConfirmSubmitButton>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <DealResourceForm dealId={deal.id} />
+                  </CardBody>
+                </Card>
+              ),
+              activity: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Activity</CardTitle>
+                  </CardHeader>
+                  <CardBody className="space-y-4">
+                    <ActivityForm dealId={deal.id} users={users} />
+                    <ActivityFeed activities={deal.activities} users={users} />
+                  </CardBody>
+                </Card>
+              ),
+            }}
+          />
         </div>
 
         <div className="space-y-6">
           <AiInsightsPanel entity={{ dealId: deal.id }} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity</CardTitle>
-            </CardHeader>
-            <CardBody className="space-y-4">
-              <ActivityForm dealId={deal.id} users={users} />
-              <ActivityFeed activities={deal.activities} users={users} />
-            </CardBody>
-          </Card>
         </div>
       </div>
     </div>
