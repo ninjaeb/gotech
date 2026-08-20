@@ -12,12 +12,15 @@ import { stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/auth/dal";
 
 export default async function DashboardPage() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);
   endOfToday.setDate(endOfToday.getDate() + 1);
+
+  const currentUser = await getCurrentUser();
 
   const [
     currency,
@@ -27,7 +30,7 @@ export default async function DashboardPage() {
     tasksDueTodayCount,
     overdueTasksCount,
     needsFollowUpCount,
-    upcomingTasks,
+    myTasks,
     topOpenDeals,
     defaultPipeline,
   ] = await Promise.all([
@@ -38,10 +41,10 @@ export default async function DashboardPage() {
       select: { value: true, pipelineStageId: true, pipelineStage: { select: { isWon: true, isLost: true } } },
     }),
     db.task.count({
-      where: { completed: false, dueDate: { gte: startOfToday, lt: endOfToday } },
+      where: { assigneeId: currentUser.id, completed: false, dueDate: { gte: startOfToday, lt: endOfToday } },
     }),
     db.task.count({
-      where: { completed: false, dueDate: { lt: startOfToday } },
+      where: { assigneeId: currentUser.id, completed: false, dueDate: { lt: startOfToday } },
     }),
     db.deal.count({
       where: {
@@ -50,7 +53,7 @@ export default async function DashboardPage() {
       },
     }),
     db.task.findMany({
-      where: { completed: false },
+      where: { assigneeId: currentUser.id, completed: false },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
       take: 6,
       include: {
@@ -141,13 +144,13 @@ export default async function DashboardPage() {
         <StatCard label="Companies" value={companyCount.toString()} icon={Building2} accent="indigo" />
         <StatCard label="Contacts" value={contactCount.toString()} icon={Users} accent="sky" />
         <StatCard
-          label="Tasks due today"
+          label="My tasks due today"
           value={tasksDueTodayCount.toString()}
           icon={CheckSquare}
           accent="amber"
         />
         <StatCard
-          label="Overdue tasks"
+          label="My overdue tasks"
           value={overdueTasksCount.toString()}
           icon={Clock}
           accent="rose"
@@ -241,13 +244,13 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming tasks</CardTitle>
+            <CardTitle>My Tasks</CardTitle>
             <Link href="/tasks" className="text-sm font-medium text-indigo-600 hover:underline">
               View all
             </Link>
           </CardHeader>
           <CardBody>
-            <TaskList tasks={upcomingTasks} showParent emptyMessage="No open tasks — nice work!" />
+            <TaskList tasks={myTasks} showParent emptyMessage="Nothing assigned to you — nice work!" />
           </CardBody>
         </Card>
       </div>

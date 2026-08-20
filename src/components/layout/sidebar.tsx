@@ -29,8 +29,10 @@ const NAV_ITEMS = [
 
 export function Sidebar({
   user,
+  myTaskAlertCount = 0,
 }: {
   user: { name: string; email: string; title: string | null };
+  myTaskAlertCount?: number;
 }) {
   const pathname = usePathname();
 
@@ -63,6 +65,11 @@ export function Sidebar({
             >
               <Icon className="h-4 w-4" />
               {item.label}
+              {item.href === "/tasks" && myTaskAlertCount > 0 && (
+                <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
+                  {myTaskAlertCount}
+                </span>
+              )}
             </Link>
           );
         })}

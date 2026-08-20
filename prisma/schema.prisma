@@ -76,8 +76,11 @@ model EmailAccount {
   syncState     String    @default("{}") @db.Text
   lastSyncedAt  DateTime?
   lastSyncError String?   @db.Text
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  // Rate-limits scripts/send-task-digests.ts to roughly once a day
+  // regardless of how often its cron job actually runs.
+  lastDigestSentAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique
