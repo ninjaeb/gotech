@@ -42,8 +42,11 @@ export default async function DealDetailPage({
         pipelineStage: true,
         pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
         tasks: {
-          orderBy: [{ completed: "asc" }, { dueDate: "asc" }],
-          include: { assignee: { select: { id: true, name: true } }, _count: { select: { followers: true } } },
+          orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { priority: "desc" }],
+          include: {
+            assignees: { include: { user: { select: { id: true, name: true } } } },
+            _count: { select: { followers: true } },
+          },
         },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
         quotes: {

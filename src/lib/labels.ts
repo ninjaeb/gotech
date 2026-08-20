@@ -4,6 +4,7 @@ import {
   InvoiceStatus,
   ProjectStatus,
   QuoteStatus,
+  TaskPriority,
   TaskType,
 } from "@/generated/prisma/client";
 
@@ -47,6 +48,23 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   FOLLOW_UP: "Follow-up",
   MILESTONE: "Milestone",
   OTHER: "Other",
+};
+
+// Declared low-to-high to match the schema enum's ordinal order, so
+// `orderBy: { priority: "desc" }` (HIGH first) lines up with this list.
+export const TASK_PRIORITIES: TaskPriority[] = ["LOW", "MEDIUM", "HIGH"];
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+};
+
+export const TASK_PRIORITY_BADGE_CLASSES: Record<TaskPriority, string> = {
+  LOW: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+  MEDIUM:
+    "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
+  HIGH: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
 };
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

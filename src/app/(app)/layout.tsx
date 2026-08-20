@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   endOfToday.setHours(0, 0, 0, 0);
   endOfToday.setDate(endOfToday.getDate() + 1);
   const myTaskAlertCount = await db.task.count({
-    where: { assigneeId: user.id, completed: false, dueDate: { lt: endOfToday } },
+    where: { assignees: { some: { userId: user.id } }, completed: false, dueDate: { lt: endOfToday } },
   });
 
   return (

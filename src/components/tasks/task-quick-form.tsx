@@ -5,7 +5,7 @@ import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
+import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 
 export function TaskQuickForm({
   contactId,
@@ -53,7 +53,14 @@ export function TaskQuickForm({
           </option>
         ))}
       </Select>
-      <Select name="assigneeId" defaultValue={defaultAssigneeId ?? ""} className="w-36">
+      <Select name="priority" defaultValue="MEDIUM" className="w-28">
+        {TASK_PRIORITIES.map((priority) => (
+          <option key={priority} value={priority}>
+            {TASK_PRIORITY_LABELS[priority]}
+          </option>
+        ))}
+      </Select>
+      <Select name="assigneeIds" defaultValue={defaultAssigneeId ?? ""} className="w-36">
         <option value="">Unassigned</option>
         {users.map((user) => (
           <option key={user.id} value={user.id}>

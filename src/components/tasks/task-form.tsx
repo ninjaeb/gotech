@@ -5,7 +5,7 @@ import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
+import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = { id: string; firstName: string; lastName: string | null; companyId: string | null };
@@ -24,6 +24,7 @@ export function TaskForm({
   contacts,
   deals,
   users,
+  assigneeIds = [],
   followerIds = [],
   submitLabel = "Save task",
 }: {
@@ -33,6 +34,7 @@ export function TaskForm({
   contacts: ContactOption[];
   deals: DealOption[];
   users: UserOption[];
+  assigneeIds?: string[];
   followerIds?: string[];
   submitLabel?: string;
 }) {
@@ -89,18 +91,17 @@ export function TaskForm({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="Due date" htmlFor="dueDate">
-          <DatePicker id="dueDate" name="dueDate" defaultValue={formatDateInput(task?.dueDate)} />
-        </FieldGroup>
-        <FieldGroup label="Assignee" htmlFor="assigneeId">
-          <Select id="assigneeId" name="assigneeId" defaultValue={task?.assigneeId ?? ""}>
-            <option value="">Unassigned</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
+        <FieldGroup label="Priority" htmlFor="priority">
+          <Select id="priority" name="priority" defaultValue={task?.priority ?? "MEDIUM"}>
+            {TASK_PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {TASK_PRIORITY_LABELS[priority]}
               </option>
             ))}
           </Select>
+        </FieldGroup>
+        <FieldGroup label="Due date" htmlFor="dueDate">
+          <DatePicker id="dueDate" name="dueDate" defaultValue={formatDateInput(task?.dueDate)} />
         </FieldGroup>
       </div>
 
@@ -151,6 +152,32 @@ export function TaskForm({
           </Select>
         </FieldGroup>
       </div>
+
+      <FieldGroup label="Assignees" htmlFor="assigneeIds-group">
+        {users.length === 0 ? (
+          <p className="text-sm text-slate-400">No users to assign this task to.</p>
+        ) : (
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {users.map((user, index) => (
+              <label
+                key={user.id}
+                htmlFor={`assigneeIds-${index}`}
+                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
+              >
+                <input
+                  id={`assigneeIds-${index}`}
+                  type="checkbox"
+                  name="assigneeIds"
+                  value={user.id}
+                  defaultChecked={assigneeIds.includes(user.id)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+                />
+                {user.name}
+              </label>
+            ))}
+          </div>
+        )}
+      </FieldGroup>
 
       <FieldGroup label="Followers" htmlFor="followerIds-group">
         {users.length === 0 ? (

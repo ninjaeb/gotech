@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Clock, Pencil, Trash2, User as UserIcon, Users } from "lucide-react";
 import type { Company, Contact, Deal, Project, Task, User } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
-import { TASK_TYPE_LABELS } from "@/lib/labels";
+import { TASK_PRIORITY_BADGE_CLASSES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
 import { relativeToToday, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
@@ -13,7 +13,7 @@ export type TaskWithRelations = Task & {
   company?: Pick<Company, "id" | "name"> | null;
   deal?: Pick<Deal, "id" | "title"> | null;
   project?: Pick<Project, "id" | "name"> | null;
-  assignee?: Pick<User, "id" | "name"> | null;
+  assignees?: { user: Pick<User, "id" | "name"> }[];
   _count?: { followers: number };
 };
 
@@ -79,6 +79,9 @@ export function TaskList({
                   {task.title}
                 </p>
                 <Badge>{TASK_TYPE_LABELS[task.type]}</Badge>
+                <Badge className={TASK_PRIORITY_BADGE_CLASSES[task.priority]}>
+                  {TASK_PRIORITY_LABELS[task.priority]}
+                </Badge>
                 {dueLabel && (
                   <span
                     className={cn(
@@ -92,10 +95,10 @@ export function TaskList({
                     {dueLabel}
                   </span>
                 )}
-                {task.assignee && (
+                {!!task.assignees?.length && (
                   <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                     <UserIcon className="h-3 w-3" />
-                    {task.assignee.name}
+                    {task.assignees.map((a) => a.user.name).join(", ")}
                   </span>
                 )}
                 {!!task._count?.followers && (

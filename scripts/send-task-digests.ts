@@ -32,8 +32,12 @@ async function main() {
     }
 
     const tasks: DigestTask[] = await db.task.findMany({
-      where: { assigneeId: account.userId, completed: false, dueDate: { lt: endOfToday } },
-      orderBy: { dueDate: "asc" },
+      where: {
+        assignees: { some: { userId: account.userId } },
+        completed: false,
+        dueDate: { lt: endOfToday },
+      },
+      orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
       include: {
         contact: { select: { firstName: true, lastName: true } },
         company: { select: { name: true } },

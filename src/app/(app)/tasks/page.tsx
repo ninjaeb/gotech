@@ -74,13 +74,13 @@ export default async function TasksPage({
       orderBy:
         filter === "completed"
           ? { completedAt: "desc" }
-          : [{ dueDate: "asc" }, { createdAt: "desc" }],
+          : [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
       include: {
         contact: { select: { id: true, firstName: true, lastName: true } },
         company: { select: { id: true, name: true } },
         deal: { select: { id: true, title: true } },
         project: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true } },
+        assignees: { include: { user: { select: { id: true, name: true } } } },
         _count: { select: { followers: true } },
       },
     }),

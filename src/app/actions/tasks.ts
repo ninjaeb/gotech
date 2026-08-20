@@ -4,19 +4,23 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ActivityType, TaskType } from "@/generated/prisma/client";
+import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 
 const taskSchema = z.object({
   title: z.string().trim().min(1, "Task title is required"),
   description: z.string().trim().nullish(),
   type: z.nativeEnum(TaskType).default(TaskType.OTHER),
+  priority: z.nativeEnum(TaskPriority).default(TaskPriority.MEDIUM),
   dueDate: z.string().trim().nullish(),
   contactId: z.string().trim().nullish(),
   companyId: z.string().trim().nullish(),
   dealId: z.string().trim().nullish(),
   projectId: z.string().trim().nullish(),
-  assigneeId: z.string().trim().nullish(),
 });
+
+function parseAssigneeIds(formData: FormData): string[] {
+  return [...new Set(formData.getAll("assigneeIds").map(String).filter(Boolean))];
+}
 
 function parseFollowerIds(formData: FormData): string[] {
   return [...new Set(formData.getAll("followerIds").map(String).filter(Boolean))];
@@ -41,29 +45,31 @@ export async function createTask(formData: FormData) {
     title: formData.get("title"),
     description: formData.get("description"),
     type: formData.get("type") || TaskType.OTHER,
+    priority: formData.get("priority") || TaskPriority.MEDIUM,
     dueDate: formData.get("dueDate"),
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
     projectId: formData.get("projectId"),
-    assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const assigneeIds = parseAssigneeIds(formData);
   const followerIds = parseFollowerIds(formData);
   const task = await db.task.create({
     data: {
       title: data.title,
       description: data.description || null,
       type: data.type,
+      priority: data.priority,
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       contactId: data.contactId || null,
       companyId: data.companyId || null,
       dealId: data.dealId || null,
       projectId: data.projectId || null,
-      assigneeId: data.assigneeId || null,
+      assignees: { create: assigneeIds.map((userId) => ({ userId })) },
       followers: { create: followerIds.map((userId) => ({ userId })) },
     },
   });
@@ -80,16 +86,17 @@ export async function updateTask(id: string, formData: FormData) {
     title: formData.get("title"),
     description: formData.get("description"),
     type: formData.get("type") || TaskType.OTHER,
+    priority: formData.get("priority") || TaskPriority.MEDIUM,
     dueDate: formData.get("dueDate"),
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
-    assigneeId: formData.get("assigneeId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const assigneeIds = parseAssigneeIds(formData);
   const followerIds = parseFollowerIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
@@ -101,11 +108,12 @@ export async function updateTask(id: string, formData: FormData) {
       title: data.title,
       description: data.description || null,
       type: data.type,
+      priority: data.priority,
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       contactId: data.contactId || null,
       companyId: data.companyId || null,
       dealId: data.dealId || null,
-      assigneeId: data.assigneeId || null,
+      assignees: { deleteMany: {}, create: assigneeIds.map((userId) => ({ userId })) },
       followers: { deleteMany: {}, create: followerIds.map((userId) => ({ userId })) },
     },
   });

@@ -41,10 +41,14 @@ export default async function DashboardPage() {
       select: { value: true, pipelineStageId: true, pipelineStage: { select: { isWon: true, isLost: true } } },
     }),
     db.task.count({
-      where: { assigneeId: currentUser.id, completed: false, dueDate: { gte: startOfToday, lt: endOfToday } },
+      where: {
+        assignees: { some: { userId: currentUser.id } },
+        completed: false,
+        dueDate: { gte: startOfToday, lt: endOfToday },
+      },
     }),
     db.task.count({
-      where: { assigneeId: currentUser.id, completed: false, dueDate: { lt: startOfToday } },
+      where: { assignees: { some: { userId: currentUser.id } }, completed: false, dueDate: { lt: startOfToday } },
     }),
     db.deal.count({
       where: {
@@ -53,15 +57,15 @@ export default async function DashboardPage() {
       },
     }),
     db.task.findMany({
-      where: { assigneeId: currentUser.id, completed: false },
-      orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
+      where: { assignees: { some: { userId: currentUser.id } }, completed: false },
+      orderBy: [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
       take: 6,
       include: {
         contact: { select: { id: true, firstName: true, lastName: true } },
         company: { select: { id: true, name: true } },
         deal: { select: { id: true, title: true } },
         project: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true } },
+        assignees: { include: { user: { select: { id: true, name: true } } } },
         _count: { select: { followers: true } },
       },
     }),
