@@ -149,6 +149,23 @@ export default async function DealDetailPage({
 
           <Card>
             <CardHeader>
+              <CardTitle>Tasks</CardTitle>
+              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+            </CardHeader>
+            <CardBody>
+              {needsFollowUp(deal) && (
+                <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
+                  <Flag className="h-3.5 w-3.5 shrink-0" />
+                  No next step scheduled — add one below.
+                </div>
+              )}
+              <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
+              <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Quotes ({deal.quotes.length})</CardTitle>
               <Link href={`/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
                 <Plus className="h-4 w-4" />
@@ -232,23 +249,6 @@ export default async function DealDetailPage({
 
         <div className="space-y-6">
           <AiInsightsPanel entity={{ dealId: deal.id }} />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
-            </CardHeader>
-            <CardBody>
-              {needsFollowUp(deal) && (
-                <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
-                  <Flag className="h-3.5 w-3.5 shrink-0" />
-                  No next step scheduled — add one below.
-                </div>
-              )}
-              <TaskList tasks={deal.tasks} emptyMessage="No tasks yet." />
-              <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
-            </CardBody>
-          </Card>
 
           <Card>
             <CardHeader>
