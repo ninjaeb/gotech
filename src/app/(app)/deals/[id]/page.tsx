@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, Flag, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, Flag, Link2, Pencil, Plus, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteDeal } from "@/app/actions/deals";
+import { deleteDealResource } from "@/app/actions/deal-resources";
+import { DealResourceForm } from "@/components/deals/deal-resource-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +55,7 @@ export default async function DealDetailPage({
           orderBy: { createdAt: "desc" },
           include: { items: true },
         },
+        resources: { orderBy: { createdAt: "desc" } },
         project: { select: { id: true, name: true } },
       },
     }),
@@ -182,6 +185,47 @@ export default async function DealDetailPage({
                   ))}
                 </ul>
               )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Resources ({deal.resources.length})</CardTitle>
+            </CardHeader>
+            <CardBody>
+              {deal.resources.length === 0 ? (
+                <EmptyState title="No resources yet." description="Add a link to a proposal, presentation, or anything else related to this deal." />
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {deal.resources.map((resource) => (
+                    <li key={resource.id} className="flex items-center justify-between gap-3 py-2.5">
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex min-w-0 items-center gap-2 text-sm hover:text-indigo-600"
+                      >
+                        <Link2 className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                          {resource.title}
+                        </span>
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      </a>
+                      <form action={deleteDealResource.bind(null, deal.id, resource.id)}>
+                        <ConfirmSubmitButton
+                          confirmMessage="Remove this resource link?"
+                          variant="ghost"
+                          size="sm"
+                          className="!px-1.5 text-slate-400 hover:text-rose-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </ConfirmSubmitButton>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <DealResourceForm dealId={deal.id} />
             </CardBody>
           </Card>
         </div>

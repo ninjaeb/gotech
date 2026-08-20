@@ -281,6 +281,7 @@ model Deal {
   tasks      Task[]
   activities Activity[]
   quotes     Quote[]
+  resources  DealResource[]
   project    Project?
 
   @@index([companyId])
@@ -288,6 +289,22 @@ model Deal {
   @@index([pipelineId])
   @@index([pipelineStageId])
   @@index([ownerId])
+}
+
+// An external link related to a deal — a proposal doc, a presentation deck,
+// a shared folder, anything else worth keeping one click away. Deliberately
+// just a label + URL rather than a fixed set of resource types: "proposal"
+// and "presentation slide" are common cases, not an exhaustive list.
+model DealResource {
+  id        String   @id @default(cuid())
+  title     String
+  url       String   @db.Text
+  createdAt DateTime @default(now())
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String
+
+  @@index([dealId])
 }
 
 // The delivery-side counterpart to a won Deal — spun up automatically (see
