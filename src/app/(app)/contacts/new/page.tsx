@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
-import { createContact } from "@/app/actions/contacts";
-import { ContactForm } from "@/components/contacts/contact-form";
+import { NewContactForm } from "@/components/contacts/new-contact-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 
@@ -17,12 +16,7 @@ export default async function NewContactPage({
       <PageHeader title="New contact" />
       <Card>
         <CardBody>
-          <ContactForm
-            action={createContact}
-            companies={companies}
-            defaultCompanyId={companyId}
-            submitLabel="Create contact"
-          />
+          <NewContactForm companies={companies} defaultCompanyId={companyId} />
         </CardBody>
       </Card>
     </div>

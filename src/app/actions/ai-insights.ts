@@ -1,8 +1,8 @@
 "use server";
 
-import { ApiError, FinishReason } from "@google/genai";
+import { FinishReason } from "@google/genai";
 import { z } from "zod";
-import { getGeminiClient, isAiConfigured } from "@/lib/ai/client";
+import { describeAiError, getGeminiClient, isAiConfigured } from "@/lib/ai/client";
 import { buildEntityContext, buildPipelineContext, type EntityRef } from "@/lib/ai/context";
 
 const MODEL = "gemini-flash-latest";
@@ -13,22 +13,6 @@ const NOT_CONFIGURED: AiResult<never> = {
   status: "error",
   message: "AI features aren't configured — set GEMINI_API_KEY to enable them.",
 };
-
-function describeAiError(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 401 || error.status === 403) {
-      return "AI request failed: check that GEMINI_API_KEY is set correctly.";
-    }
-    if (error.status === 429) {
-      return "AI request was rate-limited — try again in a moment.";
-    }
-    if (error.status && error.status >= 500) {
-      return "The AI service is temporarily overloaded — try again in a moment.";
-    }
-    return `AI request failed: ${error.message}`;
-  }
-  return "AI request failed unexpectedly.";
-}
 
 const SYSTEM_PROMPT =
   "You are a sales assistant embedded in a CRM. Ground everything you write only in the context given — never invent names, numbers, or events that aren't present. If context is thin, say so plainly rather than guessing. Be terse and concrete.";

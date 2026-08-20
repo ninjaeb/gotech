@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { Company, Contact } from "@/generated/prisma/client";
 import type { ContactFormState } from "@/app/actions/contacts";
+import type { ContactDraft } from "@/lib/contact-draft";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { compressImage, formatBytes } from "@/lib/image-compression";
@@ -16,12 +17,17 @@ export function ContactForm({
   contact,
   companies,
   defaultCompanyId,
+  prefill,
   submitLabel = "Save contact",
 }: {
   action: (prevState: ContactFormState, formData: FormData) => Promise<ContactFormState>;
   contact?: Contact;
-  companies: Company[];
+  companies: Pick<Company, "id" | "name">[];
   defaultCompanyId?: string;
+  // Draft values for a new (unsaved) contact — e.g. from a scanned business
+  // card. Ignored once `contact` is set, since editing an existing row
+  // should never silently reintroduce stale draft data.
+  prefill?: ContactDraft;
   submitLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
@@ -53,14 +59,14 @@ export function ContactForm({
             id="firstName"
             name="firstName"
             required
-            defaultValue={contact?.firstName}
+            defaultValue={contact?.firstName ?? prefill?.firstName}
           />
         </FieldGroup>
         <FieldGroup label="Last name" htmlFor="lastName">
           <Input
             id="lastName"
             name="lastName"
-            defaultValue={contact?.lastName ?? ""}
+            defaultValue={contact?.lastName ?? prefill?.lastName ?? ""}
           />
         </FieldGroup>
       </div>
@@ -71,7 +77,7 @@ export function ContactForm({
             id="email"
             name="email"
             type="email"
-            defaultValue={contact?.email ?? ""}
+            defaultValue={contact?.email ?? prefill?.email ?? ""}
             placeholder="jane@acme.com"
           />
         </FieldGroup>
@@ -79,7 +85,7 @@ export function ContactForm({
           <Input
             id="phone"
             name="phone"
-            defaultValue={contact?.phone ?? ""}
+            defaultValue={contact?.phone ?? prefill?.phone ?? ""}
             placeholder="+1 555 000 0000"
           />
         </FieldGroup>
@@ -90,7 +96,7 @@ export function ContactForm({
           <Input
             id="title"
             name="title"
-            defaultValue={contact?.title ?? ""}
+            defaultValue={contact?.title ?? prefill?.title ?? ""}
             placeholder="VP of Sales"
           />
         </FieldGroup>
