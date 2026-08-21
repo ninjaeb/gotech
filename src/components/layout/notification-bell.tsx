@@ -18,9 +18,17 @@ export type NotificationItem = {
 export function NotificationBell({
   notifications,
   unreadCount,
+  align = "right",
 }: {
   notifications: NotificationItem[];
   unreadCount: number;
+  // "right" flushes the dropdown's right edge to the bell — correct when
+  // the bell sits near the right edge of a full-width bar (MobileNav).
+  // "left" flushes its left edge instead, opening the dropdown into the
+  // wide main content area — needed when the bell sits near the right
+  // edge of the narrow (w-60) desktop Sidebar, where a right-aligned
+  // w-80 dropdown would spill off the left edge of the viewport.
+  align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,7 +76,12 @@ export function NotificationBell({
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 max-w-[90vw] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
+        <div
+          className={cn(
+            "absolute z-30 mt-2 w-80 max-w-[90vw] rounded-lg border border-slate-200 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900",
+            align === "left" ? "left-0" : "right-0",
+          )}
+        >
           <div className="flex items-center justify-between border-b border-slate-100 px-3 py-2 dark:border-neutral-800">
             <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Notifications</span>
             {unreadCount > 0 && (

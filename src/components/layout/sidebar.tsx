@@ -49,7 +49,7 @@ export function Sidebar({
         </div>
         <span className="text-sm font-semibold text-slate-100">GoTech CRM</span>
         <div className="ml-auto flex items-center gap-1">
-          <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} />
+          <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} align="left" />
           <ThemeToggle />
         </div>
       </div>
