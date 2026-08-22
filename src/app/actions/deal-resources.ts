@@ -36,6 +36,26 @@ export async function addDealResource(dealId: string, formData: FormData) {
   revalidatePath(`/deals/${dealId}`);
 }
 
+export async function updateDealResource(dealId: string, id: string, formData: FormData) {
+  const parsed = dealResourceSchema.safeParse({
+    title: formData.get("title"),
+    url: formData.get("url"),
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid resource");
+  }
+
+  await db.dealResource.update({
+    where: { id, dealId },
+    data: {
+      title: parsed.data.title,
+      url: normalizeUrl(parsed.data.url),
+    },
+  });
+
+  revalidatePath(`/deals/${dealId}`);
+}
+
 export async function deleteDealResource(dealId: string, id: string, formData: FormData) {
   void formData;
   await db.dealResource.delete({ where: { id, dealId } });
