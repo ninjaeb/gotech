@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { ProjectStatus } from "@/generated/prisma/client";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const MILESTONE_TEMPLATE: { title: string; daysFromNow: number }[] = [
   { title: "Kickoff call", daysFromNow: 3 },
@@ -42,6 +43,7 @@ export async function ensureProjectForWonDeal(deal: { id: string; title: string 
 }
 
 export async function updateProjectStatus(id: string, status: ProjectStatus) {
+  await requireAdminAction();
   await db.project.update({ where: { id }, data: { status } });
   revalidatePath("/projects");
   revalidatePath(`/projects/${id}`);
@@ -66,6 +68,7 @@ const projectBudgetSchema = z.object({
 });
 
 export async function updateProjectBudget(id: string, formData: FormData) {
+  await requireAdminAction();
   const parsed = projectBudgetSchema.safeParse({
     budgetHours: formData.get("budgetHours"),
     budgetAmount: formData.get("budgetAmount"),
@@ -90,6 +93,7 @@ export async function updateProjectBudget(id: string, formData: FormData) {
 
 export async function deleteProject(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const project = await db.project.delete({ where: { id }, select: { dealId: true } });
   revalidatePath("/projects");
   revalidatePath(`/deals/${project.dealId}`);

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { describeAiError, getGeminiClient, isAiConfigured } from "@/lib/ai/client";
 import { findOrCreateCompanyByName } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const MODEL = "gemini-flash-latest";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // matches next.config.ts serverActions.bodySizeLimit
@@ -24,6 +25,7 @@ const CardSchema = z.object({
 export type ScanCardResult = { status: "ok"; data: ContactDraft } | { status: "error"; message: string };
 
 export async function scanBusinessCard(formData: FormData): Promise<ScanCardResult> {
+  await requireAdminAction();
   if (!isAiConfigured()) {
     return { status: "error", message: "AI features aren't configured — set GEMINI_API_KEY to enable them." };
   }

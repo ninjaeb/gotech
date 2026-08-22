@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createUser } from "@/app/actions/users";
-import { Label, Input, RequiredMark } from "@/components/ui/field";
+import { Label, Input, Select, RequiredMark } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
 export function CreateUserForm() {
@@ -39,6 +39,16 @@ export function CreateUserForm() {
         <div>
           <Label htmlFor="new-user-title">Title (optional)</Label>
           <Input id="new-user-title" name="title" placeholder="Sales" />
+        </div>
+        <div>
+          <Label htmlFor="new-user-role">
+            Role
+            <RequiredMark />
+          </Label>
+          <Select id="new-user-role" name="role" defaultValue="DEVELOPER" required>
+            <option value="DEVELOPER">Developer — Projects &amp; Tasks only</option>
+            <option value="ADMIN">Admin — full access</option>
+          </Select>
         </div>
         <div>
           <Label htmlFor="new-user-password">Password (optional)</Label>

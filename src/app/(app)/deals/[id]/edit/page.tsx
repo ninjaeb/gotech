@@ -6,12 +6,14 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
 import { getPipelinesWithStages } from "@/lib/pipelines";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function EditDealPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const [currency, deal, companies, contacts, pipelines, users] = await Promise.all([
     getCurrency(),

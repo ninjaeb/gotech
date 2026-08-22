@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CreateUserForm } from "@/components/settings/create-user-form";
 import { UserRateEditor } from "@/components/settings/user-rate-editor";
+import { UserRoleSelect } from "@/components/settings/user-role-select";
 import { ResetPasswordButton } from "@/components/settings/reset-password-button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
@@ -26,6 +27,7 @@ import { getBookingSettings } from "@/lib/settings";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
+  const canManage = currentUser.role === "ADMIN";
   const [currency, users, servicePackages, siteOrigin, bookingSettings, emailAccount] = await Promise.all([
     getCurrency(),
     db.user.findMany({ orderBy: { createdAt: "asc" } }),
@@ -45,6 +47,8 @@ export default async function SettingsPage() {
     <div className="max-w-lg space-y-6">
       <PageHeader title="Settings" description="CRM-wide preferences" />
 
+      {canManage && (
+      <>
       <Card>
         <CardHeader>
           <CardTitle>Currency</CardTitle>
@@ -132,6 +136,7 @@ export default async function SettingsPage() {
                   />
                   {user.id !== currentUser.id && (
                     <div className="flex items-center gap-2">
+                      <UserRoleSelect userId={user.id} role={user.role} />
                       <ResetPasswordButton userId={user.id} userName={user.name} />
                       {users.length > 1 && (
                         <form action={deleteUser.bind(null, user.id)}>
@@ -250,6 +255,8 @@ export default async function SettingsPage() {
           <EmailAccountForm account={emailAccount} />
         </CardBody>
       </Card>
+      </>
+      )}
 
       <Card>
         <CardHeader>

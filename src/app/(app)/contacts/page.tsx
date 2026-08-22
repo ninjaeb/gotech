@@ -8,12 +8,14 @@ import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
 import { fullName } from "@/lib/format";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function ContactsPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  await requireAdmin();
   const { q } = await searchParams;
   const query = q?.trim();
 

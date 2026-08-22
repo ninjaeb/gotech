@@ -6,6 +6,7 @@ import {
   parseGoogleContactsCsv,
   type ParsedContactRow,
 } from "@/lib/google-contacts-import";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // matches next.config.ts serverActions.bodySizeLimit
 const MAX_ROWS = 5000;
@@ -36,6 +37,7 @@ export type ImportResult = {
 export async function previewContactImport(
   formData: FormData,
 ): Promise<ImportPreview | ImportError> {
+  await requireAdminAction();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { status: "error", message: "Choose a CSV file to import." };
@@ -101,6 +103,7 @@ export async function previewContactImport(
 export async function confirmContactImport(
   formData: FormData,
 ): Promise<ImportResult | ImportError> {
+  await requireAdminAction();
   const rowsJson = formData.get("rows");
   if (typeof rowsJson !== "string") {
     return {

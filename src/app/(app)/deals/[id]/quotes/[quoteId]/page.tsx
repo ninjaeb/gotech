@@ -14,12 +14,14 @@ import { lineItemTotal, quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDateTime, whatsAppUrl } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getSiteOrigin } from "@/lib/site-url";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function QuoteDetailPage({
   params,
 }: {
   params: Promise<{ id: string; quoteId: string }>;
 }) {
+  await requireAdmin();
   const { id: dealId, quoteId } = await params;
 
   const [currency, origin, quote] = await Promise.all([

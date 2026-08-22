@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { InvoiceStatus } from "@/generated/prisma/client";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const invoiceSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -45,6 +46,7 @@ export async function createInvoice(
   _prevState: InvoiceFormState,
   formData: FormData,
 ): Promise<InvoiceFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseInvoiceForm(formData);
@@ -73,6 +75,7 @@ export async function updateInvoice(
   _prevState: InvoiceFormState,
   formData: FormData,
 ): Promise<InvoiceFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseInvoiceForm(formData);
@@ -102,6 +105,7 @@ export async function updateInvoice(
 }
 
 export async function changeInvoiceStatus(id: string, status: InvoiceStatus) {
+  await requireAdminAction();
   const previous = await db.invoice.findUniqueOrThrow({ where: { id }, select: { sentAt: true } });
   const invoice = await db.invoice.update({
     where: { id },
@@ -112,6 +116,7 @@ export async function changeInvoiceStatus(id: string, status: InvoiceStatus) {
 
 export async function deleteInvoice(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const invoice = await db.invoice.delete({ where: { id } });
   revalidatePath(`/projects/${invoice.projectId}`);
 }

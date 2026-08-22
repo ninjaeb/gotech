@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth/dal";
 
 const PERIODS = [
   { key: "month", label: "This month" },
@@ -28,6 +29,7 @@ export default async function LeaderboardPage({
 }: {
   searchParams: Promise<{ period?: string }>;
 }) {
+  await requireAdmin();
   const { period: periodParam } = await searchParams;
   const period = PERIODS.some((p) => p.key === periodParam) ? (periodParam as PeriodKey) : "month";
   const since = periodStart(period);

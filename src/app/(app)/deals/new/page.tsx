@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
 import { getPipelinesWithStages, getDefaultPipeline } from "@/lib/pipelines";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function NewDealPage({
   searchParams,
@@ -13,7 +13,7 @@ export default async function NewDealPage({
   searchParams: Promise<{ companyId?: string; contactId?: string; pipelineId?: string }>;
 }) {
   const { companyId, contactId, pipelineId } = await searchParams;
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdmin();
   const [currency, companies, contacts, pipelines, defaultPipeline, users] = await Promise.all([
     getCurrency(),
     db.company.findMany({ orderBy: { name: "asc" } }),

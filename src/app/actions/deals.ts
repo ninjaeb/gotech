@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { ActivityType } from "@/generated/prisma/client";
 import { stageGateError } from "@/lib/deal-hygiene";
 import { ensureProjectForWonDeal } from "@/app/actions/projects";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const dealSchema = z.object({
   title: z.string().trim().min(1, "Deal title is required"),
@@ -73,6 +74,7 @@ function revalidateDealPaths(dealId: string, companyId?: string | null, contactI
 export type DealFormState = { error: string } | undefined;
 
 export async function createDeal(_prevState: DealFormState, formData: FormData): Promise<DealFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseDealForm(formData);
@@ -103,6 +105,7 @@ export async function updateDeal(
   _prevState: DealFormState,
   formData: FormData,
 ): Promise<DealFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseDealForm(formData);
@@ -150,6 +153,7 @@ export async function updateDeal(
 }
 
 export async function changeDealStage(id: string, pipelineStageId: string): Promise<{ error: string } | undefined> {
+  await requireAdminAction();
   const previous = await db.deal.findUniqueOrThrow({
     where: { id },
     include: { pipelineStage: true, _count: { select: { quotes: true } } },
@@ -187,6 +191,7 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
 
 export async function deleteDeal(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const deal = await db.deal.findUniqueOrThrow({ where: { id } });
   await db.deal.delete({ where: { id } });
   revalidateDealPaths(id, deal.companyId, deal.contactId);

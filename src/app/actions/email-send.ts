@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdminAction } from "@/lib/auth/dal";
 import { sendEmailViaAccount, findUnambiguousOpenDeal } from "@/lib/email";
 
 const sendSchema = z.object({
@@ -27,7 +27,7 @@ export async function sendEmailToContact(
   }
 
   const [user, contact] = await Promise.all([
-    getCurrentUser(),
+    requireAdminAction(),
     db.contact.findUniqueOrThrow({ where: { id: contactId }, select: { email: true } }),
   ]);
   if (!contact.email) {

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const companySchema = z.object({
   name: z.string().trim().min(1, "Company name is required"),
@@ -38,6 +39,7 @@ function parseCompanyForm(formData: FormData) {
 }
 
 export async function createCompany(formData: FormData) {
+  await requireAdminAction();
   const data = parseCompanyForm(formData);
   const company = await db.company.create({ data });
   revalidatePath("/companies");
@@ -46,6 +48,7 @@ export async function createCompany(formData: FormData) {
 }
 
 export async function updateCompany(id: string, formData: FormData) {
+  await requireAdminAction();
   const data = parseCompanyForm(formData);
   await db.company.update({ where: { id }, data });
   revalidatePath("/companies");
@@ -55,6 +58,7 @@ export async function updateCompany(id: string, formData: FormData) {
 
 export async function deleteCompany(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   await db.company.delete({ where: { id } });
   revalidatePath("/companies");
   revalidatePath("/deals");

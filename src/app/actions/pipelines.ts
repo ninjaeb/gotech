@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 export type PipelineFormState = { error: string } | undefined;
 
@@ -19,6 +20,7 @@ export async function createPipeline(
   _prevState: PipelineFormState,
   formData: FormData,
 ): Promise<PipelineFormState> {
+  await requireAdminAction();
   const name = String(formData.get("name") || "").trim();
   if (!name) return { error: "Pipeline name is required" };
 
@@ -38,6 +40,7 @@ export async function createPipeline(
 }
 
 export async function renamePipeline(id: string, formData: FormData) {
+  await requireAdminAction();
   const name = String(formData.get("name") || "").trim();
   if (!name) throw new Error("Pipeline name is required");
   await db.pipeline.update({ where: { id }, data: { name } });
@@ -46,6 +49,7 @@ export async function renamePipeline(id: string, formData: FormData) {
 }
 
 export async function setDefaultPipeline(id: string) {
+  await requireAdminAction();
   await db.$transaction([
     db.pipeline.updateMany({ where: { isDefault: true }, data: { isDefault: false } }),
     db.pipeline.update({ where: { id }, data: { isDefault: true } }),
@@ -57,6 +61,7 @@ export async function setDefaultPipeline(id: string) {
 
 export async function deletePipeline(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const [pipeline, totalCount] = await Promise.all([
     db.pipeline.findUniqueOrThrow({ where: { id }, include: { _count: { select: { deals: true } } } }),
     db.pipeline.count(),
@@ -89,6 +94,7 @@ export async function updatePipelineStages(
   _prevState: PipelineFormState,
   formData: FormData,
 ): Promise<PipelineFormState> {
+  await requireAdminAction();
   let rawStages: unknown;
   try {
     rawStages = JSON.parse(String(formData.get("stagesJson") || "[]"));

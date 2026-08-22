@@ -21,14 +21,14 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/companies", label: "Companies", icon: Building2 },
-  { href: "/contacts", label: "Contacts", icon: Users },
-  { href: "/deals", label: "Deals", icon: KanbanSquare },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: true },
+  { href: "/companies", label: "Companies", icon: Building2, adminOnly: true },
+  { href: "/contacts", label: "Contacts", icon: Users, adminOnly: true },
+  { href: "/deals", label: "Deals", icon: KanbanSquare, adminOnly: true },
+  { href: "/projects", label: "Projects", icon: FolderKanban, adminOnly: false },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare, adminOnly: false },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true },
+  { href: "/settings", label: "Settings", icon: Settings, adminOnly: false },
 ];
 
 export function MobileNav({
@@ -37,13 +37,14 @@ export function MobileNav({
   notifications = [],
   unreadNotificationCount = 0,
 }: {
-  user: { name: string; email: string; title: string | null };
+  user: { name: string; email: string; title: string | null; role: string };
   myTaskAlertCount?: number;
   notifications?: NotificationItem[];
   unreadNotificationCount?: number;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || user.role === "ADMIN");
 
   useEffect(() => {
     if (!open) return;
@@ -99,7 +100,7 @@ export function MobileNav({
               </button>
             </div>
             <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-              {NAV_ITEMS.map((item) => {
+              {navItems.map((item) => {
                 const active =
                   item.href === "/"
                     ? pathname === "/"

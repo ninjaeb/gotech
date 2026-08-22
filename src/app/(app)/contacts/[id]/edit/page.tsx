@@ -5,12 +5,14 @@ import { ContactForm } from "@/components/contacts/contact-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { fullName } from "@/lib/format";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function EditContactPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const [contact, companies] = await Promise.all([
     db.contact.findUnique({ where: { id } }),

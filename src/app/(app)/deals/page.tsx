@@ -10,6 +10,7 @@ import { daysInStage, isRotting, needsFollowUp } from "@/lib/deal-hygiene";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { cn } from "@/lib/utils";
+import { requireAdmin } from "@/lib/auth/dal";
 import type { Prisma } from "@/generated/prisma/client";
 
 export default async function DealsPage({
@@ -17,6 +18,7 @@ export default async function DealsPage({
 }: {
   searchParams: Promise<{ q?: string; flag?: string; pipeline?: string }>;
 }) {
+  await requireAdmin();
   const { q, flag, pipeline: pipelineParam } = await searchParams;
   const query = q?.trim();
   const flagged = flag === "needs-follow-up";

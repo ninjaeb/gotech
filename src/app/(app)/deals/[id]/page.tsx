@@ -24,7 +24,7 @@ import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
 import { quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
 
 const DEFAULT_LAYOUT = { main: ["tasks", "quotes", "resources", "activity"], sidebar: ["aiAssistant"] };
@@ -35,7 +35,7 @@ export default async function DealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdmin();
 
   const [currency, deal, timeLogged, users] = await Promise.all([
     getCurrency(),

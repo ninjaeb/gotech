@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, deleteSession } from "@/lib/auth/session";
+import { DEVELOPER_HOME } from "@/lib/auth/dal";
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
@@ -29,7 +30,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   }
 
   await createSession(user.id);
-  redirect("/");
+  redirect(user.role === "ADMIN" ? "/" : DEVELOPER_HOME);
 }
 
 export async function logout() {

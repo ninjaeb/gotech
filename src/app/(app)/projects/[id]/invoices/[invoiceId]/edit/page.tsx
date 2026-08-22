@@ -4,12 +4,14 @@ import { updateInvoice } from "@/app/actions/invoices";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function EditInvoicePage({
   params,
 }: {
   params: Promise<{ id: string; invoiceId: string }>;
 }) {
+  await requireAdmin();
   const { id: projectId, invoiceId } = await params;
 
   const invoice = await db.invoice.findUnique({ where: { id: invoiceId, projectId } });

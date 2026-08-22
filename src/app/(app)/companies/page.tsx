@@ -4,8 +4,10 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { CompanySearchList } from "@/components/companies/company-search-list";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function CompaniesPage() {
+  await requireAdmin();
   const companies = await db.company.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { contacts: true, deals: true } } },

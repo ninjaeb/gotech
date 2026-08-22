@@ -12,7 +12,7 @@ import { stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 
 export default async function DashboardPage() {
   const startOfToday = new Date();
@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   const endOfToday = new Date(startOfToday);
   endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdmin();
 
   const [
     currency,

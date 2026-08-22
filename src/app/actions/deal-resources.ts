@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const dealResourceSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -17,6 +18,7 @@ function normalizeUrl(url: string): string {
 }
 
 export async function addDealResource(dealId: string, formData: FormData) {
+  await requireAdminAction();
   const parsed = dealResourceSchema.safeParse({
     title: formData.get("title"),
     url: formData.get("url"),
@@ -37,6 +39,7 @@ export async function addDealResource(dealId: string, formData: FormData) {
 }
 
 export async function updateDealResource(dealId: string, id: string, formData: FormData) {
+  await requireAdminAction();
   const parsed = dealResourceSchema.safeParse({
     title: formData.get("title"),
     url: formData.get("url"),
@@ -58,6 +61,7 @@ export async function updateDealResource(dealId: string, id: string, formData: F
 
 export async function deleteDealResource(dealId: string, id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   await db.dealResource.delete({ where: { id, dealId } });
   revalidatePath(`/deals/${dealId}`);
 }

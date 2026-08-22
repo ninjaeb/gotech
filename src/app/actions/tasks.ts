@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
@@ -69,6 +69,7 @@ function revalidateTaskPaths(task: {
 }
 
 export async function createTask(formData: FormData) {
+  await requireAdminAction();
   const parsed = taskSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
@@ -111,6 +112,7 @@ export async function createTask(formData: FormData) {
 // every edit. Project association is only ever set at creation (either
 // here via createTask, or by ensureProjectForWonDeal's seeding).
 export async function updateTask(id: string, formData: FormData) {
+  await requireAdminAction();
   const parsed = taskSchema.safeParse({
     title: formData.get("title"),
     description: formData.get("description"),
@@ -153,6 +155,7 @@ export async function updateTask(id: string, formData: FormData) {
 }
 
 export async function toggleTaskComplete(id: string) {
+  await requireAdminAction();
   const task = await db.task.findUniqueOrThrow({ where: { id } });
   const completed = !task.completed;
 
@@ -179,6 +182,7 @@ export async function toggleTaskComplete(id: string) {
 
 export async function deleteTask(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const task = await db.task.delete({ where: { id } });
   revalidateTaskPaths(task);
 }

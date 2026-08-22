@@ -5,10 +5,12 @@ import { z } from "zod";
 import { setCurrency, setBookingSettings } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/currency";
 import type { WeeklyHours } from "@/lib/booking";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const currencySchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
 
 export async function updateCurrency(formData: FormData) {
+  await requireAdminAction();
   const parsed = currencySchema.safeParse(formData.get("currency"));
   if (!parsed.success) {
     throw new Error("Invalid currency");
@@ -26,6 +28,7 @@ const bookingSettingsSchema = z.object({
 });
 
 export async function updateBookingSettings(formData: FormData) {
+  await requireAdminAction();
   let weeklyHours: unknown;
   try {
     weeklyHours = JSON.parse(String(formData.get("weeklyHoursJson") || "[]"));

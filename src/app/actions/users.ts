@@ -5,13 +5,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
-import { verifySession } from "@/lib/auth/dal";
+import { verifySession, requireAdminAction } from "@/lib/auth/dal";
+import type { Role } from "@/generated/prisma/client";
 
 const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   title: z.string().trim().optional(),
   password: z.string().trim().optional(),
+  role: z.enum(["ADMIN", "DEVELOPER"]),
 });
 
 export type CreateUserState =
@@ -23,13 +25,14 @@ export async function createUser(
   _prevState: CreateUserState,
   formData: FormData,
 ): Promise<CreateUserState> {
-  await verifySession();
+  await requireAdminAction();
 
   const parsed = createUserSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     title: formData.get("title"),
     password: formData.get("password"),
+    role: formData.get("role"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -52,6 +55,7 @@ export async function createUser(
       name: parsed.data.name,
       email: parsed.data.email,
       title: parsed.data.title || null,
+      role: parsed.data.role as Role,
       passwordHash: await hashPassword(password),
     },
   });
@@ -72,7 +76,7 @@ const hourlyRateSchema = z.object({
 });
 
 export async function updateUserRate(userId: string, formData: FormData) {
-  await verifySession();
+  await requireAdminAction();
 
   const parsed = hourlyRateSchema.safeParse({ rate: formData.get("rate") });
   if (!parsed.success) {
@@ -87,7 +91,17 @@ export async function updateUserRate(userId: string, formData: FormData) {
   revalidatePath("/settings");
 }
 
+export async function updateUserRole(userId: string, role: Role) {
+  const session = await requireAdminAction();
+  if (session.id === userId) {
+    throw new Error("You can't change your own role.");
+  }
+  await db.user.update({ where: { id: userId }, data: { role } });
+  revalidatePath("/settings");
+}
+
 export async function deleteUser(userId: string) {
+  await requireAdminAction();
   const session = await verifySession();
   if (session.userId === userId) {
     throw new Error("You can't delete your own account while logged in.");
@@ -109,6 +123,7 @@ export async function resetUserPassword(
 ): Promise<ResetPasswordState> {
   void prevState;
   void formData;
+  await requireAdminAction();
   const session = await verifySession();
   if (session.userId === userId) {
     return { error: 'Use "Change your password" below to update your own password.' };

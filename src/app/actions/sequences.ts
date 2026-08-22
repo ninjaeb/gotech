@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 export type SequenceFormState = { error: string } | undefined;
 
@@ -42,6 +43,7 @@ export async function createSequence(
   _prevState: SequenceFormState,
   formData: FormData,
 ): Promise<SequenceFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseSequenceForm(formData);
@@ -77,6 +79,7 @@ export async function updateSequence(
   _prevState: SequenceFormState,
   formData: FormData,
 ): Promise<SequenceFormState> {
+  await requireAdminAction();
   let data;
   try {
     data = parseSequenceForm(formData);
@@ -114,6 +117,7 @@ export async function updateSequence(
 
 export async function deleteSequence(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   await db.sequence.delete({ where: { id } });
   revalidatePath("/settings/sequences");
   redirect("/settings/sequences");

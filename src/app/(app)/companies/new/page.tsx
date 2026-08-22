@@ -2,8 +2,10 @@ import { createCompany } from "@/app/actions/companies";
 import { CompanyForm } from "@/components/companies/company-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
+import { requireAdmin } from "@/lib/auth/dal";
 
-export default function NewCompanyPage() {
+export default async function NewCompanyPage() {
+  await requireAdmin();
   return (
     <div className="max-w-2xl">
       <PageHeader title="New company" />

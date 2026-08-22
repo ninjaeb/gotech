@@ -24,11 +24,15 @@ export function TaskList({
   users = [],
   showParent = false,
   emptyMessage = "No tasks yet.",
+  canManage = true,
 }: {
   tasks: TaskWithRelations[];
   users?: UserOption[];
   showParent?: boolean;
   emptyMessage?: string;
+  // Developers can log time against tasks but not create/edit/delete/
+  // complete them — everywhere else this defaults to true unchanged.
+  canManage?: boolean;
 }) {
   if (tasks.length === 0) {
     return (
@@ -47,30 +51,39 @@ export function TaskList({
 
         return (
           <li key={task.id} className="flex items-start gap-3 py-3">
-            <form action={toggleTaskComplete.bind(null, task.id)}>
-              <button
-                type="submit"
-                aria-label={task.completed ? "Mark incomplete" : "Mark complete"}
-                className={cn(
-                  "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
-                  task.completed
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-slate-300 hover:border-indigo-500 dark:border-neutral-600",
-                )}
-              >
-                {task.completed && (
-                  <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
-                    <path
-                      d="M2.5 6.5L4.5 8.5L9.5 3.5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </button>
-            </form>
+            {(() => {
+              const indicator = (
+                <span
+                  className={cn(
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                    task.completed
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : "border-slate-300 dark:border-neutral-600",
+                    canManage && !task.completed && "hover:border-indigo-500",
+                  )}
+                >
+                  {task.completed && (
+                    <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none">
+                      <path
+                        d="M2.5 6.5L4.5 8.5L9.5 3.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </span>
+              );
+              if (!canManage) return indicator;
+              return (
+                <form action={toggleTaskComplete.bind(null, task.id)}>
+                  <button type="submit" aria-label={task.completed ? "Mark incomplete" : "Mark complete"}>
+                    {indicator}
+                  </button>
+                </form>
+              );
+            })()}
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -165,23 +178,27 @@ export function TaskList({
               >
                 <Clock className="h-4 w-4" />
               </Link>
-              <Link
-                href={`/tasks/${task.id}/edit`}
-                aria-label="Edit task"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-              >
-                <Pencil className="h-4 w-4" />
-              </Link>
-              <form action={deleteTask.bind(null, task.id)}>
-                <ConfirmSubmitButton
-                  confirmMessage="Delete this task?"
-                  variant="ghost"
-                  size="sm"
-                  className="!px-1.5 text-slate-400 hover:text-rose-600"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </ConfirmSubmitButton>
-              </form>
+              {canManage && (
+                <>
+                  <Link
+                    href={`/tasks/${task.id}/edit`}
+                    aria-label="Edit task"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                  <form action={deleteTask.bind(null, task.id)}>
+                    <ConfirmSubmitButton
+                      confirmMessage="Delete this task?"
+                      variant="ghost"
+                      size="sm"
+                      className="!px-1.5 text-slate-400 hover:text-rose-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </ConfirmSubmitButton>
+                  </form>
+                </>
+              )}
             </div>
           </li>
         );

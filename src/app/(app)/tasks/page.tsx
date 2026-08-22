@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/field";
 import { TaskList } from "@/components/tasks/task-list";
 import { GlobalTaskForm } from "@/components/tasks/global-task-form";
 import { cn } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth/dal";
 import type { Prisma } from "@/generated/prisma/client";
 
 const FILTERS = [
@@ -53,6 +54,8 @@ export default async function TasksPage({
 }: {
   searchParams: Promise<{ filter?: string; q?: string }>;
 }) {
+  const currentUser = await getCurrentUser();
+  const canManage = currentUser.role === "ADMIN";
   const { filter: rawFilter, q } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)
@@ -100,11 +103,13 @@ export default async function TasksPage({
     <div>
       <PageHeader title="Tasks" description="Follow-ups and to-dos across your CRM" />
 
-      <Card className="mb-6">
-        <CardBody>
-          <GlobalTaskForm companies={companies} contacts={contacts} deals={deals} users={users} />
-        </CardBody>
-      </Card>
+      {canManage && (
+        <Card className="mb-6">
+          <CardBody>
+            <GlobalTaskForm companies={companies} contacts={contacts} deals={deals} users={users} />
+          </CardBody>
+        </Card>
+      )}
 
       <div className="mb-4 flex gap-1 border-b border-slate-200 dark:border-neutral-800">
         {FILTERS.map((f) => (
@@ -143,6 +148,7 @@ export default async function TasksPage({
             tasks={tasks}
             users={users}
             showParent
+            canManage={canManage}
             emptyMessage={
               query
                 ? "No tasks match your search."

@@ -3,10 +3,12 @@
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const INVITE_EXPIRY_DAYS = 7;
 
 export async function inviteToPortal(contactId: string) {
+  await requireAdminAction();
   const contact = await db.contact.findUniqueOrThrow({
     where: { id: contactId },
     select: { email: true, companyId: true },
@@ -32,6 +34,7 @@ export async function inviteToPortal(contactId: string) {
 
 export async function revokePortalAccess(contactId: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   await db.clientUser.deleteMany({ where: { contactId } });
   revalidatePath(`/contacts/${contactId}`);
 }

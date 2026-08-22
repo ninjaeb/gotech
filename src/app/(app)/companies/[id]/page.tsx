@@ -22,7 +22,7 @@ import { WhatsAppLink } from "@/components/ui/channel-links";
 import { stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
 
 const DEFAULT_LAYOUT = { main: ["contacts", "deals"], sidebar: ["aiAssistant", "tasks", "activity"] };
@@ -33,7 +33,7 @@ export default async function CompanyDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdmin();
 
   const [currency, company, allContacts, timeLogged, users] = await Promise.all([
     getCurrency(),

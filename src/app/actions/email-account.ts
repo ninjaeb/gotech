@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdminAction } from "@/lib/auth/dal";
 import { encryptSecret } from "@/lib/email-crypto";
 import { testEmailConnection, syncEmailAccount } from "@/lib/email";
 
@@ -67,7 +67,7 @@ export async function connectEmailAccount(
     return { error: `Couldn't connect: ${describeEmailError(error)}` };
   }
 
-  const user = await getCurrentUser();
+  const user = await requireAdminAction();
   await db.emailAccount.upsert({
     where: { userId: user.id },
     create: {
@@ -105,13 +105,13 @@ export async function connectEmailAccount(
 }
 
 export async function disconnectEmailAccount() {
-  const user = await getCurrentUser();
+  const user = await requireAdminAction();
   await db.emailAccount.deleteMany({ where: { userId: user.id } });
   revalidatePath("/settings");
 }
 
 export async function syncEmailAccountNow() {
-  const user = await getCurrentUser();
+  const user = await requireAdminAction();
   const account = await db.emailAccount.findUnique({ where: { userId: user.id } });
   if (!account) return;
   // syncEmailAccount already records the failure on the account row before

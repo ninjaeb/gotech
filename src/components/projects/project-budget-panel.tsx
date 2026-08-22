@@ -33,6 +33,7 @@ export function ProjectBudgetPanel({
   totalCost,
   unratedMinutes,
   currency,
+  canManage = true,
 }: {
   projectId: string;
   status: string;
@@ -45,14 +46,17 @@ export function ProjectBudgetPanel({
   totalCost: number;
   unratedMinutes: number;
   currency: string;
+  // Developers see the timeline but not hours/cost budget, and can't edit
+  // any of it — budget is admin-only, everywhere else this stays true.
+  canManage?: boolean;
 }) {
   const noBudgetSet = budgetHours === null && budgetAmount === null && targetCompletionDate === null;
-  const [editing, setEditing] = useState(noBudgetSet);
+  const [editing, setEditing] = useState(canManage && noBudgetSet);
   const [pending, startTransition] = useTransition();
 
   const totalHours = totalMinutes / 60;
 
-  if (editing) {
+  if (editing && canManage) {
     return (
       <form
         action={(formData) => {
@@ -107,7 +111,7 @@ export function ProjectBudgetPanel({
 
   return (
     <div className="space-y-4">
-      {budgetHours !== null && (
+      {canManage && budgetHours !== null && (
         <BudgetRow
           label="Hours"
           actualLabel={formatMinutes(totalMinutes)}
@@ -116,7 +120,7 @@ export function ProjectBudgetPanel({
           severity={budgetSeverity(totalHours, budgetHours)}
         />
       )}
-      {budgetAmount !== null && (
+      {canManage && budgetAmount !== null && (
         <BudgetRow
           label="Cost"
           actualLabel={formatCurrency(totalCost, currency)}
@@ -125,10 +129,13 @@ export function ProjectBudgetPanel({
           severity={budgetSeverity(totalCost, budgetAmount)}
         />
       )}
-      {unratedMinutes > 0 && (
+      {canManage && unratedMinutes > 0 && (
         <p className="text-xs text-slate-400">
           {formatMinutes(unratedMinutes)} logged by team members with no hourly rate set — not included in cost.
         </p>
+      )}
+      {!canManage && !targetCompletionDate && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">No timeline set yet.</p>
       )}
       {targetCompletionDate && (
         <div>
@@ -143,14 +150,16 @@ export function ProjectBudgetPanel({
           </p>
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-      >
-        <Pencil className="h-3 w-3" />
-        Edit budget
-      </button>
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+        >
+          <Pencil className="h-3 w-3" />
+          Edit budget
+        </button>
+      )}
     </div>
   );
 }

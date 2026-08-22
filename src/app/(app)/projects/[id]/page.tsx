@@ -17,6 +17,7 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { ProjectStatusSelect } from "@/components/projects/project-status-select";
 import { InvoiceStatusSelect } from "@/components/invoices/invoice-status-select";
 import { ProjectBudgetPanel } from "@/components/projects/project-budget-panel";
+import { PROJECT_STATUS_BADGE_CLASSES, PROJECT_STATUS_LABELS } from "@/lib/labels";
 import { formatCurrency, formatDate, formatDateInput, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
@@ -29,6 +30,7 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   const currentUser = await getCurrentUser();
+  const canManage = currentUser.role === "ADMIN";
 
   const [currency, project, timeLogged, users] = await Promise.all([
     getCurrency(),
@@ -71,12 +73,14 @@ export default async function ProjectDetailPage({
           </Link>
         }
         actions={
-          <form action={deleteProject.bind(null, project.id)}>
-            <ConfirmSubmitButton confirmMessage="Delete this project? Its milestone tasks and activity go with it.">
-              <Trash2 className="h-4 w-4" />
-              Delete
-            </ConfirmSubmitButton>
-          </form>
+          canManage && (
+            <form action={deleteProject.bind(null, project.id)}>
+              <ConfirmSubmitButton confirmMessage="Delete this project? Its milestone tasks and activity go with it.">
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </ConfirmSubmitButton>
+            </form>
+          )
         }
       />
 
@@ -90,7 +94,13 @@ export default async function ProjectDetailPage({
               <div>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Status</p>
                 <div className="mt-1">
-                  <ProjectStatusSelect projectId={project.id} status={project.status} />
+                  {canManage ? (
+                    <ProjectStatusSelect projectId={project.id} status={project.status} />
+                  ) : (
+                    <Badge className={PROJECT_STATUS_BADGE_CLASSES[project.status]}>
+                      {PROJECT_STATUS_LABELS[project.status]}
+                    </Badge>
+                  )}
                 </div>
               </div>
               <DetailRow label="Deal value" value={formatCurrency(project.deal.value.toString(), currency)} />
@@ -118,6 +128,7 @@ export default async function ProjectDetailPage({
             <CardBody>
               <ProjectBudgetPanel
                 projectId={project.id}
+                canManage={canManage}
                 status={project.status}
                 budgetHours={project.budgetHours}
                 budgetAmount={project.budgetAmount === null ? null : Number(project.budgetAmount)}
@@ -138,57 +149,61 @@ export default async function ProjectDetailPage({
               {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
-              <TaskList tasks={project.tasks} users={users} emptyMessage="No milestones yet." />
-              <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoices ({project.invoices.length})</CardTitle>
-              <Link href={`/projects/${project.id}/invoices/new`} className={buttonClasses("secondary", "sm")}>
-                <Plus className="h-4 w-4" />
-                New invoice
-              </Link>
-            </CardHeader>
-            <CardBody>
-              {project.invoices.length === 0 ? (
-                <EmptyState title="No invoices yet." />
-              ) : (
-                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {project.invoices.map((invoice) => (
-                    <li key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/projects/${project.id}/invoices/${invoice.id}/edit`}
-                          className="truncate font-medium text-slate-800 hover:text-indigo-600 dark:text-slate-200"
-                        >
-                          {invoice.title}
-                        </Link>
-                        <p className="text-xs text-slate-400">
-                          {formatCurrency(invoice.amount.toString(), currency)}
-                          {invoice.dueDate && ` · Due ${formatDate(invoice.dueDate)}`}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <InvoiceStatusSelect invoiceId={invoice.id} status={invoice.status} />
-                        <form action={deleteInvoice.bind(null, invoice.id)}>
-                          <ConfirmSubmitButton
-                            confirmMessage="Delete this invoice?"
-                            variant="ghost"
-                            size="sm"
-                            className="!px-1.5 text-slate-400 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </ConfirmSubmitButton>
-                        </form>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+              <TaskList tasks={project.tasks} users={users} canManage={canManage} emptyMessage="No milestones yet." />
+              {canManage && (
+                <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
               )}
             </CardBody>
           </Card>
+
+          {canManage && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Invoices ({project.invoices.length})</CardTitle>
+                <Link href={`/projects/${project.id}/invoices/new`} className={buttonClasses("secondary", "sm")}>
+                  <Plus className="h-4 w-4" />
+                  New invoice
+                </Link>
+              </CardHeader>
+              <CardBody>
+                {project.invoices.length === 0 ? (
+                  <EmptyState title="No invoices yet." />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {project.invoices.map((invoice) => (
+                      <li key={invoice.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5 text-sm">
+                        <div className="min-w-0">
+                          <Link
+                            href={`/projects/${project.id}/invoices/${invoice.id}/edit`}
+                            className="truncate font-medium text-slate-800 hover:text-indigo-600 dark:text-slate-200"
+                          >
+                            {invoice.title}
+                          </Link>
+                          <p className="text-xs text-slate-400">
+                            {formatCurrency(invoice.amount.toString(), currency)}
+                            {invoice.dueDate && ` · Due ${formatDate(invoice.dueDate)}`}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <InvoiceStatusSelect invoiceId={invoice.id} status={invoice.status} />
+                          <form action={deleteInvoice.bind(null, invoice.id)}>
+                            <ConfirmSubmitButton
+                              confirmMessage="Delete this invoice?"
+                              variant="ghost"
+                              size="sm"
+                              className="!px-1.5 text-slate-400 hover:text-rose-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </ConfirmSubmitButton>
+                          </form>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardBody>
+            </Card>
+          )}
         </div>
 
         <div className="min-w-0 space-y-6">

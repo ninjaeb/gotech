@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { ImportForm } from "@/components/contacts/import-form";
+import { requireAdmin } from "@/lib/auth/dal";
 
-export default function ImportContactsPage() {
+export default async function ImportContactsPage() {
+  await requireAdmin();
   return (
     <div className="max-w-4xl">
       <PageHeader

@@ -28,7 +28,7 @@ import { ENROLLMENT_STATUS_BADGE_CLASSES, ENROLLMENT_STATUS_LABELS, stageBadgeCl
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getActiveSequences } from "@/lib/sequences";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdmin } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
 import { readSectionLayout } from "@/lib/section-layout";
 
@@ -44,7 +44,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params;
 
-  const currentUser = await getCurrentUser();
+  const currentUser = await requireAdmin();
   const [currency, contact, hasEmailAccount, timeLogged, siteOrigin, activeSequences, users] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({

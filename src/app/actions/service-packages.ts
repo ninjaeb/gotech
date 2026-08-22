@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const servicePackageSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -17,6 +18,7 @@ export async function createServicePackage(
   _prevState: ServicePackageState,
   formData: FormData,
 ): Promise<ServicePackageState> {
+  await requireAdminAction();
   const parsed = servicePackageSchema.safeParse({
     name: formData.get("name"),
     description: formData.get("description"),
@@ -40,6 +42,7 @@ export async function createServicePackage(
 }
 
 export async function deleteServicePackage(id: string) {
+  await requireAdminAction();
   await db.servicePackage.delete({ where: { id } });
   revalidatePath("/settings");
 }

@@ -3,6 +3,7 @@
 import { findOrCreateCompanyByName } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
 import { parseVCards } from "@/lib/vcard";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 // vCards are plain text — even one with an inline photo rarely exceeds a
 // couple hundred KB, so this is a generous ceiling, not a realistic ceiling.
@@ -11,6 +12,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024;
 export type ImportVCardResult = { status: "ok"; data: ContactDraft } | { status: "error"; message: string };
 
 export async function importVCard(formData: FormData): Promise<ImportVCardResult> {
+  await requireAdminAction();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { status: "error", message: "Choose a .vcf file." };

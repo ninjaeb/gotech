@@ -59,10 +59,17 @@ export async function logTime(taskId: string, formData: FormData) {
 
 export async function deleteTimeEntry(taskId: string, id: string, formData: FormData) {
   void formData;
-  const task = await db.task.findUniqueOrThrow({
-    where: { id: taskId },
-    select: { contactId: true, companyId: true, dealId: true, projectId: true },
-  });
+  const [currentUser, task, entry] = await Promise.all([
+    getCurrentUser(),
+    db.task.findUniqueOrThrow({
+      where: { id: taskId },
+      select: { contactId: true, companyId: true, dealId: true, projectId: true },
+    }),
+    db.timeEntry.findUniqueOrThrow({ where: { id, taskId }, select: { userId: true } }),
+  ]);
+  if (entry.userId !== currentUser.id && currentUser.role !== "ADMIN") {
+    throw new Error("You can only delete your own logged time.");
+  }
 
   await db.timeEntry.delete({ where: { id, taskId } });
 

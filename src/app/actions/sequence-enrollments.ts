@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { requireAdminAction } from "@/lib/auth/dal";
 import { nextDueDate } from "@/lib/sequences";
 
 export async function enrollContact(contactId: string, formData: FormData) {
@@ -10,7 +10,7 @@ export async function enrollContact(contactId: string, formData: FormData) {
   if (!sequenceId) throw new Error("Pick a sequence");
 
   const [user, contact, sequence] = await Promise.all([
-    getCurrentUser(),
+    requireAdminAction(),
     db.contact.findUniqueOrThrow({ where: { id: contactId }, select: { email: true } }),
     db.sequence.findUniqueOrThrow({
       where: { id: sequenceId },
@@ -69,6 +69,7 @@ export async function enrollContact(contactId: string, formData: FormData) {
 
 export async function stopEnrollment(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const enrollment = await db.sequenceEnrollment.update({
     where: { id },
     data: { status: "STOPPED_MANUAL" },

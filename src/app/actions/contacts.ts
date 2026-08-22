@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { requireAdminAction } from "@/lib/auth/dal";
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
@@ -73,6 +74,7 @@ export async function createContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
+  await requireAdminAction();
   let data: ReturnType<typeof parseContactForm>;
   let photo: Awaited<ReturnType<typeof parseContactPhoto>>;
   try {
@@ -93,6 +95,7 @@ export async function updateContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
+  await requireAdminAction();
   let data: ReturnType<typeof parseContactForm>;
   let photo: Awaited<ReturnType<typeof parseContactPhoto>>;
   try {
@@ -114,6 +117,7 @@ export async function updateContact(
 }
 
 export async function linkExistingContact(companyId: string, formData: FormData) {
+  await requireAdminAction();
   const contactId = formData.get("contactId");
   if (typeof contactId !== "string" || !contactId) return;
   const previous = await db.contact.findUnique({
@@ -129,6 +133,7 @@ export async function linkExistingContact(companyId: string, formData: FormData)
 
 export async function deleteContact(id: string, formData: FormData) {
   void formData;
+  await requireAdminAction();
   const contact = await db.contact.delete({ where: { id } });
   revalidatePath("/contacts");
   revalidatePath("/deals");
