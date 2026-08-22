@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import type { ProjectStatus } from "@/generated/prisma/client";
 
@@ -42,6 +43,47 @@ export async function ensureProjectForWonDeal(deal: { id: string; title: string 
 
 export async function updateProjectStatus(id: string, status: ProjectStatus) {
   await db.project.update({ where: { id }, data: { status } });
+  revalidatePath("/projects");
+  revalidatePath(`/projects/${id}`);
+}
+
+const optionalNonNegative = (message: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : null))
+    .refine((value) => value === null || (!Number.isNaN(Number(value)) && Number(value) >= 0), { message });
+
+const projectBudgetSchema = z.object({
+  budgetHours: optionalNonNegative("Budget hours must be a non-negative number"),
+  budgetAmount: optionalNonNegative("Budget amount must be a non-negative number"),
+  targetCompletionDate: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value ? value : null)),
+});
+
+export async function updateProjectBudget(id: string, formData: FormData) {
+  const parsed = projectBudgetSchema.safeParse({
+    budgetHours: formData.get("budgetHours"),
+    budgetAmount: formData.get("budgetAmount"),
+    targetCompletionDate: formData.get("targetCompletionDate"),
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Invalid budget");
+  }
+
+  await db.project.update({
+    where: { id },
+    data: {
+      budgetHours: parsed.data.budgetHours === null ? null : Math.round(Number(parsed.data.budgetHours)),
+      budgetAmount: parsed.data.budgetAmount,
+      targetCompletionDate: parsed.data.targetCompletionDate ? new Date(parsed.data.targetCompletionDate) : null,
+    },
+  });
+
   revalidatePath("/projects");
   revalidatePath(`/projects/${id}`);
 }

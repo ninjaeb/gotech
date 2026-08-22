@@ -16,9 +16,11 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { ProjectStatusSelect } from "@/components/projects/project-status-select";
 import { InvoiceStatusSelect } from "@/components/invoices/invoice-status-select";
-import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
+import { ProjectBudgetPanel } from "@/components/projects/project-budget-panel";
+import { formatCurrency, formatDate, formatDateInput, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
+import { computeProjectActuals, timelineSeverity } from "@/lib/project-budget";
 
 export default async function ProjectDetailPage({
   params,
@@ -45,12 +47,19 @@ export default async function ProjectDetailPage({
         invoices: { orderBy: { createdAt: "desc" } },
       },
     }),
-    db.timeEntry.aggregate({ where: { task: { projectId: id } }, _sum: { minutes: true } }),
+    db.timeEntry.findMany({
+      where: { task: { projectId: id } },
+      select: { minutes: true, user: { select: { hourlyRate: true } } },
+    }),
     db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!project) notFound();
-  const totalMinutes = timeLogged._sum.minutes ?? 0;
+  const { totalMinutes, totalCost, unratedMinutes } = computeProjectActuals(timeLogged);
+  const daysRemaining = project.targetCompletionDate
+    ? Math.ceil((project.targetCompletionDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const timeSeverity = timelineSeverity(project.targetCompletionDate, project.status);
 
   return (
     <div>
@@ -98,6 +107,27 @@ export default async function ProjectDetailPage({
                     : null
                 }
                 href={project.deal.contact ? `/contacts/${project.deal.contact.id}` : undefined}
+              />
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Budget &amp; Timeline</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <ProjectBudgetPanel
+                projectId={project.id}
+                status={project.status}
+                budgetHours={project.budgetHours}
+                budgetAmount={project.budgetAmount === null ? null : Number(project.budgetAmount)}
+                targetCompletionDate={project.targetCompletionDate ? formatDateInput(project.targetCompletionDate) : null}
+                daysRemaining={daysRemaining}
+                timeSeverity={timeSeverity}
+                totalMinutes={totalMinutes}
+                totalCost={totalCost}
+                unratedMinutes={unratedMinutes}
+                currency={currency}
               />
             </CardBody>
           </Card>

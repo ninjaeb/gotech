@@ -51,6 +51,11 @@ model User {
   title        String?
   createdAt    DateTime @default(now())
 
+  // Billing rate for cost-tracking on projects (cost = logged hours × this
+  // rate). Optional — projects with unrated contributors just report those
+  // hours as unrated instead of guessing a cost.
+  hourlyRate Decimal? @db.Decimal(10, 2)
+
   // JSON: { [pageType]: { main: string[], sidebar: string[] } } — which
   // sections this user has dragged where on the Deal/Company/Contact detail
   // pages. A personal display preference, so it lives on User rather than
@@ -325,6 +330,13 @@ model Project {
   status    ProjectStatus @default(NOT_STARTED)
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
+
+  // Internal targets for the budget/timeline tracking on the project page —
+  // set once (typically at kickoff), compared against actuals computed from
+  // TimeEntry (hours, and cost via each logger's User.hourlyRate).
+  budgetHours          Int?
+  budgetAmount         Decimal?  @db.Decimal(12, 2)
+  targetCompletionDate DateTime?
 
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String @unique
