@@ -17,14 +17,14 @@ export default function Icon() {
             top: "6%",
             width: "88%",
             height: "88%",
-            borderRadius: "20%",
+            borderRadius: "22%",
             background: NAVY,
           }}
         />
-        <div style={{ position: "absolute", left: "26%", top: "26%", width: "48%", height: "14%", borderRadius: "7%", background: "white" }} />
-        <div style={{ position: "absolute", left: "26%", top: "26%", width: "14%", height: "48%", borderRadius: "7%", background: "white" }} />
-        <div style={{ position: "absolute", left: "26%", top: "60%", width: "48%", height: "14%", borderRadius: "7%", background: "white" }} />
-        <div style={{ position: "absolute", left: "60%", top: "46%", width: "14%", height: "28%", borderRadius: "7%", background: "white" }} />
+        <div style={{ position: "absolute", left: "25%", top: "26%", width: "50%", height: "13%", borderRadius: "8%", background: "white" }} />
+        <div style={{ position: "absolute", left: "25%", top: "26%", width: "13%", height: "49%", borderRadius: "8%", background: "white" }} />
+        <div style={{ position: "absolute", left: "25%", top: "61%", width: "50%", height: "13%", borderRadius: "8%", background: "white" }} />
+        <div style={{ position: "absolute", left: "62%", top: "47%", width: "13%", height: "27%", borderRadius: "8%", background: "white" }} />
         <div style={{ position: "absolute", left: "80%", top: "2%", width: "20%", height: "20%", borderRadius: "50%", background: GREEN }} />
       </div>
     ),
