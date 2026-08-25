@@ -71,6 +71,7 @@ export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   NOTE: "Note",
   CALL: "Call",
   EMAIL: "Email",
+  WHATSAPP: "WhatsApp",
   MEETING: "Meeting",
   STAGE_CHANGE: "Stage change",
   TASK_COMPLETED: "Task completed",

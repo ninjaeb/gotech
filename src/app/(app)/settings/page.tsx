@@ -21,6 +21,7 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
 import { EmailAccountForm } from "@/components/settings/email-account-form";
+import { WhatsAppAccountForm } from "@/components/settings/whatsapp-account-form";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { getSiteOrigin } from "@/lib/site-url";
 import { getBookingSettings } from "@/lib/settings";
@@ -28,7 +29,7 @@ import { getBookingSettings } from "@/lib/settings";
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
   const canManage = currentUser.role === "ADMIN";
-  const [currency, users, servicePackages, siteOrigin, bookingSettings, emailAccount] = await Promise.all([
+  const [currency, users, servicePackages, siteOrigin, bookingSettings, emailAccount, whatsAppAccount] = await Promise.all([
     getCurrency(),
     db.user.findMany({ orderBy: { createdAt: "asc" } }),
     db.servicePackage.findMany({ orderBy: { name: "asc" } }),
@@ -38,10 +39,15 @@ export default async function SettingsPage() {
       where: { userId: currentUser.id },
       select: { email: true, lastSyncedAt: true, lastSyncError: true },
     }),
+    db.whatsAppAccount.findUnique({
+      where: { id: "singleton" },
+      select: { phoneNumberId: true, displayPhoneNumber: true, webhookVerifyToken: true, lastSyncError: true },
+    }),
   ]);
   const leadFormUrl = `${siteOrigin}/lead`;
   const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
   const bookingUrl = `${siteOrigin}/book`;
+  const whatsAppWebhookUrl = `${siteOrigin}/api/whatsapp/webhook`;
 
   return (
     <div className="max-w-lg space-y-6">
@@ -253,6 +259,19 @@ export default async function SettingsPage() {
             README&apos;s cron job setup) plus whenever you hit Sync now.
           </p>
           <EmailAccountForm account={emailAccount} />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp Business</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Shared across the whole team — one Business phone number, unlike email. Messages to/from a number that
+            matches a Contact get logged automatically, and you can send from here too.
+          </p>
+          <WhatsAppAccountForm account={whatsAppAccount} webhookUrl={whatsAppWebhookUrl} />
         </CardBody>
       </Card>
       </>

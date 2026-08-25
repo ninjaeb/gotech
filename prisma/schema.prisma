@@ -38,6 +38,7 @@ enum ActivityType {
   NOTE
   CALL
   EMAIL
+  WHATSAPP
   MEETING
   STAGE_CHANGE
   TASK_COMPLETED
@@ -110,6 +111,33 @@ model EmailAccount {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique
+}
+
+// Single-row table for the org's WhatsApp Business connection — one shared
+// Business phone number for the whole team, unlike EmailAccount (one row
+// per user's own mailbox). Always read/written at id "singleton" — see
+// src/lib/whatsapp.ts. Credentials come from the Meta WhatsApp Business
+// Platform (Cloud API): https://developers.facebook.com/docs/whatsapp/cloud-api
+model WhatsAppAccount {
+  id                 String  @id @default("singleton")
+  phoneNumberId      String
+  businessAccountId  String
+  displayPhoneNumber String?
+
+  // Both AES-256-GCM ciphertext ("iv:authTag:ciphertext", base64) via
+  // src/lib/email-crypto.ts (a generically-named "encrypt a secret at rest"
+  // helper despite the filename, already used for EmailAccount passwords).
+  encryptedAccessToken String @db.Text
+  encryptedAppSecret   String @db.Text
+
+  // Arbitrary token we generate and Meta echoes back during the webhook
+  // verification handshake (GET request) — proves the callback URL is ours,
+  // not a credential in itself, so it's fine to store in the clear.
+  webhookVerifyToken String
+
+  lastSyncError String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // Single-row table for CRM-wide settings (currency, booking-link

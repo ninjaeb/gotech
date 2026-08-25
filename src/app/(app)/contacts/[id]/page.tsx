@@ -24,6 +24,7 @@ import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
+import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
 import { ENROLLMENT_STATUS_BADGE_CLASSES, ENROLLMENT_STATUS_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -45,7 +46,7 @@ export default async function ContactDetailPage({
   const { id } = await params;
 
   const currentUser = await requireAdmin();
-  const [currency, contact, hasEmailAccount, timeLogged, siteOrigin, activeSequences, users] = await Promise.all([
+  const [currency, contact, hasEmailAccount, hasWhatsAppAccount, timeLogged, siteOrigin, activeSequences, users] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({
       where: { id },
@@ -68,6 +69,7 @@ export default async function ContactDetailPage({
       },
     }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
+    db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
     db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
     getSiteOrigin(),
     getActiveSequences(),
@@ -158,6 +160,9 @@ export default async function ContactDetailPage({
                       <span className="inline-flex items-center gap-1.5">
                         {contact.phone}
                         <WhatsAppLink phone={contact.phone} />
+                        {hasWhatsAppAccount && (
+                          <SendWhatsAppButton contactId={contact.id} contactName={contactName} />
+                        )}
                       </span>
                     )
                   }

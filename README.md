@@ -17,6 +17,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for GoTech's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. The direct link and a ready-to-paste `<iframe>` snippet are both in *Settings*
 - **Meeting scheduler** (`/book`) — a public booking link for discovery calls, built from a weekly-hours schedule you set in *Settings* (timezone as a fixed UTC offset, call length, per-day hours). A booking finds-or-creates a Contact and auto-adds a follow-up Task at the chosen time — no email back-and-forth
 - **Email sync** (*Settings → Connect your email*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs
+- **WhatsApp Business** (*Settings → WhatsApp Business*) — connect one shared Business phone number via the official [Meta WhatsApp Business Platform (Cloud API)](https://developers.facebook.com/docs/whatsapp/cloud-api) — never an unofficial/browser-automation integration. Incoming and outgoing messages to/from a matching Contact's phone number are logged as Activities automatically (delivered instantly via webhook, no polling), attached to that contact's one open Deal when unambiguous. Send from inside a Contact page too, subject to WhatsApp's own 24-hour customer-service-window rule for freeform replies
 - **Leaderboard** (`/leaderboard`) — every deal has an assignable Owner (set from the deal form, defaulting to whoever creates it); the leaderboard ranks teammates by deals won and value closed, filterable by this month / this quarter / this year / all time
 - **Time tracking** — log time against any task (the clock icon next to it) with minutes, a date, and an optional note; Deals, Projects, Contacts, and Companies each roll up the total time logged across their tasks in the Tasks/Milestones card
 - **Invoices** (on a Project page) — track payment milestones against a won deal's project: Draft → Deposit sent → Progress billed → Paid in full, with an amount, due date, and notes per invoice
@@ -136,6 +137,23 @@ No separate setup — a sequence sends through whichever staff member enrolled t
 
 Also no separate setup — like sequences, it sends through whichever user's own connected mailbox from step 7 (only users with one connected get a digest; everyone else is silently skipped). Once a day, each user with a connected mailbox gets emailed a plain-text list of their assigned tasks that are due today or overdue — nothing if they have none. Needs its own cron job (see the cPanel deploy steps below) to actually run.
 
+### 10. Enable WhatsApp Business (optional)
+
+Unlike email, this is one shared connection for the whole team, made through the official [Meta WhatsApp Business Platform (Cloud API)](https://developers.facebook.com/docs/whatsapp/cloud-api) — there's no supported way to connect the regular WhatsApp Business *app*, and no unofficial/browser-automation integration is used here.
+
+**Get credentials from Meta:**
+
+1. Create a [Meta App](https://developers.facebook.com/apps) (type: Business), then add the **WhatsApp** product to it.
+2. In WhatsApp → API Setup, note the **Phone number ID** and **WhatsApp Business Account ID**, and add/verify a phone number (the free test number Meta provides works for trying this out, but can only message pre-approved recipient numbers — add a real, verified business number to message anyone).
+3. Generate a **permanent access token**: Meta App Dashboard → App Settings → Basic (or *System Users* under Business Settings, for a token that doesn't expire) — a temporary 24-hour token from the quickstart page won't stay working.
+4. Copy the App Secret from App Settings → Basic too.
+
+**Connect in the CRM:** *Settings → WhatsApp Business* → paste in the Phone number ID, WABA ID, access token, and App Secret. The app tests the connection against Meta's API before saving.
+
+**Register the webhook:** once connected, Settings shows a webhook URL and a verify token — paste both into Meta App Dashboard → WhatsApp → Configuration → Webhook, subscribe to the `messages` field. Meta calls that URL directly (no login), so incoming messages arrive instantly — no cron job needed for this one, unlike email sync.
+
+**The 24-hour window:** WhatsApp only allows freeform replies within 24 hours of the customer's last message to you; starting a new conversation outside that window requires a pre-approved message template, which this integration doesn't manage (that's a template-creation-and-review flow inside Meta Business Manager, separate from anything here). Sending outside the window fails with a clear error rather than silently doing nothing.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
@@ -231,8 +249,11 @@ src/
     settings.ts            Cached getCurrency()/setCurrency() (Settings singleton row)
     currency.ts             Curated list of ISO 4217 currencies for the Settings dropdown
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
+    email.ts                IMAP sync + SMTP send for connected mailboxes
+    whatsapp.ts              Cloud API send + webhook signature verification + phone matching
     ai/                  Gemini client + Prisma-to-prompt context builders
     format.ts, labels.ts, utils.ts
+  app/api/whatsapp/webhook/route.ts   Public: Meta's inbound-message webhook (GET verify, POST receive)
 ```
 
 ## Useful commands

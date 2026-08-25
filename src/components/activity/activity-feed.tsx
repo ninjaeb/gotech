@@ -1,5 +1,6 @@
 import {
   MessageSquare,
+  MessageCircle,
   Phone,
   Mail,
   CalendarClock,
@@ -15,6 +16,7 @@ const ICONS = {
   NOTE: MessageSquare,
   CALL: Phone,
   EMAIL: Mail,
+  WHATSAPP: MessageCircle,
   MEETING: CalendarClock,
   STAGE_CHANGE: ArrowRightLeft,
   TASK_COMPLETED: CheckCircle2,
