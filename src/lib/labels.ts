@@ -2,6 +2,7 @@ import {
   ActivityType,
   EnrollmentStatus,
   InvoiceStatus,
+  LeadSource,
   ProjectStatus,
   QuoteStatus,
   TaskPriority,
@@ -65,6 +66,28 @@ export const TASK_PRIORITY_BADGE_CLASSES: Record<TaskPriority, string> = {
   MEDIUM:
     "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
   HIGH: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
+};
+
+export const LEAD_SOURCES: LeadSource[] = [
+  "WEBSITE",
+  "REFERRAL",
+  "COLD_CALL",
+  "SOCIAL_MEDIA",
+  "ADVERTISEMENT",
+  "EVENT",
+  "PARTNER",
+  "OTHER",
+];
+
+export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
+  WEBSITE: "Website",
+  REFERRAL: "Referral",
+  COLD_CALL: "Cold call",
+  SOCIAL_MEDIA: "Social media",
+  ADVERTISEMENT: "Advertisement",
+  EVENT: "Event",
+  PARTNER: "Partner",
+  OTHER: "Other",
 };
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

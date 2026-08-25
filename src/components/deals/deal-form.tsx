@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import type { Company, Contact } from "@/generated/prisma/client";
+import type { Company, Contact, LeadSource } from "@/generated/prisma/client";
 import type { DealFormState } from "@/app/actions/deals";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
 import { formatDateInput, fullName } from "@/lib/format";
+import { LEAD_SOURCES, LEAD_SOURCE_LABELS } from "@/lib/labels";
 
 type ContactOption = Pick<Contact, "id" | "firstName" | "lastName" | "companyId">;
 type PipelineOption = { id: string; name: string; stages: { id: string; name: string }[] };
@@ -26,6 +27,7 @@ type DealDraft = {
   ownerId: string | null;
   expectedCloseDate: Date | null;
   notes: string | null;
+  source: LeadSource | null;
 };
 
 export function DealForm({
@@ -202,14 +204,25 @@ export function DealForm({
         </FieldGroup>
       </div>
 
-      <FieldGroup label="Expected close date" htmlFor="expectedCloseDate">
-        <DatePicker
-          id="expectedCloseDate"
-          name="expectedCloseDate"
-          className="max-w-xs"
-          defaultValue={formatDateInput(deal?.expectedCloseDate)}
-        />
-      </FieldGroup>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FieldGroup label="Expected close date" htmlFor="expectedCloseDate">
+          <DatePicker
+            id="expectedCloseDate"
+            name="expectedCloseDate"
+            defaultValue={formatDateInput(deal?.expectedCloseDate)}
+          />
+        </FieldGroup>
+        <FieldGroup label="Source" htmlFor="source">
+          <Select id="source" name="source" defaultValue={deal?.source ?? ""}>
+            <option value="">Unknown</option>
+            {LEAD_SOURCES.map((source) => (
+              <option key={source} value={source}>
+                {LEAD_SOURCE_LABELS[source]}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+      </div>
 
       <FieldGroup label="Notes" htmlFor="notes">
         <Textarea

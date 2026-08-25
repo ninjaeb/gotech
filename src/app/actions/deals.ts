@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ActivityType } from "@/generated/prisma/client";
+import { ActivityType, type LeadSource } from "@/generated/prisma/client";
 import { stageGateError } from "@/lib/deal-hygiene";
 import { ensureProjectForWonDeal } from "@/app/actions/projects";
 import { requireAdminAction } from "@/lib/auth/dal";
@@ -19,6 +19,7 @@ const dealSchema = z.object({
   contactId: z.string().trim().optional(),
   ownerId: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  source: z.string().trim().optional(),
 });
 
 function parseDealForm(formData: FormData) {
@@ -32,6 +33,7 @@ function parseDealForm(formData: FormData) {
     contactId: formData.get("contactId"),
     ownerId: formData.get("ownerId"),
     notes: formData.get("notes"),
+    source: formData.get("source"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid deal data");
@@ -49,6 +51,7 @@ function parseDealForm(formData: FormData) {
     contactId: data.contactId || null,
     ownerId: data.ownerId || null,
     notes: data.notes || null,
+    source: (data.source || null) as LeadSource | null,
   };
 }
 

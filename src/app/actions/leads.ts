@@ -63,6 +63,7 @@ export async function submitLead(
       pipelineStageId: firstStage.id,
       companyId: contact.companyId ?? companyId,
       contactId: contact.id,
+      source: "WEBSITE",
     },
   });
 

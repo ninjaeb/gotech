@@ -49,6 +49,17 @@ enum Role {
   DEVELOPER
 }
 
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  COLD_CALL
+  SOCIAL_MEDIA
+  ADVERTISEMENT
+  EVENT
+  PARTNER
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -312,6 +323,11 @@ model Deal {
   value             Decimal   @default(0) @db.Decimal(12, 2)
   expectedCloseDate DateTime?
   notes             String?   @db.Text
+  // Nullable rather than defaulted — an unset source is a genuinely
+  // different fact than "Other", and every deal that predates this field
+  // has no honest value to backfill. The public lead form (src/app/actions/
+  // leads.ts) sets WEBSITE automatically; anything else is picked by hand.
+  source            LeadSource?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

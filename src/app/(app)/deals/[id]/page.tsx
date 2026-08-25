@@ -20,7 +20,7 @@ import { SectionBoard } from "@/components/layout/section-board";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
-import { QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
+import { LEAD_SOURCE_LABELS, QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
 import { quoteTotal } from "@/lib/quotes";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -136,6 +136,7 @@ export default async function DealDetailPage({
                 label="Expected close date"
                 value={deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : null}
               />
+              <DetailRow label="Source" value={deal.source ? LEAD_SOURCE_LABELS[deal.source] : null} />
               {deal.project && (
                 <DetailRow
                   label="Project"
