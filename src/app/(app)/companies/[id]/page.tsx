@@ -17,6 +17,8 @@ import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { LinkContactForm } from "@/components/contacts/link-contact-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { SectionBoard } from "@/components/layout/section-board";
+import { CompanyResourceForm } from "@/components/companies/company-resource-form";
+import { CompanyResourceRow } from "@/components/companies/company-resource-row";
 import { Linkify } from "@/components/ui/linkify";
 import { WhatsAppLink } from "@/components/ui/channel-links";
 import { stageBadgeClasses } from "@/lib/labels";
@@ -25,7 +27,7 @@ import { getCurrency } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
 
-const DEFAULT_LAYOUT = { main: ["contacts", "deals"], sidebar: ["aiAssistant", "tasks", "activity"] };
+const DEFAULT_LAYOUT = { main: ["contacts", "deals", "resources"], sidebar: ["aiAssistant", "tasks", "activity"] };
 
 export default async function CompanyDetailPage({
   params,
@@ -50,6 +52,7 @@ export default async function CompanyDetailPage({
           },
         },
         activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        resources: { orderBy: { createdAt: "desc" } },
       },
     }),
     db.contact.findMany({
@@ -207,6 +210,28 @@ export default async function CompanyDetailPage({
                     ))}
                   </ul>
                 )}
+              </CardBody>
+            </Card>
+          ),
+          resources: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Resources ({company.resources.length})</CardTitle>
+              </CardHeader>
+              <CardBody>
+                {company.resources.length === 0 ? (
+                  <EmptyState
+                    title="No resources yet."
+                    description="Add a link to a contract, pitch deck, or anything else related to this company."
+                  />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {company.resources.map((resource) => (
+                      <CompanyResourceRow key={resource.id} companyId={company.id} resource={resource} />
+                    ))}
+                  </ul>
+                )}
+                <CompanyResourceForm companyId={company.id} />
               </CardBody>
             </Card>
           ),

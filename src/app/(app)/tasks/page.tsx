@@ -6,6 +6,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { TaskList } from "@/components/tasks/task-list";
 import { GlobalTaskForm } from "@/components/tasks/global-task-form";
+import { AssigneeFilterSelect } from "@/components/tasks/assignee-filter-select";
 import { cn } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth/dal";
 import type { Prisma } from "@/generated/prisma/client";
@@ -19,10 +20,11 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
-function tabHref(key: FilterKey, query?: string) {
+function tabHref(key: FilterKey, query?: string, assignee?: string) {
   const params = new URLSearchParams();
   if (key !== "open") params.set("filter", key);
   if (query) params.set("q", query);
+  if (assignee) params.set("assignee", assignee);
   const qs = params.toString();
   return qs ? `/tasks?${qs}` : "/tasks";
 }
@@ -52,24 +54,25 @@ function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; assignee?: string }>;
 }) {
   const currentUser = await getCurrentUser();
   const canManage = currentUser.role === "ADMIN";
-  const { filter: rawFilter, q } = await searchParams;
+  const { filter: rawFilter, q, assignee } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)
     : "open";
   const query = q?.trim();
+  const assigneeId = assignee?.trim() || undefined;
 
-  const where: Prisma.TaskWhereInput = query
-    ? {
-        AND: [
-          buildWhere(filter),
-          { OR: [{ title: { contains: query } }, { description: { contains: query } }] },
-        ],
-      }
-    : buildWhere(filter);
+  const conditions: Prisma.TaskWhereInput[] = [buildWhere(filter)];
+  if (query) {
+    conditions.push({ OR: [{ title: { contains: query } }, { description: { contains: query } }] });
+  }
+  if (assigneeId) {
+    conditions.push({ assignees: { some: { userId: assigneeId } } });
+  }
+  const where: Prisma.TaskWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
   const [tasks, companies, contacts, deals, users] = await Promise.all([
     db.task.findMany({
@@ -115,7 +118,7 @@ export default async function TasksPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={tabHref(f.key, query)}
+            href={tabHref(f.key, query, assigneeId)}
             className={cn(
               "border-b-2 px-3 py-2 text-sm font-medium",
               filter === f.key
@@ -128,9 +131,9 @@ export default async function TasksPage({
         ))}
       </div>
 
-      <form className="mb-4">
+      <form className="mb-4 flex flex-wrap items-center gap-2">
         {filter !== "open" && <input type="hidden" name="filter" value={filter} />}
-        <div className="relative max-w-sm">
+        <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             type="search"
@@ -140,6 +143,7 @@ export default async function TasksPage({
             className="pl-9"
           />
         </div>
+        <AssigneeFilterSelect users={users} defaultValue={assigneeId} />
       </form>
 
       <Card>
@@ -150,8 +154,8 @@ export default async function TasksPage({
             showParent
             canManage={canManage}
             emptyMessage={
-              query
-                ? "No tasks match your search."
+              query || assigneeId
+                ? "No tasks match your filters."
                 : filter === "completed"
                   ? "No completed tasks yet."
                   : "Nothing here — you're all caught up."

@@ -144,8 +144,21 @@ model Company {
   deals      Deal[]
   tasks      Task[]
   activities Activity[]
+  resources  CompanyResource[]
 
   @@index([name])
+}
+
+model CompanyResource {
+  id        String   @id @default(cuid())
+  title     String
+  url       String   @db.Text
+  createdAt DateTime @default(now())
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String
+
+  @@index([companyId])
 }
 
 model Contact {
