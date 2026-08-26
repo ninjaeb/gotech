@@ -21,7 +21,7 @@ import { CompanyResourceForm } from "@/components/companies/company-resource-for
 import { CompanyResourceRow } from "@/components/companies/company-resource-row";
 import { Linkify } from "@/components/ui/linkify";
 import { WhatsAppLink } from "@/components/ui/channel-links";
-import { stageBadgeClasses } from "@/lib/labels";
+import { INDUSTRY_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { formatCurrency, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
@@ -79,7 +79,9 @@ export default async function CompanyDetailPage({
     <div>
       <PageHeader
         title={company.name}
-        description={[company.industry, company.domain].filter(Boolean).join(" · ")}
+        description={[company.industry ? INDUSTRY_LABELS[company.industry] : null, company.domain]
+          .filter(Boolean)
+          .join(" · ")}
         actions={
           <>
             <Link
@@ -109,7 +111,7 @@ export default async function CompanyDetailPage({
             </CardHeader>
             <CardBody className="grid gap-3 text-sm sm:grid-cols-2">
               <DetailRow label="Domain" value={company.domain} />
-              <DetailRow label="Industry" value={company.industry} />
+              <DetailRow label="Industry" value={company.industry ? INDUSTRY_LABELS[company.industry] : null} />
               <DetailRow
                 label="Phone"
                 value={

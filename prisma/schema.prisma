@@ -123,9 +123,9 @@ model EmailAccount {
   // within a folder, so "highest UID synced" is a cheap, correct incremental
   // checkpoint per folder (INBOX and the account's Sent folder are tracked
   // separately, since their UID sequences are independent).
-  syncState     String    @default("{}") @db.Text
-  lastSyncedAt  DateTime?
-  lastSyncError String?   @db.Text
+  syncState        String    @default("{}") @db.Text
+  lastSyncedAt     DateTime?
+  lastSyncError    String?   @db.Text
   // Rate-limits scripts/send-task-digests.ts to roughly once a day
   // regardless of how often its cron job actually runs.
   lastDigestSentAt DateTime?
@@ -180,16 +180,42 @@ model Settings {
   bookingWeeklyHours      String @default("[{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"}]") @db.Text
 }
 
+enum Industry {
+  TECHNOLOGY
+  RETAIL_ECOMMERCE
+  HEALTHCARE
+  FINANCE_BANKING
+  MANUFACTURING
+  CONSTRUCTION_REAL_ESTATE
+  EDUCATION
+  HOSPITALITY_TOURISM
+  PROFESSIONAL_SERVICES
+  MEDIA_ENTERTAINMENT
+  TRANSPORTATION_LOGISTICS
+  AGRICULTURE
+  ENERGY_UTILITIES
+  GOVERNMENT_NONPROFIT
+  TELECOMMUNICATIONS
+  AUTOMOTIVE
+  FOOD_BEVERAGE
+  LEGAL
+  MARKETING_ADVERTISING
+  OTHER
+}
+
 model Company {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   domain    String?
-  industry  String?
+  // Curated category, not free text — see Industry above and
+  // INDUSTRY_LABELS in src/lib/labels.ts. Null means unclassified rather
+  // than guessing, same as Contact.lifecycleStage and Deal.source.
+  industry  Industry?
   phone     String?
   address   String?
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   contacts   Contact[]
   deals      Deal[]
@@ -384,18 +410,18 @@ model PipelineStage {
 }
 
 model Deal {
-  id                String    @id @default(cuid())
+  id                String      @id @default(cuid())
   title             String
-  value             Decimal   @default(0) @db.Decimal(12, 2)
+  value             Decimal     @default(0) @db.Decimal(12, 2)
   expectedCloseDate DateTime?
-  notes             String?   @db.Text
+  notes             String?     @db.Text
   // Nullable rather than defaulted — an unset source is a genuinely
   // different fact than "Other", and every deal that predates this field
   // has no honest value to backfill. The public lead form (src/app/actions/
   // leads.ts) sets WEBSITE automatically; anything else is picked by hand.
   source            LeadSource?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   // Set/cleared automatically whenever the deal moves into/out of a
   // pipeline's isWon stage (see app/actions/deals.ts) — not just "is this

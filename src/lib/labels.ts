@@ -1,6 +1,7 @@
 import {
   ActivityType,
   EnrollmentStatus,
+  Industry,
   InvoiceStatus,
   LeadSource,
   LifecycleStage,
@@ -128,6 +129,52 @@ export const LIFECYCLE_STAGE_BADGE_CLASSES: Record<LifecycleStage, string> = {
   EVANGELIST:
     "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-600/20 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:ring-fuchsia-500/30",
   OTHER: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+};
+
+export const INDUSTRIES: Industry[] = [
+  "TECHNOLOGY",
+  "RETAIL_ECOMMERCE",
+  "HEALTHCARE",
+  "FINANCE_BANKING",
+  "MANUFACTURING",
+  "CONSTRUCTION_REAL_ESTATE",
+  "EDUCATION",
+  "HOSPITALITY_TOURISM",
+  "PROFESSIONAL_SERVICES",
+  "MEDIA_ENTERTAINMENT",
+  "TRANSPORTATION_LOGISTICS",
+  "AGRICULTURE",
+  "ENERGY_UTILITIES",
+  "GOVERNMENT_NONPROFIT",
+  "TELECOMMUNICATIONS",
+  "AUTOMOTIVE",
+  "FOOD_BEVERAGE",
+  "LEGAL",
+  "MARKETING_ADVERTISING",
+  "OTHER",
+];
+
+export const INDUSTRY_LABELS: Record<Industry, string> = {
+  TECHNOLOGY: "Technology",
+  RETAIL_ECOMMERCE: "Retail & E-commerce",
+  HEALTHCARE: "Healthcare",
+  FINANCE_BANKING: "Finance & Banking",
+  MANUFACTURING: "Manufacturing",
+  CONSTRUCTION_REAL_ESTATE: "Construction & Real Estate",
+  EDUCATION: "Education",
+  HOSPITALITY_TOURISM: "Hospitality & Tourism",
+  PROFESSIONAL_SERVICES: "Professional Services",
+  MEDIA_ENTERTAINMENT: "Media & Entertainment",
+  TRANSPORTATION_LOGISTICS: "Transportation & Logistics",
+  AGRICULTURE: "Agriculture",
+  ENERGY_UTILITIES: "Energy & Utilities",
+  GOVERNMENT_NONPROFIT: "Government & Nonprofit",
+  TELECOMMUNICATIONS: "Telecommunications",
+  AUTOMOTIVE: "Automotive",
+  FOOD_BEVERAGE: "Food & Beverage",
+  LEGAL: "Legal",
+  MARKETING_ADVERTISING: "Marketing & Advertising",
+  OTHER: "Other",
 };
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

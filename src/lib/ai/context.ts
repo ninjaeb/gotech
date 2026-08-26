@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { formatCurrency, formatDate, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import { ACTIVITY_TYPE_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
+import { ACTIVITY_TYPE_LABELS, INDUSTRY_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
 
 export type EntityRef =
   | { contactId: string }
@@ -83,7 +83,7 @@ async function buildCompanyContext(companyId: string): Promise<EntityContext | n
   if (!company) return null;
 
   const lines: string[] = [];
-  lines.push(`Company: ${company.name}${company.industry ? ` (${company.industry})` : ""}`);
+  lines.push(`Company: ${company.name}${company.industry ? ` (${INDUSTRY_LABELS[company.industry]})` : ""}`);
   lines.push(`Notes: ${company.notes?.trim() || "(none)"}`);
   lines.push(
     `Contacts: ${company.contacts.length > 0 ? company.contacts.map((c) => fullName(c.firstName, c.lastName)).join(", ") : "(none)"}`,

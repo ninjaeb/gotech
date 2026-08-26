@@ -44,7 +44,7 @@ async function main() {
       data: {
         name: "Acme Inc.",
         domain: "acme.com",
-        industry: "Manufacturing",
+        industry: "MANUFACTURING",
         phone: "+1 415 555 0100",
         address: "100 Market St, San Francisco, CA",
       },
@@ -53,7 +53,7 @@ async function main() {
       data: {
         name: "Globex Corporation",
         domain: "globex.com",
-        industry: "Logistics",
+        industry: "TRANSPORTATION_LOGISTICS",
         phone: "+1 212 555 0133",
         address: "44 Wall St, New York, NY",
       },
@@ -62,7 +62,7 @@ async function main() {
       data: {
         name: "Initech",
         domain: "initech.com",
-        industry: "Software",
+        industry: "TECHNOLOGY",
         phone: "+1 512 555 0166",
         address: "2000 Congress Ave, Austin, TX",
       },
@@ -71,7 +71,7 @@ async function main() {
       data: {
         name: "Umbrella Health",
         domain: "umbrella-health.com",
-        industry: "Healthcare",
+        industry: "HEALTHCARE",
         phone: "+1 312 555 0188",
         address: "1 Wacker Dr, Chicago, IL",
       },
@@ -80,7 +80,7 @@ async function main() {
       data: {
         name: "Hooli",
         domain: "hooli.com",
-        industry: "Technology",
+        industry: "TECHNOLOGY",
         phone: "+1 650 555 0122",
         address: "1 Hacker Way, Palo Alto, CA",
       },

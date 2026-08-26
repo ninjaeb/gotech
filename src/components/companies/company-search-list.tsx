@@ -7,11 +7,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { INDUSTRY_LABELS } from "@/lib/labels";
+import type { Industry } from "@/generated/prisma/client";
 
 type CompanyRow = {
   id: string;
   name: string;
-  industry: string | null;
+  industry: Industry | null;
   domain: string | null;
   _count: { contacts: number; deals: number };
 };
@@ -25,7 +27,7 @@ export function CompanySearchList({ companies }: { companies: CompanyRow[] }) {
     return companies.filter(
       (company) =>
         company.name.toLowerCase().includes(q) ||
-        company.industry?.toLowerCase().includes(q) ||
+        (company.industry && INDUSTRY_LABELS[company.industry].toLowerCase().includes(q)) ||
         company.domain?.toLowerCase().includes(q),
     );
   }, [companies, query]);
@@ -73,7 +75,9 @@ export function CompanySearchList({ companies }: { companies: CompanyRow[] }) {
                       {company.name}
                     </p>
                     <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                      {[company.industry, company.domain].filter(Boolean).join(" · ") || "—"}
+                      {[company.industry ? INDUSTRY_LABELS[company.industry] : null, company.domain]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-4 text-sm text-slate-500 dark:text-slate-400">

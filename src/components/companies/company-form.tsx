@@ -1,6 +1,7 @@
 import type { Company } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
-import { FieldGroup, Input, Textarea } from "@/components/ui/field";
+import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 
 export function CompanyForm({
   action,
@@ -33,12 +34,14 @@ export function CompanyForm({
           />
         </FieldGroup>
         <FieldGroup label="Industry" htmlFor="industry">
-          <Input
-            id="industry"
-            name="industry"
-            defaultValue={company?.industry ?? ""}
-            placeholder="Software"
-          />
+          <Select id="industry" name="industry" defaultValue={company?.industry ?? ""}>
+            <option value="">Unclassified</option>
+            {INDUSTRIES.map((industry) => (
+              <option key={industry} value={industry}>
+                {INDUSTRY_LABELS[industry]}
+              </option>
+            ))}
+          </Select>
         </FieldGroup>
       </div>
 

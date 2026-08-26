@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
+import type { Industry } from "@/generated/prisma/client";
 
 const companySchema = z.object({
   name: z.string().trim().min(1, "Company name is required"),
@@ -31,7 +32,7 @@ function parseCompanyForm(formData: FormData) {
   return {
     name: data.name,
     domain: data.domain || null,
-    industry: data.industry || null,
+    industry: (data.industry || null) as Industry | null,
     phone: data.phone || null,
     address: data.address || null,
     notes: data.notes || null,
