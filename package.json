@@ -15,7 +15,8 @@
     "send-task-digests": "tsx scripts/send-task-digests.ts",
     "remove-contacts-without-phone": "tsx scripts/remove-contacts-without-phone.ts",
     "remove-contacts-without-phone-or-email": "tsx scripts/remove-contacts-without-phone-or-email.ts",
-    "remove-duplicate-contacts": "tsx scripts/remove-duplicate-contacts.ts"
+    "remove-duplicate-contacts": "tsx scripts/remove-duplicate-contacts.ts",
+    "remove-contacts-with-invalid-email": "tsx scripts/remove-contacts-with-invalid-email.ts"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",

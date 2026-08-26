@@ -224,6 +224,7 @@ scripts/
   remove-contacts-without-phone.ts  CLI to delete contacts with no phone and no linked history (npm run remove-contacts-without-phone)
   remove-contacts-without-phone-or-email.ts  CLI to delete contacts with no phone AND no email, and no linked history (npm run remove-contacts-without-phone-or-email)
   remove-duplicate-contacts.ts  CLI to delete contacts sharing a phone or email with another contact, keeping the one with history if any (npm run remove-duplicate-contacts)
+  remove-contacts-with-invalid-email.ts  CLI to delete contacts whose email is badly formatted and have no linked history (npm run remove-contacts-with-invalid-email)
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
 proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)

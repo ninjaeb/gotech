@@ -10,10 +10,17 @@ type ContactRow = {
   lastName: string | null;
   email: string | null;
   phone: string | null;
+  photoUrl: string | null;
   createdAt: Date;
   company: { name: string } | null;
   _count: { deals: number; tasks: number; activities: number; bookings: number; sequenceEnrollments: number };
 };
+
+// Only strips a leading "+" — "+60123456789" and "60123456789" link up, but
+// this doesn't touch spaces/dashes/other formatting differences.
+function normalizePhone(phone: string) {
+  return phone.replace(/^\+/, "");
+}
 
 // Two contacts can be linked by phone while a third links to one of them by
 // email — those three are really one cluster, not two separate pairs. Plain
@@ -66,13 +73,14 @@ function contactLabel(c: ContactRow) {
   const company = c.company ? ` @ ${c.company.name}` : "";
   const created = c.createdAt.toISOString().slice(0, 10);
   const history = historyParts(c);
-  return `${name} <${contactInfo}>${company} — created ${created}${history ? `, ${history}` : ""} (id: ${c.id})`;
+  const photo = c.photoUrl ? ", has photo" : "";
+  return `${name} <${contactInfo}>${company} — created ${created}${history ? `, ${history}` : ""}${photo} (id: ${c.id})`;
 }
 
 async function main() {
-  // "Duplicate" = same phone, or same email (case-insensitively) — exact
-  // match only, no fuzzy phone-format normalization (e.g. "+60 12-345"
-  // vs "0123450000" won't be linked).
+  // "Duplicate" = same phone (ignoring a leading "+"), or same email
+  // (case-insensitively). No other formatting normalization — e.g. spaces
+  // or dashes in a phone number still have to match exactly.
   const contacts = await db.contact.findMany({
     where: {
       OR: [
@@ -86,6 +94,7 @@ async function main() {
       lastName: true,
       email: true,
       phone: true,
+      photoUrl: true,
       createdAt: true,
       company: { select: { name: true } },
       _count: {
@@ -99,7 +108,7 @@ async function main() {
   const byKey = new Map<string, string[]>();
   for (const contact of contacts) {
     uf.find(contact.id);
-    if (contact.phone?.trim()) pushToMapArray(byKey, `phone:${contact.phone.trim()}`, contact.id);
+    if (contact.phone?.trim()) pushToMapArray(byKey, `phone:${normalizePhone(contact.phone.trim())}`, contact.id);
     if (contact.email?.trim()) pushToMapArray(byKey, `email:${contact.email.trim().toLowerCase()}`, contact.id);
   }
   for (const ids of byKey.values()) {
@@ -133,9 +142,11 @@ async function main() {
       needsReview.push(group);
       continue;
     }
-    // Keep whichever contact has history, if any; otherwise keep the oldest
-    // (contacts arrive already sorted by createdAt asc, so group[0] is it).
-    const keeper = withHistory[0] ?? group[0];
+    // Keep whichever contact has history, if any. Otherwise prefer one with
+    // a photo (a more complete record). Otherwise keep the oldest (contacts
+    // arrive already sorted by createdAt asc, so group[0]/withPhoto[0] is it).
+    const withPhoto = group.filter((c) => c.photoUrl);
+    const keeper = withHistory[0] ?? withPhoto[0] ?? group[0];
     for (const contact of group) {
       if (contact.id !== keeper.id) toDelete.push(contact);
     }
