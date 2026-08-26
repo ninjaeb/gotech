@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -7,12 +8,15 @@ export function StatCard({
   description,
   icon: Icon,
   accent = "indigo",
+  href,
 }: {
   label: string;
   value: string;
   description?: string;
   icon: LucideIcon;
   accent?: "indigo" | "emerald" | "amber" | "sky" | "rose" | "orange";
+  // When set, the whole card becomes a link to the filtered view it summarizes.
+  href?: string;
 }) {
   const accents: Record<string, string> = {
     indigo: "bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400",
@@ -24,8 +28,13 @@ export function StatCard({
     orange: "bg-orange-50 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
   };
 
-  return (
-    <div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 dark:border-neutral-800 dark:bg-neutral-900">
+  const content = (
+    <div
+      className={cn(
+        "flex items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 dark:border-neutral-800 dark:bg-neutral-900",
+        href && "transition-colors hover:border-indigo-300 dark:hover:border-indigo-800",
+      )}
+    >
       <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-md", accents[accent])}>
         <Icon className="h-5 w-5" />
       </div>
@@ -42,4 +51,14 @@ export function StatCard({
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }

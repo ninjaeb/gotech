@@ -185,13 +185,26 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Companies" value={companyCount.toString()} icon={Building2} accent="indigo" />
-        <StatCard label="Contacts" value={contactCount.toString()} icon={Users} accent="sky" />
+        <StatCard
+          label="Companies"
+          value={companyCount.toString()}
+          icon={Building2}
+          accent="indigo"
+          href="/companies"
+        />
+        <StatCard
+          label="Contacts"
+          value={contactCount.toString()}
+          icon={Users}
+          accent="sky"
+          href="/contacts"
+        />
         <StatCard
           label="My tasks due today"
           value={tasksDueTodayCount.toString()}
           icon={CheckSquare}
           accent="amber"
+          href={`/tasks?filter=today&assignee=${currentUser.id}`}
         />
         <StatCard
           label="My overdue tasks"
@@ -199,16 +212,16 @@ export default async function DashboardPage() {
           icon={Clock}
           accent="rose"
           description={overdueTasksCount > 0 ? "Needs attention" : "All caught up"}
+          href={`/tasks?filter=overdue&assignee=${currentUser.id}`}
         />
-        <Link href="/deals?flag=needs-follow-up" className="block">
-          <StatCard
-            label="Needs follow-up"
-            value={needsFollowUpCount.toString()}
-            icon={Flag}
-            accent="orange"
-            description={needsFollowUpCount > 0 ? "Open deals, no next step" : "All deals on track"}
-          />
-        </Link>
+        <StatCard
+          label="Needs follow-up"
+          value={needsFollowUpCount.toString()}
+          icon={Flag}
+          accent="orange"
+          description={needsFollowUpCount > 0 ? "Open deals, no next step" : "All deals on track"}
+          href="/deals?flag=needs-follow-up"
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
