@@ -5,6 +5,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 ## Features
 
 - **Login** — individual named accounts (email + password); everyone who signs in shares the same CRM data. A light/dark theme toggle lives in the sidebar
+- **Global search** — a search bar at the top of every page, dynamic as you type, across Companies, Contacts, Deals, Tasks, and Projects at once, grouped and linked straight to each result. Scoped to what your role can otherwise see — a Developer's search only reaches Tasks and Projects
 - **Companies** — track organizations with industry, domain, and contact details
 - **Contacts** — people linked to companies, with notes and history
 - **Contact import** — upload a Google Contacts CSV export (`/contacts/import`) and preview matched/duplicate/skipped rows before anything is saved. On the *New contact* page you can also scan a photo of a business card *(optional, requires a Gemini API key)* or import a shared `.vcf` (vCard) file to fill in the form instead of typing — either way, the company is matched to an existing one or created, and everything's editable before you save

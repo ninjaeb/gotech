@@ -1,5 +1,6 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { GlobalSearch } from "@/components/layout/global-search";
 import type { NotificationItem } from "@/components/layout/notification-bell";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
@@ -63,6 +64,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           notifications={notifications}
           unreadNotificationCount={unreadNotificationCount}
         />
+        <div className="flex items-center border-b border-slate-200 bg-white px-4 py-2.5 dark:border-neutral-800 dark:bg-neutral-900 sm:px-8">
+          <GlobalSearch />
+        </div>
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
