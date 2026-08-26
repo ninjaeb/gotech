@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Star } from "lucide-react";
 import { db } from "@/lib/db";
@@ -25,12 +24,12 @@ export default async function EditPipelinePage({
   return (
     <div className="max-w-2xl space-y-6">
       <PageHeader
+        breadcrumbs={[
+          { label: "Settings", href: "/settings" },
+          { label: "Pipelines", href: "/settings/pipelines" },
+          { label: pipeline.name },
+        ]}
         title={pipeline.name}
-        description={
-          <Link href="/settings/pipelines" className="text-indigo-600 hover:underline">
-            ← Back to pipelines
-          </Link>
-        }
       />
 
       <Card>

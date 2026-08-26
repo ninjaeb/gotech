@@ -8,7 +8,7 @@ import { addContactToList, deleteList, removeContactFromList } from "@/app/actio
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonClasses } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
@@ -40,22 +40,18 @@ export default async function ListDetailPage({ params }: { params: Promise<{ id:
   return (
     <div>
       <PageHeader
+        breadcrumbs={[{ label: "Lists", href: "/lists" }, { label: list.name }]}
         title={list.name}
         description={`${members.length} ${members.length === 1 ? "contact" : "contacts"}`}
         actions={
-          <>
-            <Link href="/lists" className={buttonClasses("secondary")}>
-              Back to lists
-            </Link>
-            <form action={deleteList.bind(null, list.id)}>
-              <ConfirmSubmitButton
-                variant="secondary"
-                confirmMessage={`Delete "${list.name}"? This can't be undone.`}
-              >
-                Delete list
-              </ConfirmSubmitButton>
-            </form>
-          </>
+          <form action={deleteList.bind(null, list.id)}>
+            <ConfirmSubmitButton
+              variant="secondary"
+              confirmMessage={`Delete "${list.name}"? This can't be undone.`}
+            >
+              Delete list
+            </ConfirmSubmitButton>
+          </form>
         }
       />
 

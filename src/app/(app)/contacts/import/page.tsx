@@ -7,6 +7,7 @@ export default async function ImportContactsPage() {
   return (
     <div className="max-w-4xl">
       <PageHeader
+        breadcrumbs={[{ label: "Contacts", href: "/contacts" }, { label: "Import" }]}
         title="Import contacts"
         description="Upload a CSV exported from Google Contacts (Export → Google CSV). Review the preview before anything is saved."
       />

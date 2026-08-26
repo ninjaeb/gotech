@@ -6,7 +6,14 @@ import { Card, CardBody } from "@/components/ui/card";
 export default function NewSequencePage() {
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New sequence" />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Settings", href: "/settings" },
+          { label: "Sequences", href: "/settings/sequences" },
+          { label: "New sequence" },
+        ]}
+        title="New sequence"
+      />
       <Card>
         <CardBody>
           <SequenceForm action={createSequence} submitLabel="Create sequence" />

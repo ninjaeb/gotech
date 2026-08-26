@@ -49,6 +49,11 @@ export default async function QuoteDetailPage({
   return (
     <div className="max-w-3xl">
       <PageHeader
+        breadcrumbs={[
+          { label: "Deals", href: "/deals" },
+          { label: quote.deal.title, href: `/deals/${dealId}` },
+          { label: quote.title },
+        ]}
         title={quote.title}
         description={
           <Link href={`/deals/${dealId}`} className="text-indigo-600 hover:underline">

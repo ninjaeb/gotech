@@ -22,7 +22,14 @@ export default async function EditContactPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title={`Edit ${fullName(contact.firstName, contact.lastName)}`} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Contacts", href: "/contacts" },
+          { label: fullName(contact.firstName, contact.lastName), href: `/contacts/${contact.id}` },
+          { label: "Edit" },
+        ]}
+        title={`Edit ${fullName(contact.firstName, contact.lastName)}`}
+      />
       <Card>
         <CardBody>
           <ContactForm

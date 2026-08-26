@@ -53,6 +53,11 @@ export default async function TaskTimePage({
   return (
     <div className="max-w-2xl">
       <PageHeader
+        breadcrumbs={[
+          { label: "Tasks", href: "/tasks" },
+          ...(parent ? [{ label: parent.label, href: parent.href }] : []),
+          { label: task.title },
+        ]}
         title={task.title}
         description={
           parent ? (

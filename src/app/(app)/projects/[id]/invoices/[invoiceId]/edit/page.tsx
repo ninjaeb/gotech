@@ -14,12 +14,22 @@ export default async function EditInvoicePage({
   await requireAdmin();
   const { id: projectId, invoiceId } = await params;
 
-  const invoice = await db.invoice.findUnique({ where: { id: invoiceId, projectId } });
+  const invoice = await db.invoice.findUnique({
+    where: { id: invoiceId, projectId },
+    include: { project: { select: { name: true } } },
+  });
   if (!invoice) notFound();
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title={`Edit ${invoice.title}`} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Projects", href: "/projects" },
+          { label: invoice.project.name, href: `/projects/${projectId}` },
+          { label: "Edit" },
+        ]}
+        title={`Edit ${invoice.title}`}
+      />
       <Card>
         <CardBody>
           <InvoiceForm

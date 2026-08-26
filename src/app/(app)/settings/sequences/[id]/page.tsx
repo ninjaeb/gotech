@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { updateSequence } from "@/app/actions/sequences";
@@ -21,12 +20,12 @@ export default async function EditSequencePage({
   return (
     <div className="max-w-2xl">
       <PageHeader
+        breadcrumbs={[
+          { label: "Settings", href: "/settings" },
+          { label: "Sequences", href: "/settings/sequences" },
+          { label: sequence.name },
+        ]}
         title={sequence.name}
-        description={
-          <Link href="/settings/sequences" className="text-indigo-600 hover:underline">
-            ← Back to sequences
-          </Link>
-        }
       />
       <Card>
         <CardBody>

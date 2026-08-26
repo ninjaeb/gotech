@@ -90,6 +90,7 @@ export default async function ContactDetailPage({
   return (
     <div>
       <PageHeader
+        breadcrumbs={[{ label: "Contacts", href: "/contacts" }, { label: contactName }]}
         title={contactName}
         description={
           [contact.title, contact.company?.name].filter(Boolean).join(" at ") ||

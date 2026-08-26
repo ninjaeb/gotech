@@ -18,6 +18,7 @@ export default async function SequencesPage() {
   return (
     <div className="max-w-lg">
       <PageHeader
+        breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Sequences" }]}
         title="Sequences"
         description="Multi-step automated email cadences you can enroll a contact into"
         actions={

@@ -15,7 +15,10 @@ export default async function NewContactPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New contact" />
+      <PageHeader
+        breadcrumbs={[{ label: "Contacts", href: "/contacts" }, { label: "New contact" }]}
+        title="New contact"
+      />
       <Card>
         <CardBody>
           <NewContactForm companies={companies} defaultCompanyId={companyId} />

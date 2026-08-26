@@ -33,7 +33,10 @@ export default async function EditTaskPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Edit task" />
+      <PageHeader
+        breadcrumbs={[{ label: "Tasks", href: "/tasks" }, { label: "Edit task" }]}
+        title="Edit task"
+      />
       <Card>
         <CardBody>
           <TaskForm

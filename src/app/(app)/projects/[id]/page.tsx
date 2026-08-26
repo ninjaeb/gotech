@@ -66,6 +66,7 @@ export default async function ProjectDetailPage({
   return (
     <div>
       <PageHeader
+        breadcrumbs={[{ label: "Projects", href: "/projects" }, { label: project.name }]}
         title={project.name}
         description={
           <Link href={`/deals/${project.deal.id}`} className="text-indigo-600 hover:underline">

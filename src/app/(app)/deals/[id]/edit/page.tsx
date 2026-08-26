@@ -30,7 +30,14 @@ export default async function EditDealPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title={`Edit ${deal.title}`} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Deals", href: "/deals" },
+          { label: deal.title, href: `/deals/${deal.id}` },
+          { label: "Edit" },
+        ]}
+        title={`Edit ${deal.title}`}
+      />
       <Card>
         <CardBody>
           <DealForm

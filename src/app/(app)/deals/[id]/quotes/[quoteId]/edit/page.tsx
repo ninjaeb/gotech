@@ -19,7 +19,7 @@ export default async function EditQuotePage({
     getCurrency(),
     db.quote.findUnique({
       where: { id: quoteId, dealId },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
+      include: { items: { orderBy: { sortOrder: "asc" } }, deal: { select: { title: true } } },
     }),
     db.servicePackage.findMany({ orderBy: { name: "asc" } }),
   ]);
@@ -45,7 +45,16 @@ export default async function EditQuotePage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Edit quote" description={quote.title} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Deals", href: "/deals" },
+          { label: quote.deal.title, href: `/deals/${dealId}` },
+          { label: quote.title, href: `/deals/${dealId}/quotes/${quoteId}` },
+          { label: "Edit" },
+        ]}
+        title="Edit quote"
+        description={quote.title}
+      />
       <Card>
         <CardBody>
           <QuoteForm

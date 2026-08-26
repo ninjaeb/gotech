@@ -28,7 +28,10 @@ export default async function NewDealPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New deal" />
+      <PageHeader
+        breadcrumbs={[{ label: "Deals", href: "/deals" }, { label: "New deal" }]}
+        title="New deal"
+      />
       <Card>
         <CardBody>
           <DealForm

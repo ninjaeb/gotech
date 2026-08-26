@@ -8,7 +8,10 @@ export default async function NewListPage() {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New list" />
+      <PageHeader
+        breadcrumbs={[{ label: "Lists", href: "/lists" }, { label: "New list" }]}
+        title="New list"
+      />
       <Card>
         <CardBody>
           <ContactListForm />

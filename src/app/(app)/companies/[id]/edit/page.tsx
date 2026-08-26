@@ -18,7 +18,14 @@ export default async function EditCompanyPage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title={`Edit ${company.name}`} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Companies", href: "/companies" },
+          { label: company.name, href: `/companies/${company.id}` },
+          { label: "Edit" },
+        ]}
+        title={`Edit ${company.name}`}
+      />
       <Card>
         <CardBody>
           <CompanyForm

@@ -242,7 +242,7 @@ src/
     login/                Login page (outside the (app) group — no sidebar)
     layout.tsx            Root layout: fonts, global CSS, theme-init script
   components/
-    ui/                  Design system primitives (Button, Card, Input, ThemeToggle, …)
+    ui/                  Design system primitives (Button, Card, Input, ThemeToggle, Breadcrumbs, …)
     layout/              Sidebar / mobile nav / user menu (name, role, logout)
     companies/ contacts/ deals/ tasks/ activity/   Feature components
     ai/                  AiInsightsPanel (Contact/Company/Deal AI Assistant)

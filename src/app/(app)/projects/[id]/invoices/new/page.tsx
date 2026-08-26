@@ -19,7 +19,15 @@ export default async function NewInvoicePage({
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New invoice" description={`For ${project.name}`} />
+      <PageHeader
+        breadcrumbs={[
+          { label: "Projects", href: "/projects" },
+          { label: project.name, href: `/projects/${project.id}` },
+          { label: "New invoice" },
+        ]}
+        title="New invoice"
+        description={`For ${project.name}`}
+      />
       <Card>
         <CardBody>
           <InvoiceForm action={createInvoice.bind(null, projectId)} submitLabel="Create invoice" />

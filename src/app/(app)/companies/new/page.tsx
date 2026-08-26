@@ -8,7 +8,10 @@ export default async function NewCompanyPage() {
   await requireAdmin();
   return (
     <div className="max-w-2xl">
-      <PageHeader title="New company" />
+      <PageHeader
+        breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: "New company" }]}
+        title="New company"
+      />
       <Card>
         <CardBody>
           <CompanyForm action={createCompany} submitLabel="Create company" />

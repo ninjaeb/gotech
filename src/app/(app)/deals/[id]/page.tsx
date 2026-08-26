@@ -74,6 +74,7 @@ export default async function DealDetailPage({
   return (
     <div>
       <PageHeader
+        breadcrumbs={[{ label: "Deals", href: "/deals" }, { label: deal.title }]}
         title={deal.title}
         description={
           [deal.company?.name, deal.contact && fullName(deal.contact.firstName, deal.contact.lastName)]

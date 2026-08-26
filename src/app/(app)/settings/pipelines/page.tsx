@@ -17,6 +17,7 @@ export default async function PipelinesPage() {
   return (
     <div className="max-w-lg">
       <PageHeader
+        breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Pipelines" }]}
         title="Pipelines"
         description="Each deal type can carry its own stage list instead of sharing one kanban."
       />

@@ -78,6 +78,7 @@ export default async function CompanyDetailPage({
   return (
     <div>
       <PageHeader
+        breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: company.name }]}
         title={company.name}
         description={[company.industry ? INDUSTRY_LABELS[company.industry] : null, company.domain]
           .filter(Boolean)
