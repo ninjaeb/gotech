@@ -22,7 +22,7 @@ type Phase =
 export function ImportForm() {
   const [phase, setPhase] = useState<Phase>({ name: "upload" });
   const [error, setError] = useState<string | null>(null);
-  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [fillMissingInfo, setFillMissingInfo] = useState(true);
   const [pending, startTransition] = useTransition();
   const uploadFormRef = useRef<HTMLFormElement>(null);
 
@@ -43,7 +43,7 @@ export function ImportForm() {
     startTransition(async () => {
       const formData = new FormData();
       formData.set("rows", JSON.stringify(preview.rows));
-      formData.set("skipDuplicates", skipDuplicates ? "on" : "off");
+      formData.set("duplicateAction", fillMissingInfo ? "update" : "skip");
       const result = await confirmContactImport(formData);
       if (result.status === "error") {
         setError(result.message);
@@ -71,6 +71,8 @@ export function ImportForm() {
             </p>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {result.created} contact{result.created === 1 ? "" : "s"} created
+              {result.updated > 0 &&
+                `, ${result.updated} existing contact${result.updated === 1 ? "" : "s"} updated with missing info`}
               {result.companiesCreated > 0 &&
                 `, ${result.companiesCreated} new compan${result.companiesCreated === 1 ? "y" : "ies"}`}
               {result.skippedDuplicates > 0 &&
@@ -114,11 +116,11 @@ export function ImportForm() {
             <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               <input
                 type="checkbox"
-                checked={skipDuplicates}
-                onChange={(event) => setSkipDuplicates(event.target.checked)}
+                checked={fillMissingInfo}
+                onChange={(event) => setFillMissingInfo(event.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
-              Skip contacts that already exist (matched by email)
+              Fill in missing info on existing contacts (matched by email)
             </label>
           </CardBody>
         </Card>
@@ -174,12 +176,12 @@ export function ImportForm() {
                           <span
                             className={cn(
                               "text-xs font-medium",
-                              skipDuplicates
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-slate-500 dark:text-slate-400",
+                              fillMissingInfo
+                                ? "text-slate-500 dark:text-slate-400"
+                                : "text-amber-600 dark:text-amber-400",
                             )}
                           >
-                            {skipDuplicates ? "Duplicate — will skip" : "Duplicate — will import anyway"}
+                            {fillMissingInfo ? "Duplicate — will fill in missing info" : "Duplicate — will skip"}
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">

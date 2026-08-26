@@ -7,9 +7,35 @@ import {
   type ParsedContactRow,
 } from "@/lib/google-contacts-import";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // matches next.config.ts serverActions.bodySizeLimit
 const MAX_ROWS = 5000;
+
+// A single bad/slow image must never abort the whole batch — every failure
+// mode here (bad URL, network error, timeout, wrong type, too large) just
+// returns null and the contact imports without a photo instead.
+async function fetchPhotoAsDataUrl(url: string): Promise<string | null> {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+    if (!contentType || !ALLOWED_PHOTO_TYPES.has(contentType)) return null;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength === 0 || buffer.byteLength > MAX_PHOTO_BYTES) return null;
+    return photoDataUrl(buffer, contentType);
+  } catch {
+    return null;
+  }
+}
 
 export type ImportError = {
   status: "error";
@@ -29,6 +55,7 @@ export type ImportPreview = {
 export type ImportResult = {
   status: "done";
   created: number;
+  updated: number;
   skippedDuplicates: number;
   skippedInvalid: number;
   companiesCreated: number;
@@ -127,7 +154,7 @@ export async function confirmContactImport(
     return { status: "error", message: "Too many rows in this import batch." };
   }
 
-  const skipDuplicates = formData.get("skipDuplicates") === "on";
+  const duplicateAction = formData.get("duplicateAction") === "skip" ? "skip" : "update";
   const importableRows = rows.filter((row) => row.importable);
   const skippedInvalid = rows.length - importableRows.length;
 
@@ -159,11 +186,23 @@ export async function confirmContactImport(
   }
 
   let created = 0;
+  let updated = 0;
   let skippedDuplicates = 0;
   const seenEmails = new Set<string>();
 
   for (const row of importableRows) {
     const email = row.email?.trim() || null;
+    const companyName = row.companyName?.trim();
+    const companyId = companyName ? (companyIdByName.get(companyName) ?? null) : null;
+
+    let existingContact: {
+      id: string;
+      phone: string | null;
+      title: string | null;
+      companyId: string | null;
+      notes: string | null;
+      photoUrl: string | null;
+    } | null = null;
 
     if (email) {
       const key = email.toLowerCase();
@@ -173,20 +212,39 @@ export async function confirmContactImport(
       }
       seenEmails.add(key);
 
-      if (skipDuplicates) {
-        const existingContact = await db.contact.findFirst({
-          where: { email },
-          select: { id: true },
-        });
-        if (existingContact) {
-          skippedDuplicates += 1;
-          continue;
-        }
-      }
+      existingContact = await db.contact.findFirst({
+        where: { email },
+        select: { id: true, phone: true, title: true, companyId: true, notes: true, photoUrl: true },
+      });
     }
 
-    const companyName = row.companyName?.trim();
-    const companyId = companyName ? (companyIdByName.get(companyName) ?? null) : null;
+    if (existingContact) {
+      if (duplicateAction === "skip") {
+        skippedDuplicates += 1;
+        continue;
+      }
+
+      // Only fills gaps — never overwrites a value the contact already has.
+      const fill: { phone?: string; title?: string; companyId?: string; notes?: string; photoUrl?: string } = {};
+      if (!existingContact.phone && row.phone?.trim()) fill.phone = row.phone.trim();
+      if (!existingContact.title && row.title?.trim()) fill.title = row.title.trim();
+      if (!existingContact.companyId && companyId) fill.companyId = companyId;
+      if (!existingContact.notes && row.notes?.trim()) fill.notes = row.notes.trim();
+      if (!existingContact.photoUrl && row.imageUrl) {
+        const photo = await fetchPhotoAsDataUrl(row.imageUrl);
+        if (photo) fill.photoUrl = photo;
+      }
+
+      if (Object.keys(fill).length > 0) {
+        await db.contact.update({ where: { id: existingContact.id }, data: fill });
+        updated += 1;
+      } else {
+        skippedDuplicates += 1;
+      }
+      continue;
+    }
+
+    const photoUrl = row.imageUrl ? await fetchPhotoAsDataUrl(row.imageUrl) : null;
 
     await db.contact.create({
       data: {
@@ -197,6 +255,7 @@ export async function confirmContactImport(
         title: row.title?.trim() || null,
         companyId,
         notes: row.notes?.trim() || null,
+        photoUrl,
       },
     });
     created += 1;
@@ -209,6 +268,7 @@ export async function confirmContactImport(
   return {
     status: "done",
     created,
+    updated,
     skippedDuplicates,
     skippedInvalid,
     companiesCreated,

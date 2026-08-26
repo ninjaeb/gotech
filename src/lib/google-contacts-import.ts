@@ -10,6 +10,7 @@ export type ParsedContactRow = {
   title: string | null;
   companyName: string | null;
   notes: string | null;
+  imageUrl: string | null;
   issues: string[];
   /** False for rows with no derivable person name — can't become a Contact. */
   importable: boolean;
@@ -48,6 +49,12 @@ const PHONE_FALLBACK_HEADERS = [/^phone$/i, /^phone number$/i];
 // own format) survives the import rather than silently disappearing.
 const CATEGORY_HEADERS = [/^category$/i];
 const INDUSTRY_HEADERS = [/^industry$/i];
+const PROFILE_URL_HEADERS = [/^profile\s*url$/i, /^profile\s*link$/i];
+
+// Fetched and stored as the Contact's photo (see fetchPhotoAsDataUrl in
+// src/app/actions/contact-import.ts) — this is the one exception to
+// "no Contact field of their own", since photoUrl already exists on Contact.
+const IMAGE_URL_HEADERS = [/^image\s*url$/i, /^photo\s*url$/i, /^avatar(\s*url)?$/i, /^picture(\s*url)?$/i];
 
 // Google's numbered multi-value columns, e.g. "E-mail 1 - Value",
 // "E-mail 2 - Value", "Phone 1 - Value" (works for both the pre- and
@@ -115,6 +122,8 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
   const phoneFallbackHeader = findHeader(headers, PHONE_FALLBACK_HEADERS);
   const categoryHeader = findHeader(headers, CATEGORY_HEADERS);
   const industryHeader = findHeader(headers, INDUSTRY_HEADERS);
+  const profileUrlHeader = findHeader(headers, PROFILE_URL_HEADERS);
+  const imageUrlHeader = findHeader(headers, IMAGE_URL_HEADERS);
 
   const rows: ParsedContactRow[] = records.map((record, index) => {
     const issues: string[] = [];
@@ -154,7 +163,12 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
 
     const category = readHeader(record, categoryHeader);
     const industry = readHeader(record, industryHeader);
-    const extraContext = [category && `Category: ${category}`, industry && `Industry: ${industry}`]
+    const profileUrl = readHeader(record, profileUrlHeader);
+    const extraContext = [
+      category && `Category: ${category}`,
+      industry && `Industry: ${industry}`,
+      profileUrl && `Profile: ${profileUrl}`,
+    ]
       .filter(Boolean)
       .join(" | ");
     const notes = [readHeader(record, notesHeader), extraContext].filter(Boolean).join("\n") || null;
@@ -168,6 +182,7 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       title: readHeader(record, orgTitleHeader) || null,
       companyName,
       notes,
+      imageUrl: readHeader(record, imageUrlHeader) || null,
       issues,
       importable: Boolean(firstName || lastName),
     };

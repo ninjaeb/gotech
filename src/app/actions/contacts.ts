@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
@@ -15,12 +16,6 @@ const contactSchema = z.object({
   companyId: z.string().trim().optional(),
   notes: z.string().trim().optional(),
 });
-
-// Server Actions cap the whole request body at 5mb (next.config.ts) and
-// base64 inflates size by ~4/3, so 3mb raw (~4mb encoded) leaves headroom
-// for the rest of the form. Comfortably covers a typical phone photo.
-const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
-const ALLOWED_PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 // Returns {} to leave photoUrl untouched, { photoUrl: null } to clear it, or
 // { photoUrl: <data URL> } to set a new one — spread directly into the
@@ -35,7 +30,7 @@ async function parseContactPhoto(formData: FormData): Promise<{ photoUrl?: strin
       throw new Error("Photo must be under 3MB.");
     }
     const buffer = Buffer.from(await file.arrayBuffer());
-    return { photoUrl: `data:${file.type};base64,${buffer.toString("base64")}` };
+    return { photoUrl: photoDataUrl(buffer, file.type) };
   }
   if (formData.get("removePhoto") === "on") {
     return { photoUrl: null };
