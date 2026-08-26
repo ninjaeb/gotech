@@ -19,6 +19,18 @@ export type TaskWithRelations = Task & {
   _count?: { followers: number };
 };
 
+// MySQL sorts NULL as the lowest value, so `ORDER BY dueDate ASC` puts
+// undated tasks first — the opposite of what people expect (a task with no
+// date isn't more urgent than one that's actually due). Re-sort here,
+// after the DB query, rather than in every caller: keep whatever grouping
+// the query already established (e.g. open before completed), and within
+// each group move undated tasks after dated ones, otherwise leaving the
+// query's own order (priority, then recency) untouched.
+function compareTasksForDisplay(a: TaskWithRelations, b: TaskWithRelations): number {
+  if (a.completed !== b.completed) return a.completed ? 1 : -1;
+  return Number(a.dueDate === null) - Number(b.dueDate === null);
+}
+
 export function TaskList({
   tasks,
   users = [],
@@ -42,9 +54,11 @@ export function TaskList({
     );
   }
 
+  const sortedTasks = [...tasks].sort(compareTasksForDisplay);
+
   return (
     <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
-      {tasks.map((task) => {
+      {sortedTasks.map((task) => {
         const overdue =
           !task.completed && task.dueDate && new Date(task.dueDate) < new Date();
         const dueLabel = relativeToToday(task.dueDate);
