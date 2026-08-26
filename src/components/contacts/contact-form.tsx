@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { compressImage, formatBytes } from "@/lib/image-compression";
 import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_LABELS } from "@/lib/labels";
+import { PHONE_FORMAT_HINT } from "@/lib/phone";
 
 // Below this, compressing wouldn't meaningfully shrink the file — not worth
 // the (small but non-zero) delay of decoding and re-encoding on selection.
@@ -33,6 +34,7 @@ export function ContactForm({
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [photoStatus, setPhotoStatus] = useState<string | null>(null);
+  const values = state?.values;
 
   async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -60,14 +62,14 @@ export function ContactForm({
             id="firstName"
             name="firstName"
             required
-            defaultValue={contact?.firstName ?? prefill?.firstName}
+            defaultValue={values?.firstName ?? contact?.firstName ?? prefill?.firstName}
           />
         </FieldGroup>
         <FieldGroup label="Last name" htmlFor="lastName">
           <Input
             id="lastName"
             name="lastName"
-            defaultValue={contact?.lastName ?? prefill?.lastName ?? ""}
+            defaultValue={values?.lastName ?? contact?.lastName ?? prefill?.lastName ?? ""}
           />
         </FieldGroup>
       </div>
@@ -78,7 +80,7 @@ export function ContactForm({
             id="email"
             name="email"
             type="email"
-            defaultValue={contact?.email ?? prefill?.email ?? ""}
+            defaultValue={values?.email ?? contact?.email ?? prefill?.email ?? ""}
             placeholder="jane@acme.com"
           />
         </FieldGroup>
@@ -86,9 +88,10 @@ export function ContactForm({
           <Input
             id="phone"
             name="phone"
-            defaultValue={contact?.phone ?? prefill?.phone ?? ""}
-            placeholder="+1 555 000 0000"
+            defaultValue={values?.phone ?? contact?.phone ?? prefill?.phone ?? ""}
+            placeholder="+60 12 345 6789"
           />
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">{PHONE_FORMAT_HINT}</p>
         </FieldGroup>
       </div>
 
@@ -97,7 +100,7 @@ export function ContactForm({
           <Input
             id="title"
             name="title"
-            defaultValue={contact?.title ?? prefill?.title ?? ""}
+            defaultValue={values?.title ?? contact?.title ?? prefill?.title ?? ""}
             placeholder="VP of Sales"
           />
         </FieldGroup>
@@ -105,7 +108,7 @@ export function ContactForm({
           <Select
             id="companyId"
             name="companyId"
-            defaultValue={contact?.companyId ?? defaultCompanyId ?? ""}
+            defaultValue={values?.companyId ?? contact?.companyId ?? defaultCompanyId ?? ""}
           >
             <option value="">No company</option>
             {companies.map((company) => (
@@ -121,7 +124,7 @@ export function ContactForm({
         <Select
           id="lifecycleStage"
           name="lifecycleStage"
-          defaultValue={contact?.lifecycleStage ?? ""}
+          defaultValue={values?.lifecycleStage ?? contact?.lifecycleStage ?? ""}
         >
           <option value="">Unclassified</option>
           {LIFECYCLE_STAGES.map((stage) => (
@@ -177,7 +180,7 @@ export function ContactForm({
           id="notes"
           name="notes"
           rows={4}
-          defaultValue={contact?.notes ?? ""}
+          defaultValue={values?.notes ?? contact?.notes ?? ""}
           placeholder="Anything worth remembering about this contact…"
         />
       </FieldGroup>

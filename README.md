@@ -255,6 +255,7 @@ src/
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
     email.ts                IMAP sync + SMTP send for connected mailboxes
     whatsapp.ts              Cloud API send + webhook signature verification + phone matching
+    phone.ts                 Stored-phone standard: normalize to "+<digits>", validate loose E.164 shape
     ai/                  Gemini client + Prisma-to-prompt context builders
     format.ts, labels.ts, utils.ts
   app/api/whatsapp/webhook/route.ts   Public: Meta's inbound-message webhook (GET verify, POST receive)

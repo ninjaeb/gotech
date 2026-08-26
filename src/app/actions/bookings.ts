@@ -7,6 +7,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { generateAvailableSlots } from "@/lib/booking";
 import { getBookingSettings } from "@/lib/settings";
+import { normalizePhone } from "@/lib/phone";
 
 const bookingSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -62,10 +63,11 @@ export async function submitBooking(
     return { status: "error", message: "That slot isn't available anymore — pick another." };
   }
 
+  const phone = data.phone ? normalizePhone(data.phone) : null;
   const contact = await findOrCreateContactByEmail({
     name: data.name,
     email: data.email,
-    phone: data.phone,
+    phone,
   });
 
   try {
@@ -75,7 +77,7 @@ export async function submitBooking(
         endAt: slot.endAt,
         name: data.name,
         email: data.email,
-        phone: data.phone || null,
+        phone,
         notes: data.notes || null,
         contactId: contact.id,
       },

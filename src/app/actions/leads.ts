@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getDefaultPipeline } from "@/lib/pipelines";
+import { normalizePhone } from "@/lib/phone";
 
 const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -51,7 +52,7 @@ export async function submitLead(
     findOrCreateContactByEmail({
       name: data.name,
       email: data.email,
-      phone: data.phone,
+      phone: data.phone ? normalizePhone(data.phone) : null,
       companyId,
       lifecycleStage: "LEAD",
     }),

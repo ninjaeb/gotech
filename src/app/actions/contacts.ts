@@ -6,13 +6,18 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
+import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 import type { LifecycleStage } from "@/generated/prisma/client";
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
   lastName: z.string().trim().optional(),
   email: z.string().trim().optional(),
-  phone: z.string().trim().optional(),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
   title: z.string().trim().optional(),
   companyId: z.string().trim().optional(),
   notes: z.string().trim().optional(),
@@ -40,6 +45,39 @@ async function parseContactPhoto(formData: FormData): Promise<{ photoUrl?: strin
   return {};
 }
 
+// React resets uncontrolled fields to their defaultValue once a form action
+// finishes — including on a validation error. Echoing the just-submitted
+// strings back in error state (used as defaultValue) is what makes that
+// reset land on what the user typed instead of wiping the form.
+export type ContactFormValues = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  title: string;
+  companyId: string;
+  notes: string;
+  lifecycleStage: string;
+};
+
+function stringField(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+function extractContactFormValues(formData: FormData): ContactFormValues {
+  return {
+    firstName: stringField(formData, "firstName"),
+    lastName: stringField(formData, "lastName"),
+    email: stringField(formData, "email"),
+    phone: stringField(formData, "phone"),
+    title: stringField(formData, "title"),
+    companyId: stringField(formData, "companyId"),
+    notes: stringField(formData, "notes"),
+    lifecycleStage: stringField(formData, "lifecycleStage"),
+  };
+}
+
 function parseContactForm(formData: FormData) {
   const parsed = contactSchema.safeParse({
     firstName: formData.get("firstName"),
@@ -59,7 +97,7 @@ function parseContactForm(formData: FormData) {
     firstName: data.firstName,
     lastName: data.lastName || null,
     email: data.email || null,
-    phone: data.phone || null,
+    phone: data.phone ? normalizePhone(data.phone) : null,
     title: data.title || null,
     companyId: data.companyId || null,
     notes: data.notes || null,
@@ -67,7 +105,7 @@ function parseContactForm(formData: FormData) {
   };
 }
 
-export type ContactFormState = { error: string } | undefined;
+export type ContactFormState = { error: string; values: ContactFormValues } | undefined;
 
 export async function createContact(
   _prevState: ContactFormState,
@@ -80,7 +118,10 @@ export async function createContact(
     data = parseContactForm(formData);
     photo = await parseContactPhoto(formData);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Something went wrong." };
+    return {
+      error: error instanceof Error ? error.message : "Something went wrong.",
+      values: extractContactFormValues(formData),
+    };
   }
   const contact = await db.contact.create({ data: { ...data, ...photo } });
   revalidatePath("/contacts");
@@ -101,7 +142,10 @@ export async function updateContact(
     data = parseContactForm(formData);
     photo = await parseContactPhoto(formData);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Something went wrong." };
+    return {
+      error: error instanceof Error ? error.message : "Something went wrong.",
+      values: extractContactFormValues(formData),
+    };
   }
   const previous = await db.contact.findUnique({
     where: { id },

@@ -31,7 +31,7 @@ export function LeadCaptureForm() {
         <Input id="email" name="email" type="email" required placeholder="jane@company.com" />
       </FieldGroup>
       <FieldGroup label="Phone" htmlFor="phone">
-        <Input id="phone" name="phone" type="tel" placeholder="Optional" />
+        <Input id="phone" name="phone" type="tel" placeholder="Optional — e.g. +60 12 345 6789" />
       </FieldGroup>
       <FieldGroup label="Company" htmlFor="companyName">
         <Input id="companyName" name="companyName" placeholder="Optional" />
