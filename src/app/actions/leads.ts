@@ -48,7 +48,13 @@ export async function submitLead(
   }
 
   const [contact, defaultPipeline] = await Promise.all([
-    findOrCreateContactByEmail({ name: data.name, email: data.email, phone: data.phone, companyId }),
+    findOrCreateContactByEmail({
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      companyId,
+      lifecycleStage: "LEAD",
+    }),
     getDefaultPipeline(),
   ]);
   const firstStage = defaultPipeline.stages[0];

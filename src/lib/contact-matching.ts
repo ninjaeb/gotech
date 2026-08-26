@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { splitFullName } from "@/lib/format";
+import type { LifecycleStage } from "@/generated/prisma/client";
 
 // Shared by every public, unauthenticated entry point that turns a name +
 // email into a Contact (lead capture, booking) — reuses an existing Contact
@@ -10,11 +11,16 @@ export async function findOrCreateContactByEmail({
   email,
   phone,
   companyId,
+  lifecycleStage,
 }: {
   name: string;
   email: string;
   phone?: string | null;
   companyId?: string | null;
+  // Only applied when a brand-new contact is created — an existing contact
+  // matched by email keeps whatever classification (or lack of one) it
+  // already had, since filling out one more form isn't proof of their stage.
+  lifecycleStage?: LifecycleStage;
 }) {
   const existing = await db.contact.findFirst({
     where: { email },
@@ -37,6 +43,7 @@ export async function findOrCreateContactByEmail({
       email,
       phone: phone || null,
       companyId: companyId ?? null,
+      lifecycleStage: lifecycleStage ?? null,
     },
     select: { id: true, companyId: true },
   });

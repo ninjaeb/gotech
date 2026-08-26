@@ -25,7 +25,12 @@ import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
-import { ENROLLMENT_STATUS_BADGE_CLASSES, ENROLLMENT_STATUS_LABELS, stageBadgeClasses } from "@/lib/labels";
+import {
+  ENROLLMENT_STATUS_BADGE_CLASSES,
+  ENROLLMENT_STATUS_LABELS,
+  LIFECYCLE_STAGE_LABELS,
+  stageBadgeClasses,
+} from "@/lib/labels";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getActiveSequences } from "@/lib/sequences";
@@ -168,6 +173,10 @@ export default async function ContactDetailPage({
                   }
                 />
                 <DetailRow label="Title" value={contact.title} />
+                <DetailRow
+                  label="Stage"
+                  value={contact.lifecycleStage ? LIFECYCLE_STAGE_LABELS[contact.lifecycleStage] : null}
+                />
               </div>
               {contact.notes && (
                 <div className="mt-3 text-sm">

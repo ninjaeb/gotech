@@ -66,6 +66,17 @@ async function resolveTargetStage(pipelineId: string, pipelineStageId: string) {
   return stage;
 }
 
+// A won deal is the strongest possible signal that its contact is now a
+// paying customer. Never regresses a contact already past that point
+// (CUSTOMER or EVANGELIST) — a repeat sale from an existing customer
+// shouldn't downgrade someone who's already an advocate.
+async function markContactAsCustomer(contactId: string | null) {
+  if (!contactId) return;
+  const contact = await db.contact.findUnique({ where: { id: contactId }, select: { lifecycleStage: true } });
+  if (!contact || contact.lifecycleStage === "CUSTOMER" || contact.lifecycleStage === "EVANGELIST") return;
+  await db.contact.update({ where: { id: contactId }, data: { lifecycleStage: "CUSTOMER" } });
+}
+
 function revalidateDealPaths(dealId: string, companyId?: string | null, contactId?: string | null) {
   revalidatePath("/deals");
   revalidatePath(`/deals/${dealId}`);
@@ -148,6 +159,7 @@ export async function updateDeal(
   }
   if (targetStage.isWon) {
     await ensureProjectForWonDeal({ id, title: data.title });
+    await markContactAsCustomer(data.contactId);
   }
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
@@ -187,6 +199,7 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
   });
   if (targetStage.isWon) {
     await ensureProjectForWonDeal({ id, title: previous.title });
+    await markContactAsCustomer(previous.contactId);
   }
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);

@@ -3,6 +3,7 @@ import {
   EnrollmentStatus,
   InvoiceStatus,
   LeadSource,
+  LifecycleStage,
   ProjectStatus,
   QuoteStatus,
   TaskPriority,
@@ -88,6 +89,45 @@ export const LEAD_SOURCE_LABELS: Record<LeadSource, string> = {
   EVENT: "Event",
   PARTNER: "Partner",
   OTHER: "Other",
+};
+
+// Roughly ordered low-to-high commitment, left to right — mirrors HubSpot's
+// default lifecycle stage set. Kept nullable on the Contact itself (see
+// schema); this list is just the set of values a contact can be *set* to.
+export const LIFECYCLE_STAGES: LifecycleStage[] = [
+  "SUBSCRIBER",
+  "LEAD",
+  "MQL",
+  "SQL",
+  "OPPORTUNITY",
+  "CUSTOMER",
+  "EVANGELIST",
+  "OTHER",
+];
+
+export const LIFECYCLE_STAGE_LABELS: Record<LifecycleStage, string> = {
+  SUBSCRIBER: "Subscriber",
+  LEAD: "Lead",
+  MQL: "Marketing qualified lead",
+  SQL: "Sales qualified lead",
+  OPPORTUNITY: "Opportunity",
+  CUSTOMER: "Customer",
+  EVANGELIST: "Evangelist",
+  OTHER: "Other",
+};
+
+export const LIFECYCLE_STAGE_BADGE_CLASSES: Record<LifecycleStage, string> = {
+  SUBSCRIBER: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+  LEAD: "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  MQL: "bg-cyan-50 text-cyan-700 ring-cyan-600/20 dark:bg-cyan-950 dark:text-cyan-300 dark:ring-cyan-500/30",
+  SQL: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
+  OPPORTUNITY:
+    "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-500/30",
+  CUSTOMER:
+    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+  EVANGELIST:
+    "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-600/20 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:ring-fuchsia-500/30",
+  OTHER: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
 };
 
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
+import type { LifecycleStage } from "@/generated/prisma/client";
 
 const contactSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required"),
@@ -15,6 +16,7 @@ const contactSchema = z.object({
   title: z.string().trim().optional(),
   companyId: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  lifecycleStage: z.string().trim().optional(),
 });
 
 // Returns {} to leave photoUrl untouched, { photoUrl: null } to clear it, or
@@ -47,6 +49,7 @@ function parseContactForm(formData: FormData) {
     title: formData.get("title"),
     companyId: formData.get("companyId"),
     notes: formData.get("notes"),
+    lifecycleStage: formData.get("lifecycleStage"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid contact data");
@@ -60,6 +63,7 @@ function parseContactForm(formData: FormData) {
     title: data.title || null,
     companyId: data.companyId || null,
     notes: data.notes || null,
+    lifecycleStage: (data.lifecycleStage || null) as LifecycleStage | null,
   };
 }
 

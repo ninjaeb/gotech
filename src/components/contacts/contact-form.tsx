@@ -7,6 +7,7 @@ import type { ContactDraft } from "@/lib/contact-draft";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
 import { compressImage, formatBytes } from "@/lib/image-compression";
+import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_LABELS } from "@/lib/labels";
 
 // Below this, compressing wouldn't meaningfully shrink the file — not worth
 // the (small but non-zero) delay of decoding and re-encoding on selection.
@@ -115,6 +116,21 @@ export function ContactForm({
           </Select>
         </FieldGroup>
       </div>
+
+      <FieldGroup label="Lifecycle stage" htmlFor="lifecycleStage">
+        <Select
+          id="lifecycleStage"
+          name="lifecycleStage"
+          defaultValue={contact?.lifecycleStage ?? ""}
+        >
+          <option value="">Unclassified</option>
+          {LIFECYCLE_STAGES.map((stage) => (
+            <option key={stage} value={stage}>
+              {LIFECYCLE_STAGE_LABELS[stage]}
+            </option>
+          ))}
+        </Select>
+      </FieldGroup>
 
       <FieldGroup label="Photo" htmlFor="photo">
         <div className="flex items-center gap-4">

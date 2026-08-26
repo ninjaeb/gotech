@@ -60,6 +60,17 @@ enum LeadSource {
   OTHER
 }
 
+enum LifecycleStage {
+  SUBSCRIBER
+  LEAD
+  MQL
+  SQL
+  OPPORTUNITY
+  CUSTOMER
+  EVANGELIST
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -218,6 +229,13 @@ model Contact {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Null (not a default like SUBSCRIBER) means genuinely unclassified —
+  // most existing contacts predate this field. Auto-set to LEAD by the
+  // public /lead form and to CUSTOMER when a linked Deal is won (see
+  // src/app/actions/leads.ts and src/app/actions/deals.ts); otherwise
+  // editable by hand from the contact detail page.
+  lifecycleStage LifecycleStage?
+
   // Last time email sync saw an inbound message from this contact — not
   // shown anywhere yet, but it's what lets an outbound sequence
   // (src/lib/sequences.ts) auto-stop the moment a contact replies, by
@@ -237,6 +255,7 @@ model Contact {
 
   @@index([companyId])
   @@index([lastName, firstName])
+  @@index([lifecycleStage])
 }
 
 // A client-side portal login, entirely separate from the internal User

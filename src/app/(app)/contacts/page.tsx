@@ -6,21 +6,28 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { buttonClasses } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
+import { LifecycleStageFilterSelect } from "@/components/contacts/lifecycle-stage-filter-select";
 import { fullName } from "@/lib/format";
 import { requireAdmin } from "@/lib/auth/dal";
+import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_BADGE_CLASSES, LIFECYCLE_STAGE_LABELS } from "@/lib/labels";
+import type { LifecycleStage, Prisma } from "@/generated/prisma/client";
 
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; stage?: string }>;
 }) {
   await requireAdmin();
-  const { q } = await searchParams;
+  const { q, stage: rawStage } = await searchParams;
   const query = q?.trim();
+  const stage = rawStage?.trim();
+  const isValidStage = (value?: string): value is LifecycleStage =>
+    !!value && LIFECYCLE_STAGES.includes(value as LifecycleStage);
 
-  const contacts = await db.contact.findMany({
-    where: query
+  const where: Prisma.ContactWhereInput = {
+    ...(query
       ? {
           OR: [
             { firstName: { contains: query } },
@@ -28,7 +35,16 @@ export default async function ContactsPage({
             { email: { contains: query } },
           ],
         }
-      : undefined,
+      : {}),
+    ...(stage === "unset"
+      ? { lifecycleStage: null }
+      : isValidStage(stage)
+        ? { lifecycleStage: stage }
+        : {}),
+  };
+
+  const contacts = await db.contact.findMany({
+    where,
     orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     include: { company: true },
   });
@@ -52,8 +68,8 @@ export default async function ContactsPage({
         }
       />
 
-      <form className="mb-4">
-        <div className="relative max-w-sm">
+      <form className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             type="search"
@@ -63,19 +79,21 @@ export default async function ContactsPage({
             className="pl-9"
           />
         </div>
+        <LifecycleStageFilterSelect defaultValue={stage} />
       </form>
 
       {contacts.length === 0 ? (
         <EmptyState
           icon={Users}
-          title={query ? "No contacts match your search" : "No contacts yet"}
+          title={query || stage ? "No contacts match your filters" : "No contacts yet"}
           description={
-            query
-              ? "Try a different search term."
+            query || stage
+              ? "Try a different search term or stage."
               : "Add your first contact to start building relationships."
           }
           action={
-            !query && (
+            !query &&
+            !stage && (
               <Link href="/contacts/new" className={buttonClasses()}>
                 <Plus className="h-4 w-4" />
                 New contact
@@ -109,6 +127,11 @@ export default async function ContactsPage({
                         "—"}
                     </p>
                   </div>
+                  {contact.lifecycleStage && (
+                    <Badge className={`shrink-0 ${LIFECYCLE_STAGE_BADGE_CLASSES[contact.lifecycleStage]}`}>
+                      {LIFECYCLE_STAGE_LABELS[contact.lifecycleStage]}
+                    </Badge>
+                  )}
                 </Link>
               </li>
             ))}
