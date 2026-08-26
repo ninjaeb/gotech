@@ -9,10 +9,34 @@ type ContactRow = {
   firstName: string;
   lastName: string | null;
   email: string | null;
+  phone: string | null;
   createdAt: Date;
   company: { name: string } | null;
   _count: { deals: number; tasks: number; activities: number; bookings: number; sequenceEnrollments: number };
 };
+
+// Two contacts can be linked by phone while a third links to one of them by
+// email — those three are really one cluster, not two separate pairs. Plain
+// union-find turns "shares a phone or email with" into that cluster.
+class UnionFind {
+  private parent = new Map<string, string>();
+  private root(x: string): string {
+    if (!this.parent.has(x)) this.parent.set(x, x);
+    const p = this.parent.get(x)!;
+    if (p === x) return x;
+    const r = this.root(p);
+    this.parent.set(x, r);
+    return r;
+  }
+  union(a: string, b: string) {
+    const ra = this.root(a);
+    const rb = this.root(b);
+    if (ra !== rb) this.parent.set(ra, rb);
+  }
+  find(x: string) {
+    return this.root(x);
+  }
+}
 
 function historyCount(c: ContactRow) {
   return c._count.deals + c._count.tasks + c._count.activities + c._count.bookings + c._count.sequenceEnrollments;
@@ -30,25 +54,38 @@ function historyParts(c: ContactRow) {
     .join(", ");
 }
 
+function pushToMapArray<K>(map: Map<K, string[]>, key: K, value: string) {
+  const list = map.get(key);
+  if (list) list.push(value);
+  else map.set(key, [value]);
+}
+
 function contactLabel(c: ContactRow) {
   const name = [c.firstName, c.lastName].filter(Boolean).join(" ") || "(no name)";
+  const contactInfo = [c.email, c.phone].filter(Boolean).join(" / ") || "no email or phone";
   const company = c.company ? ` @ ${c.company.name}` : "";
   const created = c.createdAt.toISOString().slice(0, 10);
   const history = historyParts(c);
-  return `${name} <${c.email}>${company} — created ${created}${history ? `, ${history}` : ""} (id: ${c.id})`;
+  return `${name} <${contactInfo}>${company} — created ${created}${history ? `, ${history}` : ""} (id: ${c.id})`;
 }
 
 async function main() {
-  // "Duplicate" = same email, case-insensitively — the same signal the CSV
-  // import's own duplicate detection already uses (matches how MySQL's
-  // utf8mb4_unicode_ci collation already treats email equality).
+  // "Duplicate" = same phone, or same email (case-insensitively) — exact
+  // match only, no fuzzy phone-format normalization (e.g. "+60 12-345"
+  // vs "0123450000" won't be linked).
   const contacts = await db.contact.findMany({
-    where: { AND: [{ email: { not: null } }, { email: { not: "" } }] },
+    where: {
+      OR: [
+        { AND: [{ phone: { not: null } }, { phone: { not: "" } }] },
+        { AND: [{ email: { not: null } }, { email: { not: "" } }] },
+      ],
+    },
     select: {
       id: true,
       firstName: true,
       lastName: true,
       email: true,
+      phone: true,
       createdAt: true,
       company: { select: { name: true } },
       _count: {
@@ -58,18 +95,29 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
 
-  const groups = new Map<string, ContactRow[]>();
+  const uf = new UnionFind();
+  const byKey = new Map<string, string[]>();
   for (const contact of contacts) {
-    const key = contact.email!.toLowerCase();
-    const group = groups.get(key);
-    if (group) group.push(contact);
-    else groups.set(key, [contact]);
+    uf.find(contact.id);
+    if (contact.phone?.trim()) pushToMapArray(byKey, `phone:${contact.phone.trim()}`, contact.id);
+    if (contact.email?.trim()) pushToMapArray(byKey, `email:${contact.email.trim().toLowerCase()}`, contact.id);
   }
-  const duplicateGroups = [...groups.values()].filter((group) => group.length > 1);
+  for (const ids of byKey.values()) {
+    for (let i = 1; i < ids.length; i++) uf.union(ids[0], ids[i]);
+  }
+
+  const clusters = new Map<string, ContactRow[]>();
+  for (const contact of contacts) {
+    const root = uf.find(contact.id);
+    const cluster = clusters.get(root);
+    if (cluster) cluster.push(contact);
+    else clusters.set(root, [contact]);
+  }
+  const duplicateGroups = [...clusters.values()].filter((group) => group.length > 1);
 
   const total = await db.contact.count();
   if (duplicateGroups.length === 0) {
-    console.log(`No duplicate contacts found (${contacts.length} contacts have an email, out of ${total} total).`);
+    console.log(`No duplicate contacts found (${contacts.length} contacts have a phone or email, out of ${total} total).`);
     return;
   }
 
@@ -95,12 +143,12 @@ async function main() {
 
   const duplicateContactCount = duplicateGroups.reduce((sum, group) => sum + group.length, 0);
   console.log(
-    `Found ${duplicateGroups.length} email address(es) shared by more than one contact ` +
+    `Found ${duplicateGroups.length} group(s) of contacts sharing a phone or email ` +
       `(${duplicateContactCount} contacts total, out of ${total}).\n`,
   );
 
   if (toDelete.length > 0) {
-    console.log(`${toDelete.length} contact(s) eligible for --yes (the other one in their group is kept):`);
+    console.log(`${toDelete.length} contact(s) eligible for --yes (one contact per group is kept):`);
     for (const contact of toDelete) console.log(`  - ${contactLabel(contact)}`);
   } else {
     console.log("None are safe to auto-remove — every duplicate group needs manual review (see below).");
@@ -108,11 +156,11 @@ async function main() {
 
   if (needsReview.length > 0) {
     console.log(
-      `\n${needsReview.length} group(s) need manual review — more than one contact per email has its own ` +
+      `\n${needsReview.length} group(s) need manual review — more than one contact per group has its own ` +
         "linked history, so this script won't guess who to keep:",
     );
     for (const group of needsReview) {
-      console.log(`  ${group[0].email}:`);
+      console.log(`  Group (matched by shared phone and/or email):`);
       for (const contact of group) console.log(`    - ${contactLabel(contact)}`);
     }
   }
