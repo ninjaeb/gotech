@@ -1,0 +1,169 @@
+// A hand-maintained record of what shipped, for the Settings > Changelog
+// page. Versions are sequential and specific to this list — they don't
+// track package.json or any git tag. Newest first.
+export type ChangelogEntry = {
+  version: string;
+  date: string; // ISO date
+  title: string;
+  changes: string[];
+};
+
+export const CHANGELOG: ChangelogEntry[] = [
+  {
+    version: "1.14",
+    date: "2026-08-26",
+    title: "Dashboard shortcuts and navigation",
+    changes: [
+      "Dashboard stat cards (Companies, Contacts, My tasks due today, My overdue tasks, Needs follow-up) are now clickable and jump straight to the matching filtered view",
+      "Tasks without a due date now sort after tasks with one, instead of appearing first",
+      "Breadcrumb navigation on every detail, edit, and sub-resource page for an easy way back up",
+    ],
+  },
+  {
+    version: "1.13",
+    date: "2026-08-26",
+    title: "Company industry and a phone number standard",
+    changes: [
+      "Company industry is now a curated category picked from a list, instead of free text",
+      "Phone numbers on Contacts and Companies must include a country code and a \"+\" sign; public forms (lead capture, booking) stay permissive so formatting mistakes never cost real business",
+    ],
+  },
+  {
+    version: "1.12",
+    date: "2026-08-26",
+    title: "Contact lifecycle, lists, and data cleanup",
+    changes: [
+      "Contact lifecycle stage (Lead, MQL, SQL, Customer, etc.), set automatically as a contact moves through a deal or submits the lead form",
+      "Contact lists — static or dynamic segments, with bulk sequence enrollment",
+      "A \"Deals by source\" breakdown on the dashboard",
+      "CSV import now fetches profile photos, can fill in missing info on re-import, and requires a phone or email",
+      "New cleanup tools for contacts missing a phone/email, duplicate contacts, and malformed email addresses",
+    ],
+  },
+  {
+    version: "1.11",
+    date: "2026-08-25",
+    title: "WhatsApp Business and lead source tracking",
+    changes: [
+      "WhatsApp Business integration via the official Meta Cloud API — messages log automatically to the contact's activity timeline",
+      "Track where each deal came from (lead source), auto-tagged for public lead-form submissions",
+      "Filter tasks by assignee; companies gained a Resources section too",
+      "Refreshed the GoTech brand mark across the favicon and app icon",
+    ],
+  },
+  {
+    version: "1.10",
+    date: "2026-08-22",
+    title: "Role-based permissions and project budgets",
+    changes: [
+      "Role-based permissions: Admin (full access) vs Developer (scoped to their own work)",
+      "Project hour/cost budget tracking against timeline targets",
+      "Deal resource links can now be edited after adding",
+    ],
+  },
+  {
+    version: "1.9",
+    date: "2026-08-20",
+    title: "Task priority, @mentions, and a personalized dashboard",
+    changes: [
+      "Scan a business card or import a vCard to fill in a new contact",
+      "A personalized \"My Tasks\" dashboard card, a nav badge for due/overdue tasks, and an optional daily digest email",
+      "Task priority (Low/Medium/High) and multiple assignees per task",
+      "Follow a task without owning it, to keep visibility",
+      "@mention a teammate in an activity note or task description — they get a notification",
+      "A Resources section on deals, and drag-and-drop reordering of a deal or contact's page sections",
+      "Smarter CSV import: recognizes more job-title columns, folds category/industry into notes",
+      "Live search while typing on the Companies page",
+    ],
+  },
+  {
+    version: "1.8",
+    date: "2026-08-19",
+    title: "Task followers",
+    changes: [
+      "Tasks can now have followers (visibility) in addition to assignees",
+      "Added the GoTech favicon and app icon",
+    ],
+  },
+  {
+    version: "1.7",
+    date: "2026-08-18",
+    title: "Lead capture, booking, email sync, and the client portal",
+    changes: [
+      "Public lead-capture form and a meeting scheduler / booking link for the marketing site",
+      "Multiple pipelines — different deal types can now use their own stage list",
+      "Two-way email sync (IMAP/SMTP), auto-logged to the contact's activity timeline",
+      "Deal ownership and a leaderboard ranking teammates by deals won",
+      "Time tracking on tasks",
+      "Invoice / payment-milestone tracking on projects",
+      "A client portal for scoped, external access to a company's projects and invoices",
+      "Outbound email sequences / cadences",
+    ],
+  },
+  {
+    version: "1.6",
+    date: "2026-08-16",
+    title: "Mobile navigation",
+    changes: ["Replaced the mobile nav's scrolling strip with a hamburger drawer"],
+  },
+  {
+    version: "1.5",
+    date: "2026-08-14",
+    title: "Quotes, delivery handoff, and pipeline hygiene",
+    changes: [
+      "Contact profile photos, with automatic compression and a click-to-zoom view",
+      "Quotes & Proposals: line items, shareable links, view tracking",
+      "A won deal now automatically creates a delivery Project with milestone tasks",
+      "Stage-gate: block advancing a deal to Won with incomplete records",
+      "Flags for open deals with no scheduled next step, and for deals going stale",
+    ],
+  },
+  {
+    version: "1.4",
+    date: "2026-08-13",
+    title: "Click-to-contact links",
+    changes: ["Click straight through to WhatsApp or email from a contact or company"],
+  },
+  {
+    version: "1.3",
+    date: "2026-08-12",
+    title: "Search, filtering, and reliability",
+    changes: [
+      "Search on the Tasks and Deals pages",
+      "A task's Deal picker now filters to the selected company/contact",
+      "Automatic recovery from stale-build errors after a deploy",
+    ],
+  },
+  {
+    version: "1.2",
+    date: "2026-08-11",
+    title: "Currency, user management, and workflow polish",
+    changes: [
+      "Set a CRM-wide currency in Settings",
+      "In-app user management — create and reset teammate logins",
+      "Task editing, optional last names, auto-filtered company/contact pickers",
+      "Link an existing contact to a company",
+      "Self-service and admin password reset",
+    ],
+  },
+  {
+    version: "1.1",
+    date: "2026-08-06",
+    title: "Deployment and theming",
+    changes: [
+      "cPanel deployment support",
+      "Light/dark theme toggle",
+    ],
+  },
+  {
+    version: "1.0",
+    date: "2026-08-06",
+    title: "Launch: Companies, Contacts, Deals, and Tasks",
+    changes: [
+      "Core CRM: Companies, Contacts, a kanban Deals pipeline, and Tasks with an activity timeline",
+      "Import contacts from a Google Contacts CSV export",
+      "AI Assistant on Contact/Company/Deal pages, and an AI-powered dashboard diagnosis",
+      "Individual login accounts",
+    ],
+  },
+];

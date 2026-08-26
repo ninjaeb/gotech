@@ -278,6 +278,23 @@ export default async function SettingsPage() {
       )}
 
       <Card>
+        <CardBody>
+          <Link
+            href="/settings/changelog"
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <div>
+              <p className="font-medium text-slate-800 dark:text-slate-200">Changelog</p>
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                See what&apos;s new — every feature and change, with version and date.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+          </Link>
+        </CardBody>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Change your password</CardTitle>
         </CardHeader>
