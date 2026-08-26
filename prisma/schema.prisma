@@ -98,6 +98,7 @@ model User {
   assignedTasks       TaskAssignee[]
   followingTasks      TaskFollower[]
   notifications       Notification[]
+  contactLists        ContactList[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -252,10 +253,56 @@ model Contact {
   bookings            Booking[]
   clientUser          ClientUser?
   sequenceEnrollments SequenceEnrollment[]
+  listMemberships     ContactListMember[]
 
   @@index([companyId])
   @@index([lastName, firstName])
   @@index([lifecycleStage])
+}
+
+enum ListType {
+  STATIC
+  DYNAMIC
+}
+
+// A saved segment of contacts — either a hand-picked set (STATIC, via
+// ContactListMember) or a live query re-evaluated on every view (DYNAMIC).
+// Dynamic lists don't carry a generic filter DSL: v1 only ships a handful
+// of hardcoded templates (see DYNAMIC_LIST_TEMPLATES in
+// src/lib/contact-lists.ts), so filterDefinition only ever holds
+// `{ template: "<key>" }` today. It's still a real JSON column rather than
+// a plain template-key string so a future generic query builder can widen
+// what that JSON shape holds without another migration.
+model ContactList {
+  id   String   @id @default(cuid())
+  name String
+  type ListType
+
+  filterDefinition Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  members ContactListMember[]
+
+  @@index([ownerId])
+}
+
+model ContactListMember {
+  id      String   @id @default(cuid())
+  addedAt DateTime @default(now())
+
+  list   ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId String
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  @@unique([listId, contactId])
+  @@index([contactId])
 }
 
 // A client-side portal login, entirely separate from the internal User
