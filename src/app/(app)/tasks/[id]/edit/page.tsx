@@ -34,7 +34,11 @@ export default async function EditTaskPage({
   return (
     <div className="max-w-2xl">
       <PageHeader
-        breadcrumbs={[{ label: "Tasks", href: "/tasks" }, { label: "Edit task" }]}
+        breadcrumbs={[
+          { label: "Tasks", href: "/tasks" },
+          { label: task.title, href: `/tasks/${task.id}` },
+          { label: "Edit" },
+        ]}
         title="Edit task"
       />
       <Card>

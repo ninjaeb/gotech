@@ -15,6 +15,7 @@ const noteSchema = z.object({
   companyId: z.string().trim().nullish(),
   dealId: z.string().trim().nullish(),
   projectId: z.string().trim().nullish(),
+  taskId: z.string().trim().nullish(),
 });
 
 // Whichever one of these is set names the page the mentioning note lives
@@ -24,6 +25,7 @@ async function describeActivityParent(data: {
   companyId?: string | null;
   dealId?: string | null;
   projectId?: string | null;
+  taskId?: string | null;
 }): Promise<string | null> {
   if (data.contactId) {
     const contact = await db.contact.findUnique({
@@ -44,6 +46,10 @@ async function describeActivityParent(data: {
     const project = await db.project.findUnique({ where: { id: data.projectId }, select: { name: true } });
     return project?.name ?? null;
   }
+  if (data.taskId) {
+    const task = await db.task.findUnique({ where: { id: data.taskId }, select: { title: true } });
+    return task?.title ?? null;
+  }
   return null;
 }
 
@@ -55,6 +61,7 @@ export async function addActivity(formData: FormData) {
     companyId: formData.get("companyId"),
     dealId: formData.get("dealId"),
     projectId: formData.get("projectId"),
+    taskId: formData.get("taskId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid activity data");
@@ -74,6 +81,7 @@ export async function addActivity(formData: FormData) {
       companyId: data.companyId || null,
       dealId: data.dealId || null,
       projectId: data.projectId || null,
+      taskId: data.taskId || null,
     },
   });
 
@@ -90,4 +98,5 @@ export async function addActivity(formData: FormData) {
   if (data.companyId) revalidatePath(`/companies/${data.companyId}`);
   if (data.dealId) revalidatePath(`/deals/${data.dealId}`);
   if (data.projectId) revalidatePath(`/projects/${data.projectId}`);
+  if (data.taskId) revalidatePath(`/tasks/${data.taskId}`);
 }

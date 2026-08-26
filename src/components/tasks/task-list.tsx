@@ -101,14 +101,15 @@ export function TaskList({
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p
+                <Link
+                  href={`/tasks/${task.id}`}
                   className={cn(
-                    "text-sm font-medium text-slate-800 dark:text-slate-200",
+                    "text-sm font-medium text-slate-800 hover:text-indigo-600 hover:underline dark:text-slate-200",
                     task.completed && "text-slate-400 line-through dark:text-slate-500",
                   )}
                 >
                   {task.title}
-                </p>
+                </Link>
                 <Badge>{TASK_TYPE_LABELS[task.type]}</Badge>
                 <Badge className={TASK_PRIORITY_BADGE_CLASSES[task.priority]}>
                   {TASK_PRIORITY_LABELS[task.priority]}

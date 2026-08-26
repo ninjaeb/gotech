@@ -10,12 +10,14 @@ export function ActivityForm({
   companyId,
   dealId,
   projectId,
+  taskId,
   users,
 }: {
   contactId?: string;
   companyId?: string;
   dealId?: string;
   projectId?: string;
+  taskId?: string;
   users: { id: string; name: string }[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -36,6 +38,7 @@ export function ActivityForm({
       {companyId && <input type="hidden" name="companyId" value={companyId} />}
       {dealId && <input type="hidden" name="dealId" value={dealId} />}
       {projectId && <input type="hidden" name="projectId" value={projectId} />}
+      {taskId && <input type="hidden" name="taskId" value={taskId} />}
       <MentionTextarea
         name="content"
         rows={2}

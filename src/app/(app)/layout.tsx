@@ -5,13 +5,23 @@ import type { NotificationItem } from "@/components/layout/notification-bell";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 
-function notificationHref(activity: {
-  contactId: string | null;
-  companyId: string | null;
-  dealId: string | null;
-  projectId: string | null;
-} | null): string | null {
+function notificationHref(notification: {
+  // Set directly for a task-description @mention (see notifyTaskMentions);
+  // separate from activity.taskId below, which covers a note/email/
+  // WhatsApp send logged from the task's own detail page instead.
+  taskId: string | null;
+  activity: {
+    taskId: string | null;
+    contactId: string | null;
+    companyId: string | null;
+    dealId: string | null;
+    projectId: string | null;
+  } | null;
+}): string | null {
+  if (notification.taskId) return `/tasks/${notification.taskId}`;
+  const activity = notification.activity;
   if (!activity) return null;
+  if (activity.taskId) return `/tasks/${activity.taskId}`;
   if (activity.contactId) return `/contacts/${activity.contactId}`;
   if (activity.companyId) return `/companies/${activity.companyId}`;
   if (activity.dealId) return `/deals/${activity.dealId}`;
@@ -35,7 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       orderBy: [{ read: "asc" }, { createdAt: "desc" }],
       take: 15,
       include: {
-        activity: { select: { contactId: true, companyId: true, dealId: true, projectId: true } },
+        activity: { select: { taskId: true, contactId: true, companyId: true, dealId: true, projectId: true } },
       },
     }),
     db.notification.count({ where: { userId: user.id, read: false } }),
@@ -46,7 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     content: notification.content,
     read: notification.read,
     createdAt: notification.createdAt,
-    href: notificationHref(notification.activity),
+    href: notificationHref(notification),
   }));
 
   return (

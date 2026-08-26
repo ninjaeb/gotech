@@ -10,7 +10,7 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { formatDateInput, formatDate, formatMinutes, fullName } from "@/lib/format";
+import { formatDateInput, formatDate, formatMinutes } from "@/lib/format";
 
 export default async function TaskTimePage({
   params,
@@ -22,10 +22,6 @@ export default async function TaskTimePage({
   const task = await db.task.findUnique({
     where: { id },
     include: {
-      contact: { select: { id: true, firstName: true, lastName: true } },
-      company: { select: { id: true, name: true } },
-      deal: { select: { id: true, title: true } },
-      project: { select: { id: true, name: true } },
       timeEntries: {
         orderBy: { date: "desc" },
         include: { user: { select: { id: true, name: true } } },
@@ -37,36 +33,19 @@ export default async function TaskTimePage({
 
   const total = task.timeEntries.reduce((sum, entry) => sum + entry.minutes, 0);
 
-  const parent = task.deal
-    ? { href: `/deals/${task.deal.id}`, label: task.deal.title }
-    : task.project
-      ? { href: `/projects/${task.project.id}`, label: task.project.name }
-      : task.contact
-        ? {
-            href: `/contacts/${task.contact.id}`,
-            label: fullName(task.contact.firstName, task.contact.lastName),
-          }
-        : task.company
-          ? { href: `/companies/${task.company.id}`, label: task.company.name }
-          : null;
-
   return (
     <div className="max-w-2xl">
       <PageHeader
         breadcrumbs={[
           { label: "Tasks", href: "/tasks" },
-          ...(parent ? [{ label: parent.label, href: parent.href }] : []),
-          { label: task.title },
+          { label: task.title, href: `/tasks/${task.id}` },
+          { label: "Log time" },
         ]}
-        title={task.title}
+        title="Log time"
         description={
-          parent ? (
-            <Link href={parent.href} className="text-indigo-600 hover:underline">
-              {parent.label}
-            </Link>
-          ) : (
-            "Time entries"
-          )
+          <Link href={`/tasks/${task.id}`} className="text-indigo-600 hover:underline">
+            {task.title}
+          </Link>
         }
       />
 

@@ -9,6 +9,10 @@ import { WHATSAPP_ACCOUNT_ID, sendWhatsAppMessage } from "@/lib/whatsapp";
 
 const sendSchema = z.object({
   message: z.string().trim().min(1, "Message is required"),
+  // Set only when sending from a Task's own detail page, so the logged
+  // activity shows up in that task's activity log too, alongside the
+  // contact's — see the taskId comment on the Activity model.
+  taskId: z.string().trim().nullish(),
 });
 
 export type SendWhatsAppFormState = { error: string } | { success: true } | undefined;
@@ -18,7 +22,10 @@ export async function sendWhatsAppToContact(
   _prevState: SendWhatsAppFormState,
   formData: FormData,
 ): Promise<SendWhatsAppFormState> {
-  const parsed = sendSchema.safeParse({ message: formData.get("message") });
+  const parsed = sendSchema.safeParse({
+    message: formData.get("message"),
+    taskId: formData.get("taskId"),
+  });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid message" };
   }
@@ -48,10 +55,12 @@ export async function sendWhatsAppToContact(
       content: `Sent WhatsApp message: ${parsed.data.message}`,
       contactId,
       dealId,
+      taskId: parsed.data.taskId || null,
     },
   });
 
   revalidatePath(`/contacts/${contactId}`);
   if (dealId) revalidatePath(`/deals/${dealId}`);
+  if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
   return { success: true };
 }

@@ -9,7 +9,17 @@ import { FieldGroup, Input, Textarea } from "@/components/ui/field";
 const iconLinkClasses =
   "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200";
 
-export function SendEmailButton({ contactId, contactName }: { contactId: string; contactName: string }) {
+export function SendEmailButton({
+  contactId,
+  contactName,
+  taskId,
+}: {
+  contactId: string;
+  contactName: string;
+  // When sent from a Task's own detail page, logs the resulting activity
+  // to that task too, not just the contact.
+  taskId?: string;
+}) {
   const [open, setOpen] = useState(false);
   const action = sendEmailToContact.bind(null, contactId);
   const [state, formAction, pending] = useActionState(action, undefined);
@@ -69,6 +79,7 @@ export function SendEmailButton({ contactId, contactName }: { contactId: string;
               </p>
             ) : (
               <form action={formAction} className="space-y-3">
+                {taskId && <input type="hidden" name="taskId" value={taskId} />}
                 <FieldGroup label="Subject" htmlFor="send-email-subject" required>
                   <Input id="send-email-subject" name="subject" required autoFocus />
                 </FieldGroup>

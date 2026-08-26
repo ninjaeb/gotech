@@ -55,6 +55,7 @@ function parseFollowerIds(formData: FormData): string[] {
 }
 
 function revalidateTaskPaths(task: {
+  id?: string;
   contactId?: string | null;
   companyId?: string | null;
   dealId?: string | null;
@@ -66,6 +67,7 @@ function revalidateTaskPaths(task: {
   if (task.companyId) revalidatePath(`/companies/${task.companyId}`);
   if (task.dealId) revalidatePath(`/deals/${task.dealId}`);
   if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
+  if (task.id) revalidatePath(`/tasks/${task.id}`);
 }
 
 export async function createTask(formData: FormData) {
@@ -173,6 +175,7 @@ export async function toggleTaskComplete(id: string) {
         companyId: task.companyId,
         dealId: task.dealId,
         projectId: task.projectId,
+        taskId: task.id,
       },
     });
   }

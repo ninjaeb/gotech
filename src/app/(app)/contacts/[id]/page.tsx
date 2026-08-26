@@ -389,7 +389,10 @@ function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-0.5 text-slate-800 dark:text-slate-200">{value || "—"}</p>
+      {/* A div, not a p — value can carry the SendEmailButton/SendWhatsAppButton
+          modal (a <div role="dialog"> with its own <h2>/<form>/<p>), which
+          isn't valid inside a <p> and breaks the DOM once that modal opens. */}
+      <div className="mt-0.5 text-slate-800 dark:text-slate-200">{value || "—"}</div>
     </div>
   );
 }

@@ -9,6 +9,10 @@ import { sendEmailViaAccount, findUnambiguousOpenDeal } from "@/lib/email";
 const sendSchema = z.object({
   subject: z.string().trim().min(1, "Subject is required"),
   body: z.string().trim().min(1, "Message is required"),
+  // Set only when sending from a Task's own detail page, so the logged
+  // activity shows up in that task's activity log too, alongside the
+  // contact's — see the taskId comment on the Activity model.
+  taskId: z.string().trim().nullish(),
 });
 
 export type SendEmailFormState = { error: string } | { success: true } | undefined;
@@ -21,6 +25,7 @@ export async function sendEmailToContact(
   const parsed = sendSchema.safeParse({
     subject: formData.get("subject"),
     body: formData.get("body"),
+    taskId: formData.get("taskId"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid message" };
@@ -52,10 +57,12 @@ export async function sendEmailToContact(
       content: `Sent email — "${parsed.data.subject}": ${parsed.data.body}`,
       contactId,
       dealId,
+      taskId: parsed.data.taskId || null,
     },
   });
 
   revalidatePath(`/contacts/${contactId}`);
   if (dealId) revalidatePath(`/deals/${dealId}`);
+  if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
   return { success: true };
 }
