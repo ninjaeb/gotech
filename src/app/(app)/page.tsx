@@ -8,7 +8,7 @@ import { TaskList } from "@/components/tasks/task-list";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
-import { stageBadgeClasses } from "@/lib/labels";
+import { LEAD_SOURCE_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
@@ -40,7 +40,12 @@ export default async function DashboardPage() {
     db.company.count(),
     db.contact.count(),
     db.deal.findMany({
-      select: { value: true, pipelineStageId: true, pipelineStage: { select: { isWon: true, isLost: true } } },
+      select: {
+        value: true,
+        pipelineStageId: true,
+        source: true,
+        pipelineStage: { select: { isWon: true, isLost: true } },
+      },
     }),
     db.task.count({
       where: {
@@ -123,6 +128,25 @@ export default async function DashboardPage() {
       };
     });
   const maxStageValue = Math.max(1, ...stageBreakdown.map((s) => s.value));
+
+  // Every deal ever created (not just open ones) — this is about where
+  // leads have historically come from, not current pipeline composition.
+  // "Unknown" (source is null) covers everything created before this field
+  // existed plus any manually-created deal where it was left blank; shown
+  // rather than hidden so the breakdown never silently omits deals.
+  const sourceGroups = new Map<string, { label: string; count: number; value: number }>();
+  for (const deal of allDeals) {
+    const key = deal.source ?? "UNKNOWN";
+    const label = deal.source ? LEAD_SOURCE_LABELS[deal.source] : "Unknown";
+    const entry = sourceGroups.get(key) ?? { label, count: 0, value: 0 };
+    entry.count += 1;
+    entry.value += Number(deal.value);
+    sourceGroups.set(key, entry);
+  }
+  const sourceBreakdown = Array.from(sourceGroups.entries())
+    .map(([key, entry]) => ({ key, ...entry }))
+    .sort((a, b) => b.count - a.count);
+  const maxSourceValue = Math.max(1, ...sourceBreakdown.map((s) => s.value));
 
   return (
     <div>
@@ -257,6 +281,36 @@ export default async function DashboardPage() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Deals by source</CardTitle>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              {sourceBreakdown.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                  No deals yet.
+                </p>
+              ) : (
+                sourceBreakdown.map(({ key, label, count, value }) => (
+                  <div key={key}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {label} <span className="font-normal text-slate-400">({count})</span>
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value, currency)}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-neutral-800">
+                      <div
+                        className={key === "UNKNOWN" ? "h-full rounded-full bg-slate-300 dark:bg-neutral-600" : "h-full rounded-full bg-indigo-500"}
+                        style={{ width: `${(value / maxSourceValue) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
               )}
             </CardBody>
           </Card>
