@@ -78,7 +78,7 @@ export function ImportForm() {
               {result.skippedDuplicates > 0 &&
                 `, ${result.skippedDuplicates} duplicate${result.skippedDuplicates === 1 ? "" : "s"} skipped`}
               {result.skippedInvalid > 0 &&
-                `, ${result.skippedInvalid} row${result.skippedInvalid === 1 ? "" : "s"} skipped (no name)`}
+                `, ${result.skippedInvalid} row${result.skippedInvalid === 1 ? "" : "s"} skipped (missing name, or no email/phone)`}
               .
             </p>
           </div>
@@ -107,7 +107,7 @@ export function ImportForm() {
                 {preview.importableRows} of {preview.totalRows} contacts will be
                 imported
                 {preview.skippedRows > 0 &&
-                  ` — ${preview.skippedRows} skipped (no name)`}
+                  ` — ${preview.skippedRows} skipped (missing name, or no email/phone)`}
                 {preview.duplicateEmails.length > 0 &&
                   `, ${preview.duplicateEmails.length} match an existing contact by email`}
                 .

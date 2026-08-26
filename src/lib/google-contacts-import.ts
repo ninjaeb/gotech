@@ -184,7 +184,10 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       notes,
       imageUrl: readHeader(record, imageUrlHeader) || null,
       issues,
-      importable: Boolean(firstName || lastName),
+      // Needs a name to become a Contact, and at least one way to reach
+      // them — a name-only row with no email or phone isn't a usable CRM
+      // contact, just noise (see the "No email or phone" issue above).
+      importable: Boolean((firstName || lastName) && (email || phone)),
     };
   });
 

@@ -12,7 +12,8 @@
     "clear-data": "tsx scripts/clear-data.ts",
     "sync-email": "tsx scripts/sync-email.ts",
     "process-sequences": "tsx scripts/process-sequences.ts",
-    "send-task-digests": "tsx scripts/send-task-digests.ts"
+    "send-task-digests": "tsx scripts/send-task-digests.ts",
+    "remove-contacts-without-phone": "tsx scripts/remove-contacts-without-phone.ts"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
