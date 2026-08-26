@@ -13,7 +13,8 @@
     "sync-email": "tsx scripts/sync-email.ts",
     "process-sequences": "tsx scripts/process-sequences.ts",
     "send-task-digests": "tsx scripts/send-task-digests.ts",
-    "remove-contacts-without-phone": "tsx scripts/remove-contacts-without-phone.ts"
+    "remove-contacts-without-phone": "tsx scripts/remove-contacts-without-phone.ts",
+    "remove-contacts-without-phone-or-email": "tsx scripts/remove-contacts-without-phone-or-email.ts"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",
