@@ -16,6 +16,11 @@ export type ParsedContactRow = {
   industry: Industry | null;
   notes: string | null;
   imageUrl: string | null;
+  // These two describe the *company*, not this row's contact — folded onto
+  // the Company record (notes/address) in confirmContactImport, same
+  // fill-only-what's-missing rule as industry below.
+  companyDescription: string | null;
+  companyAddress: string | null;
   issues: string[];
   /** False for rows with no derivable person name — can't become a Contact. */
   importable: boolean;
@@ -55,6 +60,25 @@ const PHONE_FALLBACK_HEADERS = [/^phone$/i, /^phone number$/i];
 const CATEGORY_HEADERS = [/^category$/i];
 const INDUSTRY_HEADERS = [/^industry$/i];
 const PROFILE_URL_HEADERS = [/^profile\s*url$/i, /^profile\s*link$/i];
+// Free text about the company, not this row's contact — used to fill the
+// Company's notes and, when there's no (or no matching) Industry column, as
+// a fallback signal for matchIndustry() below (e.g. "software development
+// agency" still maps to Technology even with no "Industry" column at all).
+const DESCRIPTION_HEADERS = [
+  /^(business|company)\s*description$/i,
+  /^description$/i,
+  /^about(\s*(the\s*)?(business|company))?$/i,
+  /^summary$/i,
+  /^bio$/i,
+];
+// "Address 1 - Formatted" is Google's own combined-address export column;
+// everything else here covers non-Google sources.
+const ADDRESS_HEADERS = [
+  /^address\s*1\s*-\s*formatted$/i,
+  /^(business|company)\s*address$/i,
+  /^address$/i,
+  /^location$/i,
+];
 
 // Fetched and stored as the Contact's photo (see fetchPhotoAsDataUrl in
 // src/app/actions/contact-import.ts) — this is the one exception to
@@ -129,6 +153,8 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
   const industryHeader = findHeader(headers, INDUSTRY_HEADERS);
   const profileUrlHeader = findHeader(headers, PROFILE_URL_HEADERS);
   const imageUrlHeader = findHeader(headers, IMAGE_URL_HEADERS);
+  const descriptionHeader = findHeader(headers, DESCRIPTION_HEADERS);
+  const addressHeader = findHeader(headers, ADDRESS_HEADERS);
 
   const rows: ParsedContactRow[] = records.map((record, index) => {
     const issues: string[] = [];
@@ -179,7 +205,14 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
 
     const category = readHeader(record, categoryHeader);
     const industryRaw = readHeader(record, industryHeader);
-    const industry = industryRaw ? matchIndustry(industryRaw) : null;
+    const companyDescription = readHeader(record, descriptionHeader) || null;
+    const companyAddress = readHeader(record, addressHeader) || null;
+    // Explicit Industry column wins when it maps to something; a business
+    // description is only consulted as a fallback signal (e.g. "software
+    // development agency" still infers Technology with no Industry column
+    // at all, or when that column's value didn't match anything curated).
+    const industry =
+      (industryRaw && matchIndustry(industryRaw)) || (companyDescription && matchIndustry(companyDescription)) || null;
     const profileUrl = readHeader(record, profileUrlHeader);
     const extraContext = [
       category && `Category: ${category}`,
@@ -204,6 +237,8 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       industry,
       notes,
       imageUrl: readHeader(record, imageUrlHeader) || null,
+      companyDescription,
+      companyAddress,
       issues,
       // Needs a name to become a Contact, and at least one way to reach
       // them — a name-only row with no email or phone isn't a usable CRM

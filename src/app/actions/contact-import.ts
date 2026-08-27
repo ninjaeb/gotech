@@ -187,15 +187,21 @@ export async function confirmContactImport(
     ),
   ];
 
-  // First non-null industry found for each company name across the file's
+  // First non-null value found for each company name across the file's
   // rows — same fill-only-what's-missing philosophy as the contact fields
-  // below, applied to the company: never overwrites one that's already
-  // classified.
+  // below, applied to the company: never overwrites one that's already set.
   const industryByCompanyName = new Map<string, Industry>();
+  const descriptionByCompanyName = new Map<string, string>();
+  const addressByCompanyName = new Map<string, string>();
   for (const row of importableRows) {
     const name = row.companyName?.trim();
-    if (name && row.industry && !industryByCompanyName.has(name)) {
-      industryByCompanyName.set(name, row.industry);
+    if (!name) continue;
+    if (row.industry && !industryByCompanyName.has(name)) industryByCompanyName.set(name, row.industry);
+    if (row.companyDescription && !descriptionByCompanyName.has(name)) {
+      descriptionByCompanyName.set(name, row.companyDescription);
+    }
+    if (row.companyAddress && !addressByCompanyName.has(name)) {
+      addressByCompanyName.set(name, row.companyAddress);
     }
   }
 
@@ -204,17 +210,23 @@ export async function confirmContactImport(
   for (const name of companyNames) {
     const existing = await db.company.findFirst({
       where: { name },
-      select: { id: true, industry: true },
+      select: { id: true, industry: true, notes: true, address: true },
     });
     const industry = industryByCompanyName.get(name);
+    const description = descriptionByCompanyName.get(name);
+    const address = addressByCompanyName.get(name);
     if (existing) {
       companyIdByName.set(name, existing.id);
-      if (!existing.industry && industry) {
-        await db.company.update({ where: { id: existing.id }, data: { industry } });
+      const fill: { industry?: Industry; notes?: string; address?: string } = {};
+      if (!existing.industry && industry) fill.industry = industry;
+      if (!existing.notes && description) fill.notes = description;
+      if (!existing.address && address) fill.address = address;
+      if (Object.keys(fill).length > 0) {
+        await db.company.update({ where: { id: existing.id }, data: fill });
       }
     } else {
       const company = await db.company.create({
-        data: { name, industry: industry ?? null },
+        data: { name, industry: industry ?? null, notes: description ?? null, address: address ?? null },
         select: { id: true },
       });
       companyIdByName.set(name, company.id);
