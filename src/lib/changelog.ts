@@ -10,6 +10,30 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.16",
+    date: "2026-08-27",
+    title: "Cleaner contact data, AI drafting, and desktop alerts",
+    changes: [
+      "Contact first and last names are auto-capitalized everywhere — data entry, edits, and CSV import",
+      "\"Save to phone\" on a contact's page downloads a vCard with their and their company's details, ready to add to your phone's contacts",
+      "CSV import now validates email and phone format (dropping only the bad field, not the whole contact), converts phone numbers to the +country-code standard, catches duplicates by phone even when one side is missing its \"+\", and imports company industry",
+      "Draft with AI on the Email/WhatsApp send dialogs (Task and Contact pages) — one click drafts a follow-up grounded in that contact's real history",
+      "New cleanup tools: contacts with a badly-formatted phone, contacts without a company, and companies without a contact",
+      "Desktop notifications — enable them from the notification bell to get a browser alert for new notifications while GoTech is open in another tab",
+    ],
+  },
+  {
+    version: "1.15",
+    date: "2026-08-26",
+    title: "A page for every task, with its own activity log",
+    changes: [
+      "Every task now has its own page — full details, linked company/deal/project, assignees, followers, and time logged",
+      "Task pages have their own activity log, the same notes feed already on Contact/Company/Deal/Project pages",
+      "Email or WhatsApp a task's client straight from the task page — the message logs as an activity on both the task and the contact",
+      "Task titles across every task list now link to this new page",
+    ],
+  },
+  {
     version: "1.14",
     date: "2026-08-26",
     title: "Dashboard shortcuts and navigation",
