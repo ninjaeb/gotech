@@ -13,9 +13,26 @@ type ContactRow = {
   phone: string | null;
   photoUrl: string | null;
   createdAt: Date;
+  companyId: string | null;
   company: { name: string } | null;
   _count: { deals: number; tasks: number; activities: number; bookings: number; sequenceEnrollments: number };
 };
+
+type OrphanCandidate = {
+  id: string;
+  name: string;
+  domain: string | null;
+  _count: { deals: number; tasks: number; activities: number; resources: number };
+};
+
+function companyHasHistory(c: OrphanCandidate) {
+  return c._count.deals > 0 || c._count.tasks > 0 || c._count.activities > 0 || c._count.resources > 0;
+}
+
+function companyLabel(c: OrphanCandidate) {
+  const domain = c.domain ? ` (${c.domain})` : "";
+  return `${c.name}${domain} (id: ${c.id})`;
+}
 
 // Two contacts can be linked by phone while a third links to one of them by
 // email — those three are really one cluster, not two separate pairs. Plain
@@ -91,6 +108,7 @@ async function main() {
       phone: true,
       photoUrl: true,
       createdAt: true,
+      companyId: true,
       company: { select: { name: true } },
       _count: {
         select: { deals: true, tasks: true, activities: true, bookings: true, sequenceEnrollments: true },
@@ -171,6 +189,37 @@ async function main() {
     }
   }
 
+  // A company can end up with zero contacts once these duplicates are gone —
+  // checked against its FULL current contact list (not just the phone/email
+  // subset scanned above), since a contact with neither would still keep the
+  // company from being orphaned.
+  const affectedCompanyIds = [...new Set(toDelete.map((c) => c.companyId).filter((id): id is string => Boolean(id)))];
+  const toDeleteIds = new Set(toDelete.map((c) => c.id));
+  let orphanCandidates: OrphanCandidate[] = [];
+  if (affectedCompanyIds.length > 0) {
+    const affectedCompanies = await db.company.findMany({
+      where: { id: { in: affectedCompanyIds } },
+      select: {
+        id: true,
+        name: true,
+        domain: true,
+        contacts: { select: { id: true } },
+        _count: { select: { deals: true, tasks: true, activities: true, resources: true } },
+      },
+    });
+    orphanCandidates = affectedCompanies.filter((company) => company.contacts.every((c) => toDeleteIds.has(c.id)));
+  }
+  const orphanClean = orphanCandidates.filter((c) => !companyHasHistory(c));
+  const orphanWithHistory = orphanCandidates.filter(companyHasHistory);
+
+  if (orphanCandidates.length > 0) {
+    console.log(
+      `\nDeleting those duplicates would also leave ${orphanCandidates.length} compan${orphanCandidates.length === 1 ? "y" : "ies"} with no contacts left:`,
+    );
+    for (const c of orphanClean) console.log(`  - ${companyLabel(c)}`);
+    for (const c of orphanWithHistory) console.log(`  - ${companyLabel(c)} — has linked history, won't be auto-removed`);
+  }
+
   if (!values.yes) {
     console.log(`\nNothing deleted.${toDelete.length > 0 ? ` Re-run with --yes to delete the ${toDelete.length} contact(s) listed above:` : ""}`);
     if (toDelete.length > 0) console.log("  npm run remove-duplicate-contacts -- --yes");
@@ -187,6 +236,18 @@ async function main() {
   console.log(`Done. Deleted ${result.count} contact(s).`);
   if (needsReview.length > 0) {
     console.log(`${needsReview.length} group(s) with conflicting history were left untouched — review those manually.`);
+  }
+
+  if (orphanClean.length > 0) {
+    console.log(`\nDeleting ${orphanClean.length} compan${orphanClean.length === 1 ? "y" : "ies"} left with no contacts…`);
+    const companyResult = await db.company.deleteMany({ where: { id: { in: orphanClean.map((c) => c.id) } } });
+    console.log(`Done. Deleted ${companyResult.count} compan${companyResult.count === 1 ? "y" : "ies"}.`);
+  }
+  if (orphanWithHistory.length > 0) {
+    console.log(
+      `${orphanWithHistory.length} compan${orphanWithHistory.length === 1 ? "y" : "ies"} left with no contacts but WITH linked history — not removed, review manually:`,
+    );
+    for (const c of orphanWithHistory) console.log(`  - ${companyLabel(c)}`);
   }
 }
 
