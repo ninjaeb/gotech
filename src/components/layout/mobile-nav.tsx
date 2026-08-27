@@ -1,8 +1,8 @@
 "use client";
 
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import {
   Building2,
   CheckSquare,
@@ -109,25 +109,40 @@ export function MobileNav({
                     : pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-indigo-950 text-indigo-300"
-                        : "text-slate-400 hover:bg-slate-900 hover:text-slate-100",
+                  <Fragment key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-indigo-950 text-indigo-300"
+                          : "text-slate-400 hover:bg-slate-900 hover:text-slate-100",
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.label}
+                      {item.href === "/tasks" && myTaskAlertCount > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
+                          {myTaskAlertCount}
+                        </span>
+                      )}
+                    </Link>
+                    {item.href === "/settings" && (
+                      <Link
+                        href="/settings/changelog"
+                        onClick={() => setOpen(false)}
+                        className={cn(
+                          "ml-8 flex items-center rounded-md px-3 py-2 text-xs font-medium transition-colors",
+                          pathname === "/settings/changelog"
+                            ? "text-indigo-300"
+                            : "text-slate-500 hover:text-slate-200",
+                        )}
+                      >
+                        Changelog
+                      </Link>
                     )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                    {item.href === "/tasks" && myTaskAlertCount > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
-                        {myTaskAlertCount}
-                      </span>
-                    )}
-                  </Link>
+                  </Fragment>
                 );
               })}
             </nav>
