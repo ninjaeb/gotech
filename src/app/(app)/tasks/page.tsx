@@ -74,7 +74,9 @@ export default async function TasksPage({
   }
   const where: Prisma.TaskWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
-  const [tasks, companies, contacts, deals, users] = await Promise.all([
+  const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
+
+  const [tasks, companies, contacts, deals, users, hasEmailAccount, hasWhatsAppAccount] = await Promise.all([
     db.task.findMany({
       where,
       orderBy:
@@ -82,10 +84,12 @@ export default async function TasksPage({
           ? { completedAt: "desc" }
           : [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
       include: {
-        contact: { select: { id: true, firstName: true, lastName: true } },
+        contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true } },
-        project: { select: { id: true, name: true } },
+        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        project: {
+          select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
+        },
         assignees: { include: { user: { select: { id: true, name: true } } } },
         _count: { select: { followers: true } },
       },
@@ -100,6 +104,8 @@ export default async function TasksPage({
       select: { id: true, title: true, companyId: true, contactId: true },
     }),
     db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
+    db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
   ]);
 
   return (
@@ -153,6 +159,8 @@ export default async function TasksPage({
             users={users}
             showParent
             canManage={canManage}
+            hasEmailAccount={hasEmailAccount}
+            hasWhatsAppAccount={hasWhatsAppAccount}
             emptyMessage={
               query || assigneeId
                 ? "No tasks match your filters."

@@ -39,7 +39,7 @@ export function StatCard({
         <Icon className="h-5 w-5" />
       </div>
       <div className="min-w-0">
-        <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+        <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">
           {label}
         </p>
         <p className="text-lg font-semibold text-slate-900 dark:text-slate-100">

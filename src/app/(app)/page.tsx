@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   endOfToday.setDate(endOfToday.getDate() + 1);
 
   const currentUser = await requireAdmin();
+  const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
 
   const [
     currency,
@@ -35,6 +36,8 @@ export default async function DashboardPage() {
     topOpenDeals,
     defaultPipeline,
     users,
+    hasEmailAccount,
+    hasWhatsAppAccount,
   ] = await Promise.all([
     getCurrency(),
     db.company.count(),
@@ -68,10 +71,12 @@ export default async function DashboardPage() {
       orderBy: [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
       take: 6,
       include: {
-        contact: { select: { id: true, firstName: true, lastName: true } },
+        contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true } },
-        project: { select: { id: true, name: true } },
+        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        project: {
+          select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
+        },
         assignees: { include: { user: { select: { id: true, name: true } } } },
         _count: { select: { followers: true } },
       },
@@ -81,10 +86,12 @@ export default async function DashboardPage() {
       orderBy: [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
       take: 6,
       include: {
-        contact: { select: { id: true, firstName: true, lastName: true } },
+        contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true } },
-        project: { select: { id: true, name: true } },
+        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        project: {
+          select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
+        },
         assignees: { include: { user: { select: { id: true, name: true } } } },
         _count: { select: { followers: true } },
       },
@@ -97,6 +104,8 @@ export default async function DashboardPage() {
     }),
     getDefaultPipeline(),
     db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
+    db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
   ]);
 
   const openDeals = allDeals.filter((deal) => !deal.pipelineStage.isWon && !deal.pipelineStage.isLost);
@@ -235,7 +244,11 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardBody className="space-y-4">
               {stageBreakdown.map(({ stage, count, value }) => (
-                <div key={stage.id}>
+                <Link
+                  key={stage.id}
+                  href={`/deals?pipeline=${defaultPipeline.id}#stage-${stage.id}`}
+                  className="-mx-2 block rounded-md px-2 py-1 transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800"
+                >
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="font-medium text-slate-700 dark:text-slate-300">
                       {stage.name} <span className="font-normal text-slate-400">({count})</span>
@@ -248,7 +261,7 @@ export default async function DashboardPage() {
                       style={{ width: `${(value / maxStageValue) * 100}%` }}
                     />
                   </div>
-                </div>
+                </Link>
               ))}
             </CardBody>
           </Card>
@@ -342,6 +355,8 @@ export default async function DashboardPage() {
                 tasks={myTasks}
                 users={users}
                 showParent
+                hasEmailAccount={hasEmailAccount}
+                hasWhatsAppAccount={hasWhatsAppAccount}
                 emptyMessage="Nothing assigned to you — nice work!"
               />
             </CardBody>
@@ -356,6 +371,8 @@ export default async function DashboardPage() {
                 tasks={followedTasks}
                 users={users}
                 showParent
+                hasEmailAccount={hasEmailAccount}
+                hasWhatsAppAccount={hasWhatsAppAccount}
                 emptyMessage="You're not following any open tasks."
               />
             </CardBody>

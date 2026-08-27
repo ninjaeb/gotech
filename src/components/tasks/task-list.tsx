@@ -7,14 +7,23 @@ import { relativeToToday, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ActivityContent } from "@/components/activity/activity-content";
+import { SendEmailButton } from "@/components/contacts/send-email-button";
+import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
 import type { UserOption } from "@/lib/mentions";
 import { cn } from "@/lib/utils";
 
+// email/phone are optional here (not just nullable) so callers that don't
+// need the send-email/WhatsApp buttons can keep selecting just id/name
+// without breaking this type — only the dashboard and /tasks page, which
+// do render those buttons, select the fuller shape.
+type ContactRef = Pick<Contact, "id" | "firstName" | "lastName"> & Partial<Pick<Contact, "email" | "phone">>;
+type DealRef = Pick<Deal, "id" | "title"> & { contact?: ContactRef | null };
+
 export type TaskWithRelations = Task & {
-  contact?: Pick<Contact, "id" | "firstName" | "lastName"> | null;
+  contact?: ContactRef | null;
   company?: Pick<Company, "id" | "name"> | null;
-  deal?: Pick<Deal, "id" | "title"> | null;
-  project?: Pick<Project, "id" | "name"> | null;
+  deal?: DealRef | null;
+  project?: (Pick<Project, "id" | "name"> & { deal?: DealRef | null }) | null;
   assignees?: { user: Pick<User, "id" | "name"> }[];
   _count?: { followers: number };
 };
@@ -37,6 +46,8 @@ export function TaskList({
   showParent = false,
   emptyMessage = "No tasks yet.",
   canManage = true,
+  hasEmailAccount = false,
+  hasWhatsAppAccount = false,
 }: {
   tasks: TaskWithRelations[];
   users?: UserOption[];
@@ -45,6 +56,14 @@ export function TaskList({
   // Developers can log time against tasks but not create/edit/delete/
   // complete them — everywhere else this defaults to true unchanged.
   canManage?: boolean;
+  // Whether the *current user* has a connected mailbox, and whether the
+  // team has a connected WhatsApp Business number — gates the per-row
+  // Send buttons the same way the task detail page gates its own. Default
+  // false rather than checking here: callers that don't select the extra
+  // contact/deal/project fields ContactRef needs shouldn't pay for a query
+  // whose result they'd never render anyway.
+  hasEmailAccount?: boolean;
+  hasWhatsAppAccount?: boolean;
 }) {
   if (tasks.length === 0) {
     return (
@@ -62,6 +81,11 @@ export function TaskList({
         const overdue =
           !task.completed && task.dueDate && new Date(task.dueDate) < new Date();
         const dueLabel = relativeToToday(task.dueDate);
+        // Same resolution as the task detail page: whichever contact this
+        // task is actually about, direct link first, falling back through
+        // its deal or project.
+        const clientContact = task.contact ?? task.deal?.contact ?? task.project?.deal?.contact ?? null;
+        const clientName = clientContact ? fullName(clientContact.firstName, clientContact.lastName) : "";
 
         return (
           <li key={task.id} className="flex items-start gap-3 py-3">
@@ -186,6 +210,12 @@ export function TaskList({
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
+              {canManage && hasEmailAccount && clientContact?.email && (
+                <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+              )}
+              {canManage && hasWhatsAppAccount && clientContact?.phone && (
+                <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+              )}
               <Link
                 href={`/tasks/${task.id}/time`}
                 aria-label="Log time"

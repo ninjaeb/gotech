@@ -136,7 +136,7 @@ export default async function DealsPage({
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {columns.map((column) => (
-          <div key={column.stage.id} className="w-72 shrink-0">
+          <div key={column.stage.id} id={`stage-${column.stage.id}`} className="w-72 shrink-0 scroll-mt-4">
             <div className="mb-2 flex items-center justify-between px-1">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                 {column.stage.name}
