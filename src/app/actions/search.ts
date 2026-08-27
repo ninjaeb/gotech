@@ -39,12 +39,22 @@ export async function globalSearch(rawQuery: string): Promise<SearchResults> {
       : [],
     isAdmin
       ? db.contact.findMany({
+          // Each word must appear somewhere (first name, last name, or
+          // email) — not the whole query in any single field. Otherwise
+          // "eugene boon" never matches Contact{firstName: "Eugene",
+          // lastName: "Boon"}, since neither field alone contains that
+          // two-word substring; only their concatenation does.
           where: {
-            OR: [
-              { firstName: { contains: query } },
-              { lastName: { contains: query } },
-              { email: { contains: query } },
-            ],
+            AND: query
+              .split(/\s+/)
+              .filter(Boolean)
+              .map((word) => ({
+                OR: [
+                  { firstName: { contains: word } },
+                  { lastName: { contains: word } },
+                  { email: { contains: word } },
+                ],
+              })),
           },
           take: RESULT_LIMIT,
           select: { id: true, firstName: true, lastName: true, email: true },
