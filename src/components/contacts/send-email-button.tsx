@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { Send, X } from "lucide-react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { Send, Sparkles, X } from "lucide-react";
+import { draftFollowUp } from "@/app/actions/ai-insights";
 import { sendEmailToContact } from "@/app/actions/email-send";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Textarea } from "@/components/ui/field";
@@ -24,6 +25,11 @@ export function SendEmailButton({
   const action = sendEmailToContact.bind(null, contactId);
   const [state, formAction, pending] = useActionState(action, undefined);
 
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [draftPending, startDraftTransition] = useTransition();
+
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(event: KeyboardEvent) {
@@ -33,13 +39,33 @@ export function SendEmailButton({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
+  function handleOpen() {
+    setSubject("");
+    setBody("");
+    setDraftError(null);
+    setOpen(true);
+  }
+
+  function handleDraft() {
+    setDraftError(null);
+    startDraftTransition(async () => {
+      const result = await draftFollowUp({ contactId });
+      if (result.status === "error") {
+        setDraftError(result.message);
+        return;
+      }
+      setSubject(result.data.subject);
+      setBody(result.data.draft);
+    });
+  }
+
   const sent = state && "success" in state;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         title="Send email via CRM"
         aria-label="Send email via CRM"
         className={iconLinkClasses}
@@ -80,11 +106,32 @@ export function SendEmailButton({
             ) : (
               <form action={formAction} className="space-y-3">
                 {taskId && <input type="hidden" name="taskId" value={taskId} />}
+                <div className="flex items-center justify-between gap-2">
+                  <Button type="button" size="sm" variant="secondary" onClick={handleDraft} disabled={draftPending}>
+                    <Sparkles className="h-4 w-4" />
+                    {draftPending ? "Drafting…" : "Draft with AI"}
+                  </Button>
+                </div>
+                {draftError && <p className="text-sm text-rose-600 dark:text-rose-400">{draftError}</p>}
                 <FieldGroup label="Subject" htmlFor="send-email-subject" required>
-                  <Input id="send-email-subject" name="subject" required autoFocus />
+                  <Input
+                    id="send-email-subject"
+                    name="subject"
+                    required
+                    autoFocus
+                    value={subject}
+                    onChange={(event) => setSubject(event.target.value)}
+                  />
                 </FieldGroup>
                 <FieldGroup label="Message" htmlFor="send-email-body" required>
-                  <Textarea id="send-email-body" name="body" required rows={6} />
+                  <Textarea
+                    id="send-email-body"
+                    name="body"
+                    required
+                    rows={6}
+                    value={body}
+                    onChange={(event) => setBody(event.target.value)}
+                  />
                 </FieldGroup>
                 {state && "error" in state && (
                   <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { Send, X } from "lucide-react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { Send, Sparkles, X } from "lucide-react";
+import { draftFollowUp } from "@/app/actions/ai-insights";
 import { sendWhatsAppToContact } from "@/app/actions/whatsapp-send";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Textarea } from "@/components/ui/field";
@@ -24,6 +25,10 @@ export function SendWhatsAppButton({
   const action = sendWhatsAppToContact.bind(null, contactId);
   const [state, formAction, pending] = useActionState(action, undefined);
 
+  const [message, setMessage] = useState("");
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const [draftPending, startDraftTransition] = useTransition();
+
   useEffect(() => {
     if (!open) return;
     function handleKeyDown(event: KeyboardEvent) {
@@ -33,13 +38,31 @@ export function SendWhatsAppButton({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open]);
 
+  function handleOpen() {
+    setMessage("");
+    setDraftError(null);
+    setOpen(true);
+  }
+
+  function handleDraft() {
+    setDraftError(null);
+    startDraftTransition(async () => {
+      const result = await draftFollowUp({ contactId });
+      if (result.status === "error") {
+        setDraftError(result.message);
+        return;
+      }
+      setMessage(result.data.draft);
+    });
+  }
+
   const sent = state && "success" in state;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         title="Send WhatsApp message via CRM"
         aria-label="Send WhatsApp message via CRM"
         className={iconLinkClasses}
@@ -80,8 +103,23 @@ export function SendWhatsAppButton({
             ) : (
               <form action={formAction} className="space-y-3">
                 {taskId && <input type="hidden" name="taskId" value={taskId} />}
+                <div className="flex items-center justify-between gap-2">
+                  <Button type="button" size="sm" variant="secondary" onClick={handleDraft} disabled={draftPending}>
+                    <Sparkles className="h-4 w-4" />
+                    {draftPending ? "Drafting…" : "Draft with AI"}
+                  </Button>
+                </div>
+                {draftError && <p className="text-sm text-rose-600 dark:text-rose-400">{draftError}</p>}
                 <FieldGroup label="Message" htmlFor="send-whatsapp-message" required>
-                  <Textarea id="send-whatsapp-message" name="message" required rows={5} autoFocus />
+                  <Textarea
+                    id="send-whatsapp-message"
+                    name="message"
+                    required
+                    rows={5}
+                    autoFocus
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                  />
                 </FieldGroup>
                 {state && "error" in state && (
                   <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>
