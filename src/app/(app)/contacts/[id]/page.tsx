@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
@@ -98,6 +98,10 @@ export default async function ContactDetailPage({
         }
         actions={
           <>
+            <a href={`/api/contacts/${contact.id}/vcard`} className={buttonClasses("secondary")}>
+              <Smartphone className="h-4 w-4" />
+              Save to phone
+            </a>
             <Link
               href={`/contacts/${contact.id}/edit`}
               className={buttonClasses("secondary")}

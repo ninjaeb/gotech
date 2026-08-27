@@ -1,5 +1,55 @@
 import { splitFullName } from "@/lib/format";
 
+function escapeVCardValue(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;")
+    .replace(/\r?\n/g, "\\n");
+}
+
+export type VCardContact = {
+  firstName: string;
+  lastName: string | null;
+  title: string | null;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  company: { name: string; phone: string | null; address: string | null } | null;
+};
+
+// vCard 3.0, not 4.0 — broader compatibility with the phone Contacts apps
+// this is actually meant to land in (older iOS/Android parsers, in
+// particular, are shakier on 4.0). CRLF line endings per RFC 6350, same
+// convention parseVCards above already expects when reading one back.
+export function buildVCard(contact: VCardContact): string {
+  const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(" ");
+  const lines = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `N:${escapeVCardValue(contact.lastName ?? "")};${escapeVCardValue(contact.firstName)};;;`,
+    `FN:${escapeVCardValue(fullName)}`,
+  ];
+  if (contact.company) lines.push(`ORG:${escapeVCardValue(contact.company.name)}`);
+  if (contact.title) lines.push(`TITLE:${escapeVCardValue(contact.title)}`);
+  if (contact.email) lines.push(`EMAIL;TYPE=INTERNET:${escapeVCardValue(contact.email)}`);
+  if (contact.phone) lines.push(`TEL;TYPE=CELL:${escapeVCardValue(contact.phone)}`);
+  // The company's own switchboard number, distinct from the contact's own
+  // mobile — only added when it's actually a different number.
+  if (contact.company?.phone && contact.company.phone !== contact.phone) {
+    lines.push(`TEL;TYPE=WORK:${escapeVCardValue(contact.company.phone)}`);
+  }
+  if (contact.company?.address) {
+    // ADR;TYPE=WORK:pobox;ext;street;city;region;postal;country — Company.address
+    // is one free-text field, not structured parts, so it all goes in the
+    // "street" slot rather than guessing where city/state/zip start.
+    lines.push(`ADR;TYPE=WORK:;;${escapeVCardValue(contact.company.address)};;;;`);
+  }
+  if (contact.notes) lines.push(`NOTE:${escapeVCardValue(contact.notes)}`);
+  lines.push("END:VCARD");
+  return lines.join("\r\n") + "\r\n";
+}
+
 export type ParsedVCard = {
   firstName: string;
   lastName: string;

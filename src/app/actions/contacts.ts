@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
+import { toTitleCase } from "@/lib/names";
 import type { LifecycleStage } from "@/generated/prisma/client";
 
 const contactSchema = z.object({
@@ -94,8 +95,8 @@ function parseContactForm(formData: FormData) {
   }
   const data = parsed.data;
   return {
-    firstName: data.firstName,
-    lastName: data.lastName || null,
+    firstName: toTitleCase(data.firstName),
+    lastName: data.lastName ? toTitleCase(data.lastName) : null,
     email: data.email || null,
     phone: data.phone ? normalizePhone(data.phone) : null,
     title: data.title || null,
