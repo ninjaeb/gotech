@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { db } from "../src/lib/db";
-import { phoneMatchKey } from "../src/lib/phone";
+import { phoneMatchKey, isValidPhoneFormat } from "../src/lib/phone";
+import { isValidEmailFormat } from "../src/lib/email-format";
 
 const { values } = parseArgs({ options: { yes: { type: "boolean" } } });
 
@@ -79,6 +80,15 @@ function pushToMapArray<K>(map: Map<K, string[]>, key: K, value: string) {
   else map.set(key, [value]);
 }
 
+function formatIssues(c: ContactRow): string {
+  const issues: string[] = [];
+  const email = c.email?.trim();
+  const phone = c.phone?.trim();
+  if (email && !isValidEmailFormat(email)) issues.push(`bad email "${email}"`);
+  if (phone && !isValidPhoneFormat(phone)) issues.push(`bad phone "${phone}"`);
+  return issues.join(", ");
+}
+
 function contactLabel(c: ContactRow) {
   const name = [c.firstName, c.lastName].filter(Boolean).join(" ") || "(no name)";
   const contactInfo = [c.email, c.phone].filter(Boolean).join(" / ") || "no email or phone";
@@ -138,63 +148,81 @@ async function main() {
   const duplicateGroups = [...clusters.values()].filter((group) => group.length > 1);
 
   const total = await db.contact.count();
-  if (duplicateGroups.length === 0) {
-    console.log(`No duplicate contacts found (${contacts.length} contacts have a phone or email, out of ${total} total).`);
-    return;
-  }
 
   const toDelete: ContactRow[] = [];
   const needsReview: ContactRow[][] = [];
 
-  for (const group of duplicateGroups) {
-    const withHistory = group.filter((c) => historyCount(c) > 0);
-    if (withHistory.length >= 2) {
-      // More than one contact in this group has its own real history —
-      // deleting either would silently lose data, and merging isn't
-      // something this script does. Leave the whole group for manual review.
-      needsReview.push(group);
-      continue;
-    }
-    // Keep whichever contact has history, if any. Otherwise prefer one with
-    // a photo (a more complete record). Otherwise keep the oldest (contacts
-    // arrive already sorted by createdAt asc, so group[0]/withPhoto[0] is it).
-    const withPhoto = group.filter((c) => c.photoUrl);
-    const keeper = withHistory[0] ?? withPhoto[0] ?? group[0];
-    for (const contact of group) {
-      if (contact.id !== keeper.id) toDelete.push(contact);
-    }
-  }
-
-  const duplicateContactCount = duplicateGroups.reduce((sum, group) => sum + group.length, 0);
-  console.log(
-    `Found ${duplicateGroups.length} group(s) of contacts sharing a phone or email ` +
-      `(${duplicateContactCount} contacts total, out of ${total}).\n`,
-  );
-
-  if (toDelete.length > 0) {
-    console.log(`${toDelete.length} contact(s) eligible for --yes (one contact per group is kept):`);
-    for (const contact of toDelete) console.log(`  - ${contactLabel(contact)}`);
+  if (duplicateGroups.length === 0) {
+    console.log(`No duplicate contacts found (${contacts.length} contacts have a phone or email, out of ${total} total).`);
   } else {
-    console.log("None are safe to auto-remove — every duplicate group needs manual review (see below).");
-  }
+    for (const group of duplicateGroups) {
+      const withHistory = group.filter((c) => historyCount(c) > 0);
+      if (withHistory.length >= 2) {
+        // More than one contact in this group has its own real history —
+        // deleting either would silently lose data, and merging isn't
+        // something this script does. Leave the whole group for manual review.
+        needsReview.push(group);
+        continue;
+      }
+      // Keep whichever contact has history, if any. Otherwise prefer one with
+      // a photo (a more complete record). Otherwise keep the oldest (contacts
+      // arrive already sorted by createdAt asc, so group[0]/withPhoto[0] is it).
+      const withPhoto = group.filter((c) => c.photoUrl);
+      const keeper = withHistory[0] ?? withPhoto[0] ?? group[0];
+      for (const contact of group) {
+        if (contact.id !== keeper.id) toDelete.push(contact);
+      }
+    }
 
-  if (needsReview.length > 0) {
+    const duplicateContactCount = duplicateGroups.reduce((sum, group) => sum + group.length, 0);
     console.log(
-      `\n${needsReview.length} group(s) need manual review — more than one contact per group has its own ` +
-        "linked history, so this script won't guess who to keep:",
+      `Found ${duplicateGroups.length} group(s) of contacts sharing a phone or email ` +
+        `(${duplicateContactCount} contacts total, out of ${total}).\n`,
     );
-    for (const group of needsReview) {
-      console.log(`  Group (matched by shared phone and/or email):`);
-      for (const contact of group) console.log(`    - ${contactLabel(contact)}`);
+
+    if (toDelete.length > 0) {
+      console.log(`${toDelete.length} contact(s) eligible for --yes (one contact per group is kept):`);
+      for (const contact of toDelete) console.log(`  - ${contactLabel(contact)}`);
+    } else {
+      console.log("None are safe to auto-remove — every duplicate group needs manual review (see below).");
+    }
+
+    if (needsReview.length > 0) {
+      console.log(
+        `\n${needsReview.length} group(s) need manual review — more than one contact per group has its own ` +
+          "linked history, so this script won't guess who to keep:",
+      );
+      for (const group of needsReview) {
+        console.log(`  Group (matched by shared phone and/or email):`);
+        for (const contact of group) console.log(`    - ${contactLabel(contact)}`);
+      }
     }
   }
 
-  // A company can end up with zero contacts once these duplicates are gone —
-  // checked against its FULL current contact list (not just the phone/email
-  // subset scanned above), since a contact with neither would still keep the
+  // Contacts with a badly-formatted email or phone — skipping anything
+  // already scheduled for deletion above so it's never listed twice.
+  const dedupDeleteIds = new Set(toDelete.map((c) => c.id));
+  const invalidFormat = contacts.filter((c) => !dedupDeleteIds.has(c.id) && formatIssues(c) !== "");
+  const invalidFormatClean = invalidFormat.filter((c) => historyCount(c) === 0);
+  const invalidFormatWithHistory = invalidFormat.filter((c) => historyCount(c) > 0);
+
+  if (invalidFormat.length > 0) {
+    console.log(
+      `\nFound ${invalidFormat.length} more contact(s) with a badly-formatted email or phone ` +
+        `(${invalidFormatClean.length} eligible for --yes, ${invalidFormatWithHistory.length} with linked history — never auto-removed):`,
+    );
+    for (const c of invalidFormatClean) console.log(`  - ${contactLabel(c)} — ${formatIssues(c)}`);
+    for (const c of invalidFormatWithHistory) console.log(`  - ${contactLabel(c)} — ${formatIssues(c)}, has linked history`);
+  }
+
+  // A company can end up with zero contacts once these are gone — checked
+  // against its FULL current contact list (not just the phone/email subset
+  // scanned above), since a contact with neither would still keep the
   // company from being orphaned.
-  const affectedCompanyIds = [...new Set(toDelete.map((c) => c.companyId).filter((id): id is string => Boolean(id)))];
-  const toDeleteIds = new Set(toDelete.map((c) => c.id));
+  const contactDeleteIds = new Set([...toDelete, ...invalidFormatClean].map((c) => c.id));
+  const affectedCompanyIds = [
+    ...new Set([...toDelete, ...invalidFormatClean].map((c) => c.companyId).filter((id): id is string => Boolean(id))),
+  ];
   let orphanCandidates: OrphanCandidate[] = [];
   if (affectedCompanyIds.length > 0) {
     const affectedCompanies = await db.company.findMany({
@@ -207,35 +235,44 @@ async function main() {
         _count: { select: { deals: true, tasks: true, activities: true, resources: true } },
       },
     });
-    orphanCandidates = affectedCompanies.filter((company) => company.contacts.every((c) => toDeleteIds.has(c.id)));
+    orphanCandidates = affectedCompanies.filter((company) => company.contacts.every((c) => contactDeleteIds.has(c.id)));
   }
   const orphanClean = orphanCandidates.filter((c) => !companyHasHistory(c));
   const orphanWithHistory = orphanCandidates.filter(companyHasHistory);
 
   if (orphanCandidates.length > 0) {
     console.log(
-      `\nDeleting those duplicates would also leave ${orphanCandidates.length} compan${orphanCandidates.length === 1 ? "y" : "ies"} with no contacts left:`,
+      `\nDeleting those contacts would also leave ${orphanCandidates.length} compan${orphanCandidates.length === 1 ? "y" : "ies"} with no contacts left:`,
     );
     for (const c of orphanClean) console.log(`  - ${companyLabel(c)}`);
     for (const c of orphanWithHistory) console.log(`  - ${companyLabel(c)} — has linked history, won't be auto-removed`);
   }
 
+  const totalToDelete = toDelete.length + invalidFormatClean.length;
+
   if (!values.yes) {
-    console.log(`\nNothing deleted.${toDelete.length > 0 ? ` Re-run with --yes to delete the ${toDelete.length} contact(s) listed above:` : ""}`);
-    if (toDelete.length > 0) console.log("  npm run remove-duplicate-contacts -- --yes");
+    console.log(`\nNothing deleted.${totalToDelete > 0 ? ` Re-run with --yes to delete the ${totalToDelete} contact(s) listed above:` : ""}`);
+    if (totalToDelete > 0) console.log("  npm run remove-duplicate-contacts -- --yes");
     return;
   }
 
-  if (toDelete.length === 0) {
+  if (totalToDelete === 0) {
     console.log("\nNothing to delete.");
     return;
   }
 
-  console.log(`\nDeleting ${toDelete.length} duplicate contact(s)…`);
-  const result = await db.contact.deleteMany({ where: { id: { in: toDelete.map((c) => c.id) } } });
+  console.log(
+    `\nDeleting ${totalToDelete} contact(s) (${toDelete.length} duplicate, ${invalidFormatClean.length} badly-formatted)…`,
+  );
+  const result = await db.contact.deleteMany({ where: { id: { in: [...contactDeleteIds] } } });
   console.log(`Done. Deleted ${result.count} contact(s).`);
   if (needsReview.length > 0) {
     console.log(`${needsReview.length} group(s) with conflicting history were left untouched — review those manually.`);
+  }
+  if (invalidFormatWithHistory.length > 0) {
+    console.log(
+      `${invalidFormatWithHistory.length} badly-formatted contact(s) with linked history were left untouched — review those manually.`,
+    );
   }
 
   if (orphanClean.length > 0) {
