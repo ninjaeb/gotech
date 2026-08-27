@@ -657,18 +657,26 @@ model Notification {
   @@index([taskId])
 }
 
+enum ProductServiceType {
+  PRODUCT
+  SERVICE
+}
+
 // Reusable catalog of things GoTech sells, so quotes are built from
 // consistent line items instead of free-typed descriptions/prices every time.
 model ServicePackage {
-  id          String   @id @default(cuid())
+  id          String             @id @default(cuid())
   name        String
-  description String?  @db.Text
-  unitPrice   Decimal  @default(0) @db.Decimal(12, 2)
+  type        ProductServiceType @default(SERVICE)
+  description String?            @db.Text
+  unitPrice   Decimal            @default(0) @db.Decimal(12, 2)
   unit        String? // e.g. "project", "hour", "month" — free text, shown after the price
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
 
   quoteItems QuoteItem[]
+
+  @@index([type])
 }
 
 enum QuoteStatus {
