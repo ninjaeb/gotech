@@ -16,6 +16,7 @@ import type { QuoteFormState } from "@/app/actions/quotes";
 type ServicePackageOption = { id: string; name: string; description: string | null; unitPrice: number };
 type QuoteItemDraft = { description: string; quantity: number; unitPrice: number; servicePackageId: string | null };
 type QuoteDraft = { title: string; notes: string | null; items: QuoteItemDraft[] };
+type QuoteTemplateOption = { id: string; name: string; notes: string | null; items: QuoteItemDraft[] };
 
 type ItemDraft = {
   key: string;
@@ -35,31 +36,46 @@ function blankItem(): ItemDraft {
   return { key: newDraftKey(), description: "", quantity: "1", unitPrice: "0", servicePackageId: "" };
 }
 
+function draftsFromItems(items: QuoteItemDraft[]): ItemDraft[] {
+  return items.length > 0
+    ? items.map((item) => ({
+        key: newDraftKey(),
+        description: item.description,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toString(),
+        servicePackageId: item.servicePackageId ?? "",
+      }))
+    : [blankItem()];
+}
+
 export function QuoteForm({
   action,
   quote,
   servicePackages,
+  quoteTemplates,
   currency = "USD",
   submitLabel = "Save quote",
+  titleLabel = "Title",
+  titlePlaceholder = "Website redesign — Proposal",
+  notesLabel = "Notes / terms (optional)",
 }: {
   action: (prevState: QuoteFormState, formData: FormData) => Promise<QuoteFormState> | QuoteFormState;
   quote?: QuoteDraft;
   servicePackages: ServicePackageOption[];
+  // Only meaningful on a fresh, empty form (e.g. New Quote) — picking one
+  // wholesale-replaces the current items/notes, which would clobber an
+  // in-progress edit, so callers editing an existing record leave this unset.
+  quoteTemplates?: QuoteTemplateOption[];
   currency?: string;
   submitLabel?: string;
+  titleLabel?: string;
+  titlePlaceholder?: string;
+  notesLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
-  const [items, setItems] = useState<ItemDraft[]>(() =>
-    quote && quote.items.length > 0
-      ? quote.items.map((item) => ({
-          key: newDraftKey(),
-          description: item.description,
-          quantity: item.quantity.toString(),
-          unitPrice: item.unitPrice.toString(),
-          servicePackageId: item.servicePackageId ?? "",
-        }))
-      : [blankItem()],
-  );
+  const [items, setItems] = useState<ItemDraft[]>(() => (quote ? draftsFromItems(quote.items) : [blankItem()]));
+  const [notes, setNotes] = useState(quote?.notes ?? "");
+  const [templateSelection, setTemplateSelection] = useState("");
 
   function updateItem(key: string, patch: Partial<ItemDraft>) {
     setItems((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -76,6 +92,16 @@ export function QuoteForm({
           }
         : {}),
     });
+  }
+
+  function applyTemplate(templateId: string) {
+    const template = quoteTemplates?.find((t) => t.id === templateId);
+    if (!template) return;
+    setItems(draftsFromItems(template.items));
+    setNotes(template.notes ?? "");
+    // Reset back to the placeholder — this is a one-shot "apply" action, not
+    // a field whose value should keep pointing at the template afterward.
+    setTemplateSelection("");
   }
 
   function removeItem(key: string) {
@@ -96,15 +122,26 @@ export function QuoteForm({
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="itemsJson" value={itemsJson} />
 
-      <FieldGroup label="Title" htmlFor="quote-title" required>
-        <Input
-          id="quote-title"
-          name="title"
-          defaultValue={quote?.title}
-          required
-          placeholder="Website redesign — Proposal"
-        />
+      <FieldGroup label={titleLabel} htmlFor="quote-title" required>
+        <Input id="quote-title" name="title" defaultValue={quote?.title} required placeholder={titlePlaceholder} />
       </FieldGroup>
+
+      {quoteTemplates && quoteTemplates.length > 0 && (
+        <FieldGroup label="Start from a template (optional)" htmlFor="quote-template">
+          <Select
+            id="quote-template"
+            value={templateSelection}
+            onChange={(e) => applyTemplate(e.target.value)}
+          >
+            <option value="">Choose a template…</option>
+            {quoteTemplates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </Select>
+        </FieldGroup>
+      )}
 
       <div>
         <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Line items</p>
@@ -181,12 +218,13 @@ export function QuoteForm({
         </span>
       </div>
 
-      <FieldGroup label="Notes / terms (optional)" htmlFor="quote-notes">
+      <FieldGroup label={notesLabel} htmlFor="quote-notes">
         <Textarea
           id="quote-notes"
           name="notes"
           rows={3}
-          defaultValue={quote?.notes ?? ""}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
           placeholder="Payment terms, validity period, what's included…"
         />
       </FieldGroup>

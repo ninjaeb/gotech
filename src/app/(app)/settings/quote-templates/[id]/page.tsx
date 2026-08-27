@@ -1,31 +1,30 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { createQuote } from "@/app/actions/quotes";
+import { updateQuoteTemplate } from "@/app/actions/quote-templates";
 import { QuoteForm } from "@/components/quotes/quote-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
 
-export default async function NewQuotePage({
+export default async function EditQuoteTemplatePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   await requireAdmin();
-  const { id: dealId } = await params;
+  const { id } = await params;
 
-  const [currency, deal, servicePackages, quoteTemplates] = await Promise.all([
+  const [currency, template, servicePackages] = await Promise.all([
     getCurrency(),
-    db.deal.findUnique({ where: { id: dealId }, select: { id: true, title: true } }),
-    db.servicePackage.findMany({ orderBy: { name: "asc" } }),
-    db.quoteTemplate.findMany({
-      orderBy: { name: "asc" },
+    db.quoteTemplate.findUnique({
+      where: { id },
       include: { items: { orderBy: { sortOrder: "asc" } } },
     }),
+    db.servicePackage.findMany({ orderBy: { name: "asc" } }),
   ]);
 
-  if (!deal) notFound();
+  if (!template) notFound();
 
   const servicePackageOptions = servicePackages.map((pkg) => ({
     id: pkg.id,
@@ -33,9 +32,8 @@ export default async function NewQuotePage({
     description: pkg.description,
     unitPrice: Number(pkg.unitPrice),
   }));
-  const quoteTemplateOptions = quoteTemplates.map((template) => ({
-    id: template.id,
-    name: template.name,
+  const templateDraft = {
+    title: template.name,
     notes: template.notes,
     items: template.items.map((item) => ({
       description: item.description,
@@ -43,27 +41,29 @@ export default async function NewQuotePage({
       unitPrice: Number(item.unitPrice),
       servicePackageId: item.servicePackageId,
     })),
-  }));
+  };
 
   return (
     <div className="max-w-2xl">
       <PageHeader
         breadcrumbs={[
-          { label: "Deals", href: "/deals" },
-          { label: deal.title, href: `/deals/${deal.id}` },
-          { label: "New quote" },
+          { label: "Settings", href: "/settings" },
+          { label: "Quote templates", href: "/settings/quote-templates" },
+          { label: template.name },
         ]}
-        title="New quote"
-        description={`For ${deal.title}`}
+        title={template.name}
       />
       <Card>
         <CardBody>
           <QuoteForm
-            action={createQuote.bind(null, dealId)}
+            action={updateQuoteTemplate.bind(null, template.id)}
+            quote={templateDraft}
             servicePackages={servicePackageOptions}
-            quoteTemplates={quoteTemplateOptions}
             currency={currency}
-            submitLabel="Create quote"
+            submitLabel="Save changes"
+            titleLabel="Template name"
+            titlePlaceholder="Website — Standard package"
+            notesLabel="Default terms (optional)"
           />
         </CardBody>
       </Card>

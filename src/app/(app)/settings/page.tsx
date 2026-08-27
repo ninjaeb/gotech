@@ -181,6 +181,24 @@ export default async function SettingsPage() {
       </Card>
 
       <Card>
+        <CardBody>
+          <Link
+            href="/settings/quote-templates"
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <div>
+              <p className="font-medium text-slate-800 dark:text-slate-200">Quote templates</p>
+              <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                Save a full set of line items once, then start any new quote from it instead of building one
+                from scratch.
+              </p>
+            </div>
+            <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+          </Link>
+        </CardBody>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Lead capture form</CardTitle>
         </CardHeader>

@@ -674,7 +674,8 @@ model ServicePackage {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  quoteItems QuoteItem[]
+  quoteItems         QuoteItem[]
+  quoteTemplateItems QuoteTemplateItem[]
 
   @@index([type])
 }
@@ -724,6 +725,38 @@ model QuoteItem {
   servicePackageId String?
 
   @@index([quoteId])
+  @@index([servicePackageId])
+}
+
+// A saved, reusable line-item bundle — pick one when starting a new Quote
+// to seed its items instead of adding each one by hand every time. Deletes
+// independently of any Quote built from it: applying a template just
+// copies its items in client-side (see QuoteForm), it doesn't link the
+// resulting QuoteItems back to this record.
+model QuoteTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  notes     String?  @db.Text // default terms, copied into the quote's notes when applied
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items QuoteTemplateItem[]
+}
+
+model QuoteTemplateItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Decimal @default(1) @db.Decimal(10, 2)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  sortOrder   Int     @default(0)
+
+  quoteTemplate   QuoteTemplate @relation(fields: [quoteTemplateId], references: [id], onDelete: Cascade)
+  quoteTemplateId String
+
+  servicePackage   ServicePackage? @relation(fields: [servicePackageId], references: [id], onDelete: SetNull)
+  servicePackageId String?
+
+  @@index([quoteTemplateId])
   @@index([servicePackageId])
 }
 
