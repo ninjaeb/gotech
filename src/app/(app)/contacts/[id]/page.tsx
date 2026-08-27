@@ -23,12 +23,12 @@ import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
+import { LifecycleStageSelect } from "@/components/contacts/lifecycle-stage-select";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
 import {
   ENROLLMENT_STATUS_BADGE_CLASSES,
   ENROLLMENT_STATUS_LABELS,
-  LIFECYCLE_STAGE_LABELS,
   stageBadgeClasses,
 } from "@/lib/labels";
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
@@ -180,7 +180,7 @@ export default async function ContactDetailPage({
                 <DetailRow label="Title" value={contact.title} />
                 <DetailRow
                   label="Stage"
-                  value={contact.lifecycleStage ? LIFECYCLE_STAGE_LABELS[contact.lifecycleStage] : null}
+                  value={<LifecycleStageSelect contactId={contact.id} value={contact.lifecycleStage} />}
                 />
               </div>
               {contact.notes && (
