@@ -1,5 +1,9 @@
 import { parse } from "csv-parse/sync";
 import { splitFullName } from "@/lib/format";
+import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
+import { isValidEmailFormat } from "@/lib/email-format";
+import { matchIndustry } from "@/lib/labels";
+import type { Industry } from "@/generated/prisma/client";
 
 export type ParsedContactRow = {
   row: number;
@@ -9,6 +13,7 @@ export type ParsedContactRow = {
   phone: string | null;
   title: string | null;
   companyName: string | null;
+  industry: Industry | null;
   notes: string | null;
   imageUrl: string | null;
   issues: string[];
@@ -148,25 +153,40 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       );
     }
 
-    const email =
+    const rawEmail =
       firstMatchingValue(record, headers, EMAIL_VALUE_PATTERN) ||
       readHeader(record, emailFallbackHeader) ||
       null;
-    const phone =
+    const rawPhone =
       firstMatchingValue(record, headers, PHONE_VALUE_PATTERN) ||
       readHeader(record, phoneFallbackHeader) ||
       null;
+
+    // Drop the specific bad value rather than skipping the whole row — a
+    // contact with a good email and a badly-formatted phone is still worth
+    // importing. normalizePhone only tidies separators (spaces/dashes/
+    // parens); it can't invent a missing country code, so a bare local
+    // number still fails isValidPhoneFormat and gets dropped here too.
+    const email = rawEmail && isValidEmailFormat(rawEmail) ? rawEmail : null;
+    if (rawEmail && !email) issues.push(`Invalid email format ("${rawEmail}") — dropped`);
+    const normalizedPhone = rawPhone ? normalizePhone(rawPhone) : null;
+    const phone = normalizedPhone && isValidPhoneFormat(normalizedPhone) ? normalizedPhone : null;
+    if (rawPhone && !phone) issues.push(`Phone missing a country code ("${rawPhone}") — dropped`);
 
     if (!email && !phone) {
       issues.push("No email or phone");
     }
 
     const category = readHeader(record, categoryHeader);
-    const industry = readHeader(record, industryHeader);
+    const industryRaw = readHeader(record, industryHeader);
+    const industry = industryRaw ? matchIndustry(industryRaw) : null;
     const profileUrl = readHeader(record, profileUrlHeader);
     const extraContext = [
       category && `Category: ${category}`,
-      industry && `Industry: ${industry}`,
+      // Only noted here when it *didn't* map to a curated Industry below —
+      // once it's a structured field on the Company, repeating it as text
+      // would just be clutter.
+      industryRaw && !industry && `Industry: ${industryRaw}`,
       profileUrl && `Profile: ${profileUrl}`,
     ]
       .filter(Boolean)
@@ -181,6 +201,7 @@ export function parseGoogleContactsCsv(csvText: string): ParsedImport {
       phone,
       title: readHeader(record, orgTitleHeader) || null,
       companyName,
+      industry,
       notes,
       imageUrl: readHeader(record, imageUrlHeader) || null,
       issues,

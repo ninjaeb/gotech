@@ -177,6 +177,45 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   OTHER: "Other",
 };
 
+// Common free-text spellings/synonyms mapped onto the curated Industry enum,
+// for matching an arbitrary CSV "Industry" column on import. Best-effort —
+// anything that doesn't match stays unclassified (null) rather than
+// guessing, same reasoning as leaving the field nullable in the first place.
+const INDUSTRY_ALIASES: Record<Industry, string[]> = {
+  TECHNOLOGY: ["technology", "tech", "it", "software", "saas", "information technology"],
+  RETAIL_ECOMMERCE: ["retail", "ecommerce", "e-commerce", "shop", "store", "commerce"],
+  HEALTHCARE: ["healthcare", "health", "medical", "hospital", "clinic", "pharma", "pharmaceutical"],
+  FINANCE_BANKING: ["finance", "banking", "bank", "financial services", "insurance", "fintech"],
+  MANUFACTURING: ["manufacturing", "factory", "industrial", "production"],
+  CONSTRUCTION_REAL_ESTATE: ["construction", "real estate", "realty", "property", "properties"],
+  EDUCATION: ["education", "school", "university", "college", "academic", "e-learning", "elearning"],
+  HOSPITALITY_TOURISM: ["hospitality", "tourism", "hotel", "travel", "resort"],
+  PROFESSIONAL_SERVICES: ["professional services", "consulting", "consultancy", "services"],
+  MEDIA_ENTERTAINMENT: ["media", "entertainment", "film", "music", "publishing", "broadcasting"],
+  TRANSPORTATION_LOGISTICS: ["transportation", "logistics", "shipping", "freight", "transport", "delivery"],
+  AGRICULTURE: ["agriculture", "farming", "agri", "agribusiness"],
+  ENERGY_UTILITIES: ["energy", "utilities", "utility", "power", "oil and gas", "oil & gas"],
+  GOVERNMENT_NONPROFIT: ["government", "nonprofit", "non-profit", "ngo", "public sector", "charity"],
+  TELECOMMUNICATIONS: ["telecommunications", "telecom", "telco"],
+  AUTOMOTIVE: ["automotive", "auto", "car", "vehicle", "cars"],
+  FOOD_BEVERAGE: ["food", "beverage", "f&b", "restaurant", "catering"],
+  LEGAL: ["legal", "law", "law firm", "attorney"],
+  MARKETING_ADVERTISING: ["marketing", "advertising", "ads", "agency", "pr", "public relations"],
+  OTHER: ["other", "misc", "miscellaneous"],
+};
+
+export function matchIndustry(rawValue: string): Industry | null {
+  const normalized = rawValue.trim().toLowerCase().replace(/[&/]/g, " ").replace(/\s+/g, " ").trim();
+  if (!normalized) return null;
+  for (const industry of INDUSTRIES) {
+    if (INDUSTRY_ALIASES[industry].some((alias) => alias === normalized)) return industry;
+  }
+  for (const industry of INDUSTRIES) {
+    if (INDUSTRY_ALIASES[industry].some((alias) => normalized.includes(alias))) return industry;
+  }
+  return null;
+}
+
 export const ACTIVITY_TYPE_LABELS: Record<ActivityType, string> = {
   NOTE: "Note",
   CALL: "Call",

@@ -1,13 +1,9 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { db } from "../src/lib/db";
+import { isValidEmailFormat } from "../src/lib/email-format";
 
 const { values } = parseArgs({ options: { yes: { type: "boolean" } } });
-
-// Deliberately not a full RFC-5322 validator — just enough to catch
-// obviously broken entries (no @, no domain, no TLD, embedded spaces,
-// multiple @ signs) without flagging real-world addresses as invalid.
-const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function contactLabel(contact: {
   firstName: string;
@@ -37,7 +33,7 @@ async function main() {
     orderBy: { createdAt: "asc" },
   });
 
-  const invalid = contacts.filter((c) => !EMAIL_FORMAT.test(c.email!.trim()));
+  const invalid = contacts.filter((c) => !isValidEmailFormat(c.email!));
 
   const total = await db.contact.count();
   if (invalid.length === 0) {

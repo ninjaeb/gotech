@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Label } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
+import { phoneMatchKey } from "@/lib/phone";
 
 type Phase =
   | { name: "upload" }
@@ -110,6 +111,8 @@ export function ImportForm() {
                   ` — ${preview.skippedRows} skipped (missing name, or no email/phone)`}
                 {preview.duplicateEmails.length > 0 &&
                   `, ${preview.duplicateEmails.length} match an existing contact by email`}
+                {preview.duplicatePhones.length > 0 &&
+                  `, ${preview.duplicatePhones.length} match an existing contact by phone`}
                 .
               </p>
             </div>
@@ -120,7 +123,7 @@ export function ImportForm() {
                 onChange={(event) => setFillMissingInfo(event.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
-              Fill in missing info on existing contacts (matched by email)
+              Fill in missing info on existing contacts (matched by email or phone)
             </label>
           </CardBody>
         </Card>
@@ -146,10 +149,11 @@ export function ImportForm() {
               <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
                 {preview.rows.map((row) => {
                   const isDuplicate = Boolean(
-                    row.email &&
+                    (row.email &&
                       preview.duplicateEmails.some(
                         (email) => email.toLowerCase() === row.email!.toLowerCase(),
-                      ),
+                      )) ||
+                      (row.phone && preview.duplicatePhones.includes(phoneMatchKey(row.phone))),
                   );
                   return (
                     <tr key={row.row}>
@@ -182,6 +186,11 @@ export function ImportForm() {
                             )}
                           >
                             {fillMissingInfo ? "Duplicate — will fill in missing info" : "Duplicate — will skip"}
+                          </span>
+                        ) : row.issues.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            New — {row.issues[0]}
                           </span>
                         ) : (
                           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">

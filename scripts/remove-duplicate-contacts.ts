@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { db } from "../src/lib/db";
+import { phoneMatchKey } from "../src/lib/phone";
 
 const { values } = parseArgs({ options: { yes: { type: "boolean" } } });
 
@@ -15,12 +16,6 @@ type ContactRow = {
   company: { name: string } | null;
   _count: { deals: number; tasks: number; activities: number; bookings: number; sequenceEnrollments: number };
 };
-
-// Only strips a leading "+" — "+60123456789" and "60123456789" link up, but
-// this doesn't touch spaces/dashes/other formatting differences.
-function normalizePhone(phone: string) {
-  return phone.replace(/^\+/, "");
-}
 
 // Two contacts can be linked by phone while a third links to one of them by
 // email — those three are really one cluster, not two separate pairs. Plain
@@ -108,7 +103,7 @@ async function main() {
   const byKey = new Map<string, string[]>();
   for (const contact of contacts) {
     uf.find(contact.id);
-    if (contact.phone?.trim()) pushToMapArray(byKey, `phone:${normalizePhone(contact.phone.trim())}`, contact.id);
+    if (contact.phone?.trim()) pushToMapArray(byKey, `phone:${phoneMatchKey(contact.phone.trim())}`, contact.id);
     if (contact.email?.trim()) pushToMapArray(byKey, `email:${contact.email.trim().toLowerCase()}`, contact.id);
   }
   for (const ids of byKey.values()) {

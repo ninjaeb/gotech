@@ -18,3 +18,12 @@ export function isValidPhoneFormat(phone: string): boolean {
 }
 
 export const PHONE_FORMAT_HINT = "Include the country code with a + sign, e.g. +60 12 345 6789.";
+
+// A matching key for "is this the same number with/without a + sign" —
+// e.g. duplicate detection. Deliberately not the same job as
+// normalizePhone (which keeps the "+" for a clean *stored* value) — this
+// one throws it away since the point here is comparison, not storage.
+// Same rule already used by scripts/remove-duplicate-contacts.ts.
+export function phoneMatchKey(phone: string): string {
+  return normalizePhone(phone).replace(/^\+/, "");
+}
