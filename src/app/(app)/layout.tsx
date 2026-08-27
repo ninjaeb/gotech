@@ -1,33 +1,11 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { GlobalSearch } from "@/components/layout/global-search";
+import { NotificationPoller } from "@/components/layout/notification-poller";
 import type { NotificationItem } from "@/components/layout/notification-bell";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
-
-function notificationHref(notification: {
-  // Set directly for a task-description @mention (see notifyTaskMentions);
-  // separate from activity.taskId below, which covers a note/email/
-  // WhatsApp send logged from the task's own detail page instead.
-  taskId: string | null;
-  activity: {
-    taskId: string | null;
-    contactId: string | null;
-    companyId: string | null;
-    dealId: string | null;
-    projectId: string | null;
-  } | null;
-}): string | null {
-  if (notification.taskId) return `/tasks/${notification.taskId}`;
-  const activity = notification.activity;
-  if (!activity) return null;
-  if (activity.taskId) return `/tasks/${activity.taskId}`;
-  if (activity.contactId) return `/contacts/${activity.contactId}`;
-  if (activity.companyId) return `/companies/${activity.companyId}`;
-  if (activity.dealId) return `/deals/${activity.dealId}`;
-  if (activity.projectId) return `/projects/${activity.projectId}`;
-  return null;
-}
+import { notificationHref } from "@/lib/notification-href";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -36,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   endOfToday.setHours(0, 0, 0, 0);
   endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const [myTaskAlertCount, notificationRows, unreadNotificationCount] = await Promise.all([
+  const [myTaskAlertCount, notificationRows, unreadNotificationCount, latestNotification] = await Promise.all([
     db.task.count({
       where: { assignees: { some: { userId: user.id } }, completed: false, dueDate: { lt: endOfToday } },
     }),
@@ -49,6 +27,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       },
     }),
     db.notification.count({ where: { userId: user.id, read: false } }),
+    // Separate from notificationRows above (sorted read-then-date, so its
+    // first row isn't reliably the newest) — this seeds the desktop-alert
+    // poller's cursor so it never re-notifies for something already on
+    // screen at load.
+    db.notification.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
   ]);
 
   const notifications: NotificationItem[] = notificationRows.map((notification) => ({
@@ -61,6 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-full min-h-full">
+      <NotificationPoller initialLatestCreatedAt={latestNotification?.createdAt.toISOString() ?? null} />
       <Sidebar
         user={user}
         myTaskAlertCount={myTaskAlertCount}

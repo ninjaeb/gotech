@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { markAllNotificationsRead, markNotificationRead } from "@/app/actions/notifications";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,16 @@ export function NotificationBell({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [desktopPermission, setDesktopPermission] = useState<NotificationPermission | "unsupported">(
+    "unsupported",
+  );
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if ("Notification" in window) setDesktopPermission(Notification.permission);
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +60,11 @@ export function NotificationBell({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
+
+  async function enableDesktopAlerts() {
+    const result = await Notification.requestPermission();
+    setDesktopPermission(result);
+  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -94,6 +109,21 @@ export function NotificationBell({
               </button>
             )}
           </div>
+          {desktopPermission === "default" && (
+            <button
+              type="button"
+              onClick={enableDesktopAlerts}
+              className="flex w-full items-center gap-1.5 border-b border-slate-100 px-3 py-2 text-left text-xs font-medium text-indigo-600 hover:bg-slate-50 dark:border-neutral-800 dark:text-indigo-400 dark:hover:bg-neutral-800"
+            >
+              <BellRing className="h-3.5 w-3.5" />
+              Enable desktop alerts for new notifications
+            </button>
+          )}
+          {desktopPermission === "denied" && (
+            <p className="border-b border-slate-100 px-3 py-2 text-xs text-slate-400 dark:border-neutral-800 dark:text-slate-500">
+              Desktop alerts are blocked — enable them in your browser&apos;s site settings.
+            </p>
+          )}
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <p className="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
