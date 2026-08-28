@@ -21,7 +21,7 @@ export default async function EditInvoicePage({
   if (!invoice) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Projects", href: "/projects" },

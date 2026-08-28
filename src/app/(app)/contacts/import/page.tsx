@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 export default async function ImportContactsPage() {
   await requireAdmin();
   return (
-    <div className="max-w-4xl">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Contacts", href: "/contacts" }, { label: "Import" }]}
         title="Import contacts"

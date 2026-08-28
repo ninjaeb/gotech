@@ -22,7 +22,7 @@ export default async function EditPipelinePage({
   if (!pipeline) notFound();
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

@@ -15,7 +15,7 @@ export default async function PipelinesPage() {
   });
 
   return (
-    <div className="max-w-lg">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Pipelines" }]}
         title="Pipelines"

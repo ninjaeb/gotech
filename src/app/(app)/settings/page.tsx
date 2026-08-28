@@ -47,7 +47,7 @@ export default async function SettingsPage() {
   const whatsAppWebhookUrl = `${siteOrigin}/api/whatsapp/webhook`;
 
   return (
-    <div className="max-w-lg space-y-6">
+    <div className="space-y-6">
       <PageHeader title="Settings" description="CRM-wide preferences" />
 
       {canManage && (

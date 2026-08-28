@@ -34,7 +34,7 @@ export default async function EditServicePackagePage({
     .map((pkg) => ({ id: pkg.id, name: pkg.name, unitPrice: Number(pkg.unitPrice) }));
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

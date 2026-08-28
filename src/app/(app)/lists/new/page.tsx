@@ -7,7 +7,7 @@ export default async function NewListPage() {
   await requireAdmin();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Lists", href: "/lists" }, { label: "New list" }]}
         title="New list"

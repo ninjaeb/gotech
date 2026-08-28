@@ -30,7 +30,7 @@ export default async function NewQuoteTemplatePage() {
   }));
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

@@ -5,7 +5,7 @@ import { Card, CardBody } from "@/components/ui/card";
 
 export default function NewSequencePage() {
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

@@ -16,7 +16,7 @@ export default async function SequencesPage() {
   });
 
   return (
-    <div className="max-w-lg">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Sequences" }]}
         title="Sequences"

@@ -18,7 +18,7 @@ export default async function EditSequencePage({
   if (!sequence) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

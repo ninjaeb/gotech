@@ -34,7 +34,7 @@ export default async function TaskTimePage({
   const total = task.timeEntries.reduce((sum, entry) => sum + entry.minutes, 0);
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Tasks", href: "/tasks" },

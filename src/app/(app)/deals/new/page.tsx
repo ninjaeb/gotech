@@ -27,7 +27,7 @@ export default async function NewDealPage({
   ]);
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Deals", href: "/deals" }, { label: "New deal" }]}
         title="New deal"

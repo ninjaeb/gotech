@@ -18,7 +18,7 @@ export default async function NewInvoicePage({
   if (!project) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Projects", href: "/projects" },

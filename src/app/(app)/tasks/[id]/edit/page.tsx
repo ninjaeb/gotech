@@ -32,7 +32,7 @@ export default async function EditTaskPage({
   if (!task) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Tasks", href: "/tasks" },

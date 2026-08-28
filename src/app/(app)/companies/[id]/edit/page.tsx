@@ -17,7 +17,7 @@ export default async function EditCompanyPage({
   if (!company) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Companies", href: "/companies" },

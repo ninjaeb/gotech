@@ -29,7 +29,7 @@ export default async function EditDealPage({
   if (!deal) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Deals", href: "/deals" },

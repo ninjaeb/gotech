@@ -66,7 +66,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <GlobalSearch />
         </div>
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">
-          <div className="mx-auto w-full max-w-6xl">{children}</div>
+          <div className="w-full">{children}</div>
         </main>
       </div>
     </div>

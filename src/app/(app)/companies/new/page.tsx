@@ -7,7 +7,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 export default async function NewCompanyPage() {
   await requireAdmin();
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: "New company" }]}
         title="New company"

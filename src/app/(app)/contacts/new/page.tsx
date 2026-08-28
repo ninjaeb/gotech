@@ -14,7 +14,7 @@ export default async function NewContactPage({
   const companies = await db.company.findMany({ orderBy: { name: "asc" } });
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Contacts", href: "/contacts" }, { label: "New contact" }]}
         title="New contact"

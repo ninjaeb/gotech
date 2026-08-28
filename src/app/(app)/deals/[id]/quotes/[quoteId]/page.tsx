@@ -47,7 +47,7 @@ export default async function QuoteDetailPage({
   const mailHref = `mailto:${quote.deal.contact?.email ?? ""}?subject=${encodeURIComponent(`Quote: ${quote.title}`)}&body=${encodeURIComponent(shareMessage)}`;
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Deals", href: "/deals" },

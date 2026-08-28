@@ -53,7 +53,7 @@ export default async function EditQuoteTemplatePage({
   };
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Settings", href: "/settings" },

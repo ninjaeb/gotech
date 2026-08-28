@@ -61,7 +61,7 @@ export default async function LeaderboardPage({
     .sort((a, b) => b.total - a.total || b.count - a.count || a.name.localeCompare(b.name));
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader title="Leaderboard" description="Deals won, ranked" />
 
       <div className="mb-4 flex flex-wrap gap-1.5">

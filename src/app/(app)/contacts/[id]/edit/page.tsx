@@ -21,7 +21,7 @@ export default async function EditContactPage({
   if (!contact) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <PageHeader
         breadcrumbs={[
           { label: "Contacts", href: "/contacts" },

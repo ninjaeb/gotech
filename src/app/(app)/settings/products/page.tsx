@@ -35,7 +35,7 @@ export default async function ProductsPage() {
     .map((pkg) => ({ id: pkg.id, name: pkg.name, unitPrice: Number(pkg.unitPrice) }));
 
   return (
-    <div className="max-w-lg">
+    <div>
       <PageHeader
         breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Products & Services" }]}
         title="Products & Services"
