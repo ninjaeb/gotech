@@ -13,10 +13,11 @@ import type { QuoteFormState } from "@/app/actions/quotes";
 // fields, and Decimal instances can't cross the Server → Client Component
 // boundary (React can only pass plain serializable objects as props).
 // Callers convert with Number(...) before passing these in.
-// A bundle's own components — expanding it into these on pick, instead of
-// filling the current row, is what turns "sub line products & services"
-// into real quote lines rather than one collapsed line (see
-// handlePackageChange below). Empty for a plain (non-bundle) catalog item.
+// A bundle's own components. Picking a bundle fills the row with the
+// bundle's own name/price, same as any other catalog item — it quotes as
+// one full product/service by default. An "Expand" action (see
+// expandBundleRow below) is offered on that row for when the itemized
+// sub lines are wanted instead. Empty for a plain (non-bundle) item.
 type ServicePackageComponentOption = {
   servicePackageId: string;
   description: string;
@@ -99,24 +100,6 @@ export function QuoteForm({
 
   function handlePackageChange(key: string, servicePackageId: string) {
     const pkg = servicePackages.find((p) => p.id === servicePackageId);
-    if (pkg && pkg.components.length > 0) {
-      // A bundle: swap the one row being edited for one real row per
-      // component, at the same position, instead of filling it in place.
-      setItems((current) =>
-        current.flatMap((item) =>
-          item.key === key
-            ? pkg.components.map((c) => ({
-                key: newDraftKey(),
-                description: c.description,
-                quantity: c.quantity.toString(),
-                unitPrice: c.unitPrice.toString(),
-                servicePackageId: c.servicePackageId,
-              }))
-            : [item],
-        ),
-      );
-      return;
-    }
     updateItem(key, {
       servicePackageId,
       ...(pkg
@@ -126,6 +109,26 @@ export function QuoteForm({
           }
         : {}),
     });
+  }
+
+  // Swaps the one row being edited for one real row per component, at the
+  // same position — an explicit action rather than something picking a
+  // bundle does automatically, so a bundle quotes as one full product or
+  // service by default and only breaks into sub lines when asked for.
+  function expandBundleRow(key: string, components: ServicePackageComponentOption[]) {
+    setItems((current) =>
+      current.flatMap((item) =>
+        item.key === key
+          ? components.map((c) => ({
+              key: newDraftKey(),
+              description: c.description,
+              quantity: c.quantity.toString(),
+              unitPrice: c.unitPrice.toString(),
+              servicePackageId: c.servicePackageId,
+            }))
+          : [item],
+      ),
+    );
   }
 
   function applyTemplate(templateId: string) {
@@ -180,7 +183,9 @@ export function QuoteForm({
       <div>
         <p className="mb-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">Line items</p>
         <div className="space-y-2">
-          {items.map((item) => (
+          {items.map((item) => {
+            const selectedPackage = servicePackages.find((p) => p.id === item.servicePackageId);
+            return (
             <div key={item.key} className="rounded-md border border-slate-200 p-2.5 dark:border-neutral-800">
               <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1.1fr_1.4fr_4.5rem_6rem_auto]">
                 <Select
@@ -229,11 +234,25 @@ export function QuoteForm({
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-              <p className="mt-1 text-right text-xs text-slate-400">
-                {formatCurrency(lineItemTotal({ quantity: item.quantity || "0", unitPrice: item.unitPrice || "0" }), currency)}
-              </p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                {selectedPackage && selectedPackage.components.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => expandBundleRow(item.key, selectedPackage.components)}
+                    className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+                  >
+                    Expand into {selectedPackage.components.length} line{selectedPackage.components.length === 1 ? "" : "s"}
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <p className="text-right text-xs text-slate-400">
+                  {formatCurrency(lineItemTotal({ quantity: item.quantity || "0", unitPrice: item.unitPrice || "0" }), currency)}
+                </p>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
         <button
           type="button"
