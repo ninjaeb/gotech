@@ -65,12 +65,12 @@ export async function connectWhatsAppAccount(
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
   return undefined;
 }
 
 export async function disconnectWhatsAppAccount() {
   await requireAdminAction();
   await db.whatsAppAccount.deleteMany({ where: { id: WHATSAPP_ACCOUNT_ID } });
-  revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
 }

@@ -50,6 +50,6 @@ export async function updateBookingSettings(formData: FormData) {
     slotMinutes: parsed.data.slotMinutes,
     weeklyHours: parsed.data.weeklyHours as WeeklyHours,
   });
-  revalidatePath("/settings");
+  revalidatePath("/settings/forms");
   revalidatePath("/book");
 }

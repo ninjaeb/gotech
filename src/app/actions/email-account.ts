@@ -100,7 +100,7 @@ export async function connectEmailAccount(
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
   return undefined;
 }
 
@@ -143,7 +143,7 @@ export async function updateEmailSenderSettings(
 export async function disconnectEmailAccount() {
   const user = await requireAdminAction();
   await db.emailAccount.deleteMany({ where: { userId: user.id } });
-  revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
 }
 
 export async function syncEmailAccountNow() {
@@ -154,5 +154,5 @@ export async function syncEmailAccountNow() {
   // rethrowing — the UI reads lastSyncError from there, so there's nothing
   // more useful to do with the exception here than let this run end.
   await syncEmailAccount(account).catch(() => {});
-  revalidatePath("/settings");
+  revalidatePath("/settings/integrations");
 }
