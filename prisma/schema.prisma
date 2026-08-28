@@ -49,6 +49,18 @@ enum Role {
   DEVELOPER
 }
 
+// Meta's per-message delivery lifecycle, reported via the webhook's
+// `statuses` events (see src/app/api/whatsapp/webhook/route.ts) and matched
+// back to the Activity that logged the send via externalId "whatsapp:<wamid>".
+// Only ever set on outbound WhatsApp activities — inbound messages and every
+// other ActivityType have no delivery lifecycle to track.
+enum WhatsAppMessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
 enum LeadSource {
   WEBSITE
   REFERRAL
@@ -630,6 +642,11 @@ model Activity {
   // fields, since an activity can belong to a task and its contact at once.
   task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   taskId String?
+
+  // Set only on outbound WhatsApp activities (content prefixed "Sent
+  // WhatsApp message:"); null for inbound WhatsApp and every other type.
+  // See WhatsAppMessageStatus.
+  whatsappStatus WhatsAppMessageStatus?
 
   notifications Notification[]
 

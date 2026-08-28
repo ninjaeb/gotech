@@ -5,7 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { findUnambiguousOpenDeal } from "@/lib/email";
-import { WHATSAPP_ACCOUNT_ID, sendWhatsAppMessage } from "@/lib/whatsapp";
+import { WHATSAPP_ACCOUNT_ID, WHATSAPP_SENT_PREFIX, sendWhatsAppMessage } from "@/lib/whatsapp";
 
 const sendSchema = z.object({
   message: z.string().trim().min(1, "Message is required"),
@@ -42,8 +42,9 @@ export async function sendWhatsAppToContact(
     return { error: "Connect WhatsApp Business in Settings before sending." };
   }
 
+  let messageId: string;
   try {
-    await sendWhatsAppMessage(account, contact.phone, parsed.data.message);
+    messageId = await sendWhatsAppMessage(account, contact.phone, parsed.data.message);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Couldn't send, try again" };
   }
@@ -52,14 +53,22 @@ export async function sendWhatsAppToContact(
   await db.activity.create({
     data: {
       type: "WHATSAPP",
-      content: `Sent WhatsApp message: ${parsed.data.message}`,
+      content: `${WHATSAPP_SENT_PREFIX}${parsed.data.message}`,
       contactId,
       dealId,
       taskId: parsed.data.taskId || null,
+      // Same "whatsapp:<wamid>" key inbound messages dedup on below — wamids
+      // are unique regardless of direction, so this doubles as the lookup
+      // key the webhook's `statuses` events match against to update
+      // whatsappStatus as Meta reports sent -> delivered -> read.
+      externalId: `whatsapp:${messageId}`,
+      whatsappStatus: "SENT",
     },
   });
 
   revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/whatsapp/${contactId}`);
+  revalidatePath("/whatsapp");
   if (dealId) revalidatePath(`/deals/${dealId}`);
   if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
   return { success: true };

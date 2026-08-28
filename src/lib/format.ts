@@ -29,6 +29,12 @@ export function formatDateTime(value: Date | string | null | undefined) {
   }).format(date);
 }
 
+export function formatTime(value: Date | string | null | undefined) {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
 export function formatDateInput(value: Date | string | null | undefined) {
   if (!value) return "";
   const date = typeof value === "string" ? new Date(value) : value;

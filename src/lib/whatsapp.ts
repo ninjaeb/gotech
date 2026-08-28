@@ -85,6 +85,30 @@ export async function testWhatsAppConnection(
   return { displayPhoneNumber: body.display_phone_number ?? null };
 }
 
+// The two fixed prefixes both WhatsApp Activity-writing paths use — the
+// outbound send action (src/app/actions/whatsapp-send.ts) and the inbound
+// webhook (src/app/api/whatsapp/webhook/route.ts). Shared here so a
+// conversation view can recover direction from Activity.content without a
+// redundant direction column, and so the two writers and the one reader
+// can never drift out of sync with each other.
+export const WHATSAPP_SENT_PREFIX = "Sent WhatsApp message: ";
+export const WHATSAPP_RECEIVED_PREFIX = "Received WhatsApp message: ";
+
+export type WhatsAppMessageDirection = "INBOUND" | "OUTBOUND";
+
+export function parseWhatsAppActivityContent(content: string): {
+  direction: WhatsAppMessageDirection;
+  text: string;
+} {
+  if (content.startsWith(WHATSAPP_RECEIVED_PREFIX)) {
+    return { direction: "INBOUND", text: content.slice(WHATSAPP_RECEIVED_PREFIX.length) };
+  }
+  if (content.startsWith(WHATSAPP_SENT_PREFIX)) {
+    return { direction: "OUTBOUND", text: content.slice(WHATSAPP_SENT_PREFIX.length) };
+  }
+  return { direction: "OUTBOUND", text: content };
+}
+
 export class WhatsAppSendError extends Error {
   code?: number;
   constructor(message: string, code?: number) {

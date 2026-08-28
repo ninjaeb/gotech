@@ -2,7 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { findUnambiguousOpenDeal } from "@/lib/email";
-import { WHATSAPP_ACCOUNT_ID, findContactIdByWhatsAppPhone, verifyWebhookSignature } from "@/lib/whatsapp";
+import {
+  WHATSAPP_ACCOUNT_ID,
+  WHATSAPP_RECEIVED_PREFIX,
+  findContactIdByWhatsAppPhone,
+  verifyWebhookSignature,
+} from "@/lib/whatsapp";
 
 // Meta's one-time handshake when the webhook URL is registered/re-verified
 // in the Meta App Dashboard: echo back hub.challenge if hub.verify_token
@@ -29,13 +34,30 @@ type WhatsAppTextMessage = {
   text?: { body: string };
 };
 
+// Meta's message-delivery lifecycle events — one per status hop (a single
+// outbound message gets a "sent" event, then later a separate "delivered"
+// event, then "read", each a fresh POST). `id` is the same wamid the
+// "messages" send path stored as externalId, which is how these get matched
+// back to the Activity row that logged the send.
+type WhatsAppStatusUpdate = {
+  id: string;
+  status: string;
+  timestamp: string;
+};
+
 type WhatsAppWebhookPayload = {
   entry?: {
     changes?: {
-      value?: { messages?: WhatsAppTextMessage[] };
+      value?: { messages?: WhatsAppTextMessage[]; statuses?: WhatsAppStatusUpdate[] };
     }[];
   }[];
 };
+
+const KNOWN_STATUSES = new Set(["sent", "delivered", "read", "failed"]);
+
+function toWhatsAppMessageStatus(status: string): "SENT" | "DELIVERED" | "READ" | "FAILED" | null {
+  return KNOWN_STATUSES.has(status) ? (status.toUpperCase() as "SENT" | "DELIVERED" | "READ" | "FAILED") : null;
+}
 
 // A non-text message (image, document, location, voice note, etc.) — this
 // app doesn't download/store WhatsApp media, so it logs a marker instead of
@@ -47,9 +69,10 @@ function describeMessage(message: WhatsAppTextMessage): string {
 }
 
 // Meta delivers every inbound message and status update (sent/delivered/
-// read receipts) here. Only `messages` entries are actioned; everything
-// else is acknowledged and ignored. Must always return 2xx quickly —
-// Meta retries (and eventually disables) a webhook that doesn't.
+// read receipts) here. `messages` and `statuses` entries are both actioned;
+// anything else (e.g. account-review events) is acknowledged and ignored.
+// Must always return 2xx quickly — Meta retries (and eventually disables)
+// a webhook that doesn't.
 export async function POST(request: NextRequest) {
   const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
   if (!account) return NextResponse.json({ ok: true });
@@ -81,7 +104,7 @@ export async function POST(request: NextRequest) {
       await db.activity.create({
         data: {
           type: "WHATSAPP",
-          content: `Received WhatsApp message: ${describeMessage(message)}`,
+          content: `${WHATSAPP_RECEIVED_PREFIX}${describeMessage(message)}`,
           contactId,
           dealId,
           externalId: `whatsapp:${message.id}`,
@@ -93,6 +116,22 @@ export async function POST(request: NextRequest) {
       // (Meta can redeliver the same webhook event).
       if (!(error instanceof Object && "code" in error && error.code === "P2002")) throw error;
     }
+  }
+
+  const statuses = (payload.entry ?? []).flatMap((entry) =>
+    (entry.changes ?? []).flatMap((change) => change.value?.statuses ?? []),
+  );
+
+  for (const status of statuses) {
+    const mapped = toWhatsAppMessageStatus(status.status);
+    if (!mapped) continue;
+    // updateMany, not update — a status event can in principle be redelivered
+    // or (rarely) arrive before the send's own Activity.create has committed;
+    // either way there's nothing to throw about, just nothing to update yet.
+    await db.activity.updateMany({
+      where: { externalId: `whatsapp:${status.id}` },
+      data: { whatsappStatus: mapped },
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
+import { MessagesSquare, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
@@ -171,7 +171,17 @@ export default async function ContactDetailPage({
                         {contact.phone}
                         <WhatsAppLink phone={contact.phone} />
                         {hasWhatsAppAccount && (
-                          <SendWhatsAppButton contactId={contact.id} contactName={contactName} />
+                          <>
+                            <SendWhatsAppButton contactId={contact.id} contactName={contactName} />
+                            <Link
+                              href={`/whatsapp/${contact.id}`}
+                              title="View WhatsApp conversation"
+                              aria-label="View WhatsApp conversation"
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                            >
+                              <MessagesSquare className="h-4 w-4" />
+                            </Link>
+                          </>
                         )}
                       </span>
                     )
