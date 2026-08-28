@@ -58,6 +58,26 @@ export function WhatsAppThread({
   const [messages, setMessages] = useState(initialMessages);
   const formRef = useRef<HTMLFormElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  // The composer (or the "can't send" fallback) is `sticky bottom-0` — it
+  // visually floats over whatever the scroll container's last few pixels
+  // are, rather than taking up space that scrolling naturally clears. Without
+  // accounting for its height, scrolling the newest message "into view"
+  // still leaves it rendered underneath the composer instead of above it.
+  // Measuring it live (rather than a fixed guess) keeps this correct as the
+  // textarea grows past one line.
+  useEffect(() => {
+    const el = footerRef.current;
+    if (!el) return;
+    // contentRect excludes padding/border, undershooting the actual space
+    // the (padded, bordered) composer bar occupies — read the real
+    // rendered box instead of relying on it.
+    const observer = new ResizeObserver(() => setFooterHeight(el.getBoundingClientRect().height));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   // Polls a small JSON endpoint and merges the result into local state,
   // rather than the earlier router.refresh() approach — that re-rendered
@@ -94,10 +114,13 @@ export function WhatsAppThread({
 
   // Scroll to the newest message on mount, and again whenever the thread
   // grows — always lands on the latest line rather than wherever the
-  // previous scroll position happened to be.
+  // previous scroll position happened to be. Also re-runs when footerHeight
+  // changes: on first mount that's still 0 (ResizeObserver hasn't reported
+  // the composer's real height yet), so the very first scroll undershoots —
+  // this re-scrolls once the real margin is known.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages.length]);
+  }, [messages.length, footerHeight]);
 
   // Marks the thread read on mount and again every time it grows — an
   // open thread should stay "read" live as replies arrive on screen, not
@@ -190,12 +213,15 @@ export function WhatsAppThread({
             </div>
           );
         })}
-        <div ref={bottomRef} />
+        <div ref={bottomRef} style={{ scrollMarginBottom: footerHeight }} />
       </div>
 
       {canSend ? (
         <form
-          ref={formRef}
+          ref={(el) => {
+            formRef.current = el;
+            footerRef.current = el;
+          }}
           action={formAction}
           className="sticky bottom-0 rounded-b-lg border-t border-slate-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 sm:px-6"
         >
@@ -220,7 +246,12 @@ export function WhatsAppThread({
           )}
         </form>
       ) : (
-        <p className="sticky bottom-0 rounded-b-lg border-t border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-slate-400 sm:px-6">
+        <p
+          ref={(el) => {
+            footerRef.current = el;
+          }}
+          className="sticky bottom-0 rounded-b-lg border-t border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 dark:border-neutral-800 dark:bg-neutral-900 dark:text-slate-400 sm:px-6"
+        >
           {hasWhatsAppAccount
             ? "Add a phone number to this contact to reply from here."
             : "Connect WhatsApp Business in Settings to reply from here."}
