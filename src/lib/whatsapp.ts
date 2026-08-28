@@ -121,14 +121,31 @@ export async function sendWhatsAppMessage(
       text: { body },
     }),
   });
-  const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
+  const payload: {
+    messages?: { id: string }[];
+    error?: { message?: string; type?: string; code?: number; error_subcode?: number };
+  } = await response.json();
   if (!response.ok) {
     const code = payload.error?.code;
-    const message =
-      code === OUTSIDE_SERVICE_WINDOW_CODE
-        ? "This contact hasn't messaged you on WhatsApp in the last 24 hours. Outside that window, WhatsApp requires a pre-approved message template to start a new conversation — a plain reply only works within 24h of their last message to you."
-        : (payload.error?.message ?? `WhatsApp API returned ${response.status}`);
-    throw new WhatsAppSendError(message, code);
+    if (code === OUTSIDE_SERVICE_WINDOW_CODE) {
+      throw new WhatsAppSendError(
+        "This contact hasn't messaged you on WhatsApp in the last 24 hours. Outside that window, WhatsApp requires a pre-approved message template to start a new conversation — a plain reply only works within 24h of their last message to you.",
+        code,
+      );
+    }
+    // Meta's error object carries more than just a message — surfacing the
+    // rest too (rather than just payload.error.message alone) is what makes
+    // an otherwise-generic-sounding error (e.g. "Unsupported request")
+    // actually diagnosable against Meta's own error-code docs.
+    const rawMessage = payload.error?.message ?? `WhatsApp API returned ${response.status}`;
+    const details = [
+      payload.error?.type,
+      code !== undefined ? `code ${code}` : null,
+      payload.error?.error_subcode !== undefined ? `subcode ${payload.error.error_subcode}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    throw new WhatsAppSendError(details ? `${rawMessage} (${details})` : rawMessage, code);
   }
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
