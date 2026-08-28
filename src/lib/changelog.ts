@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.21",
+    date: "2026-08-28",
+    title: "Harder-to-miss unread WhatsApp messages",
+    changes: [
+      "The WhatsApp inbox now shows an \"N unread conversations\" banner, tints and left-borders unread rows, and tags each with a \"New\" badge",
+      "The browser tab title picks up an unread count (e.g. \"(2) WhatsApp\") while you're on the WhatsApp page, live as new messages arrive",
+    ],
+  },
+  {
     version: "1.20",
     date: "2026-08-28",
     title: "Edit teammates from Settings → Team",
