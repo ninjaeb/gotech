@@ -10,6 +10,43 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.19",
+    date: "2026-08-28",
+    title: "Reorganized Settings, full-width pages, and a daily WhatsApp reminder",
+    changes: [
+      "Settings is now split into categories — General, Sales, Team, Forms & Booking, Integrations — with a sidebar sub-menu, instead of one long scrolling page",
+      "Optional daily WhatsApp message summarizing each user's due/overdue tasks, opt-in from Settings → General; requires a Meta-approved message template, since a proactive daily reminder falls outside WhatsApp's 24-hour freeform-reply window (see the README for the template to submit)",
+      "Settings and most other pages now use the full available page width instead of a narrow centered column",
+    ],
+  },
+  {
+    version: "1.18",
+    date: "2026-08-28",
+    title: "Products & Services catalog: bundles, billing frequency, and margin",
+    changes: [
+      "A dedicated Products & Services management page (Settings → Sales → Products & Services), with a Product/Service type distinction, replacing the old read-only embedded list",
+      "Each catalog item can carry a billing frequency (One-time/Monthly/Quarterly/Yearly, informational) and an optional unit cost, with margin computed live from price and cost so it never drifts out of sync",
+      "Catalog items can bundle other items as components, one level deep — a bundle's components can't themselves have components, so bundles can't cycle",
+      "Reusable quote templates (Settings → Sales → Quote templates): a saved set of line items and default terms that a new quote can start from via a picker, fully editable afterward",
+      "Picking a bundle on a quote or quote template fills one line with the bundle's own name and price by default, with an \"Expand into N lines\" action on that row for the itemized breakdown",
+    ],
+  },
+  {
+    version: "1.17",
+    date: "2026-08-27",
+    title: "Search fixes and inline editing",
+    changes: [
+      "Fixed global search: a multi-word contact query (e.g. \"eugene boon\") now matches, instead of only matching when the full query sat in a single field",
+      "Contact lifecycle stage can now be changed inline from the contact's own page, no need to open the edit form",
+      "The Contacts list search now filters live as you type, matching the Companies page",
+      "CSV import can infer a company's industry from a free-text business description when there's no usable Industry column, and now imports the company's address",
+      "Dashboard stage-by-stage rows now link to that exact stage's column on the Deals board, and stat card labels no longer wrap out of alignment",
+      "A Changelog link now appears in the sidebar/mobile nav under Settings, not just as a card on the Settings page",
+      "Lowered the default DB connection pool size to make room for CLI scripts on constrained hosting",
+      "Cleanup scripts: remove-duplicate-contacts now also catches badly-formatted email/phone, and cleans up companies left with zero contacts after a dedup",
+    ],
+  },
+  {
     version: "1.16",
     date: "2026-08-27",
     title: "Cleaner contact data, AI drafting, and desktop alerts",
