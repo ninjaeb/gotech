@@ -1,23 +1,18 @@
 import { updateCurrency } from "@/app/actions/settings";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
-import { db } from "@/lib/db";
 import { CURRENCIES } from "@/lib/currency";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
-import { MyPhoneForm } from "@/components/settings/my-phone-form";
 import { SettingsLinkCard } from "@/components/settings/settings-link-card";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
   const canManage = currentUser.role === "ADMIN";
-  const [currency, phone] = await Promise.all([
-    getCurrency(),
-    db.user.findUnique({ where: { id: currentUser.id }, select: { phone: true } }).then((u) => u?.phone ?? null),
-  ]);
+  const currency = await getCurrency();
 
   return (
     <div className="space-y-6">
@@ -76,19 +71,6 @@ export default async function SettingsPage() {
         title="Changelog"
         description="See what's new — every feature and change, with version and date."
       />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>WhatsApp task reminders</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-            Set your number to get a daily WhatsApp summary of your due and overdue tasks each morning.
-            Requires the team&apos;s WhatsApp Business connection to be set up (Settings → Integrations).
-          </p>
-          <MyPhoneForm currentPhone={phone} />
-        </CardBody>
-      </Card>
 
       <Card>
         <CardHeader>

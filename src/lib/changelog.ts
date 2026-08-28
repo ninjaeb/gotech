@@ -10,12 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.20",
+    date: "2026-08-28",
+    title: "Edit teammates from Settings → Team",
+    changes: [
+      "Settings → Team: edit a teammate's name, email, title, and WhatsApp reminder number directly from their row — no more self-service-only phone number",
+    ],
+  },
+  {
     version: "1.19",
     date: "2026-08-28",
     title: "Reorganized Settings, full-width pages, and a daily WhatsApp reminder",
     changes: [
       "Settings is now split into categories — General, Sales, Team, Forms & Booking, Integrations — with a sidebar sub-menu, instead of one long scrolling page",
-      "Optional daily WhatsApp message summarizing each user's due/overdue tasks, opt-in from Settings → General; requires a Meta-approved message template, since a proactive daily reminder falls outside WhatsApp's 24-hour freeform-reply window (see the README for the template to submit)",
+      "Optional daily WhatsApp message summarizing each user's due/overdue tasks, opt-in per user with a phone number set from Settings → Team; requires a Meta-approved message template, since a proactive daily reminder falls outside WhatsApp's 24-hour freeform-reply window (see the README for the template to submit)",
       "Settings and most other pages now use the full available page width instead of a narrow centered column",
     ],
   },

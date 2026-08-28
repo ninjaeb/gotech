@@ -27,7 +27,7 @@ async function main() {
 
   const users = await db.user.findMany({ where: { phone: { not: null } } });
   if (users.length === 0) {
-    console.log("No one has opted in with a phone number (Settings → General) — nothing to digest.");
+    console.log("No one has a phone number set (Settings → Team) — nothing to digest.");
     return;
   }
 

@@ -167,7 +167,7 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user. Needs
    - Body: `Good morning {{1}}! You have {{2}} task(s) due today or overdue in GoTech CRM. Open the app to see the full list.`
 
    Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls.
-2. **Each user opts in** from *Settings → General → WhatsApp task reminders*, with their own phone number. Leaving it blank opts back out.
+2. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
 3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
 
 `{{1}}` is filled with the user's first name, `{{2}}` with their task count — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
