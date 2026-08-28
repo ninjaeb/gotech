@@ -15,15 +15,15 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal. Type `@` in a note to mention a teammate — they get an in-app notification (bell icon, top of the nav) linking straight back to it. From the bell dropdown, enable desktop alerts to also get a browser notification the moment a new one arrives, even while GoTech is open in a background tab
 - **Dashboard** — pipeline overview (open value, closed-won, win rate), stage-by-stage breakdown, high-value open deals, and *your* upcoming tasks
 - **AI Assistant** *(optional, requires a Gemini API key)* — on each Contact/Company/Deal page: AI-generated summary + suggested next action, and a draftable follow-up message (the same drafting also available inline on the Task page's Email/WhatsApp send dialogs). On the dashboard: an "AI Pipeline Diagnosis" that reads pipeline health and overdue work and names the single highest-priority thing to do next
-- **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for GoTech's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. The direct link and a ready-to-paste `<iframe>` snippet are both in *Settings*
-- **Meeting scheduler** (`/book`) — a public booking link for discovery calls, built from a weekly-hours schedule you set in *Settings* (timezone as a fixed UTC offset, call length, per-day hours). A booking finds-or-creates a Contact and auto-adds a follow-up Task at the chosen time — no email back-and-forth
-- **Email sync** (*Settings → Connect your email*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs
+- **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for GoTech's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. The direct link and a ready-to-paste `<iframe>` snippet are both in *Settings → Forms & Booking*
+- **Meeting scheduler** (`/book`) — a public booking link for discovery calls, built from a weekly-hours schedule you set in *Settings → Forms & Booking* (timezone as a fixed UTC offset, call length, per-day hours). A booking finds-or-creates a Contact and auto-adds a follow-up Task at the chosen time — no email back-and-forth
+- **Email sync** (*Settings → Integrations*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs
 - **WhatsApp Business** (*Settings → WhatsApp Business*) — connect one shared Business phone number via the official [Meta WhatsApp Business Platform (Cloud API)](https://developers.facebook.com/docs/whatsapp/cloud-api) — never an unofficial/browser-automation integration. Incoming and outgoing messages to/from a matching Contact's phone number are logged as Activities automatically (delivered instantly via webhook, no polling), attached to that contact's one open Deal when unambiguous. Send from inside a Contact page too, subject to WhatsApp's own 24-hour customer-service-window rule for freeform replies
 - **Leaderboard** (`/leaderboard`) — every deal has an assignable Owner (set from the deal form, defaulting to whoever creates it); the leaderboard ranks teammates by deals won and value closed, filterable by this month / this quarter / this year / all time
 - **Time tracking** — log time against any task (the clock icon next to it) with minutes, a date, and an optional note; Deals, Projects, Contacts, and Companies each roll up the total time logged across their tasks in the Tasks/Milestones card
 - **Invoices** (on a Project page) — track payment milestones against a won deal's project: Draft → Deposit sent → Progress billed → Paid in full, with an amount, due date, and notes per invoice
 - **Client portal** (`/portal`) — invite a Contact (from their Contact page, once they have an email and a company) and they get their own login, entirely separate from staff accounts, scoped strictly to their own Company's data: their Projects and milestones, their Quotes, their Invoices. Nothing internal — Activities, task descriptions, non-milestone tasks, deal notes — is ever exposed. Invite generates a one-time setup link (same copy-and-send pattern as quotes and the booking link); staff can revoke access at any time from the Contact page
-- **Sequences** (*Settings → Sequences*) — multi-step automated email cadences. Build a sequence (subject, message, and a day-delay per step), then enroll any Contact with an email from their Contact page. Each step sends from your own connected mailbox on schedule; the whole sequence stops itself the moment the contact replies — checked against email sync's inbound record, no extra setup. Runs on the same cron-job pattern as email sync (see *Deploying on cPanel* below)
+- **Sequences** (*Settings → Sales → Sequences*) — multi-step automated email cadences. Build a sequence (subject, message, and a day-delay per step), then enroll any Contact with an email from their Contact page. Each step sends from your own connected mailbox on schedule; the whole sequence stops itself the moment the contact replies — checked against email sync's inbound record, no extra setup. Runs on the same cron-job pattern as email sync (see *Deploying on cPanel* below)
 - **Task notifications** — the dashboard's "My Tasks" card and stat cards only show tasks assigned to you, and the Tasks nav item gets a red badge counting how many are due today or overdue. Optionally enable a daily digest email of that same list per mailbox, via a cron job (see *Deploying on cPanel* below)
 
 ## Stack
@@ -87,13 +87,13 @@ The app requires logging in, so run this at least once. If no users exist yet, i
 
 Re-running the seed clears and re-creates the sample CRM data, but never touches existing users — it's safe to run again later without affecting logins. Set `ADMIN_EMAIL`/`ADMIN_NAME` env vars before the *first* run to customize the initial account.
 
-To add teammates, use **Settings → Users** in the running app, or the `create-user` script from the command line (both hash the password properly — don't add users directly via `prisma studio`):
+To add teammates, use **Settings → Team** in the running app, or the `create-user` script from the command line (both hash the password properly — don't add users directly via `prisma studio`):
 
 ```bash
 npm run create-user -- --email="jane@example.com" --name="Jane Doe" --title="Sales"
 ```
 
-Either way, set your own password or leave it blank for a generated one (shown once — copy it down; the script takes `--password="..."`). Any signed-in user can reset a teammate's password from **Settings → Users**, and change their own from **Settings → Change your password**.
+Either way, set your own password or leave it blank for a generated one (shown once — copy it down; the script takes `--password="..."`). Any signed-in user can reset a teammate's password from **Settings → Team**, and change their own from **Settings → Change your password**.
 
 When you're ready to move off the sample data (Acme Inc., Sarah Chen, etc.) and start entering real companies/contacts/deals, use `clear-data` instead of re-running the seed — seeding would just refill it with the same sample records. It deletes all CRM data and leaves logins untouched:
 
@@ -122,7 +122,7 @@ Restart the dev server. "Generate insights", "Draft follow-up", and "AI Pipeline
 
 ### 7. Enable email sync (optional)
 
-Each user connects their own mailbox from *Settings → Connect your email* — no env var to set (the encryption key for stored credentials is derived from `SESSION_SECRET`, which you've already got from step 2). It needs the mailbox's IMAP and SMTP host/port, and a password:
+Each user connects their own mailbox from *Settings → Integrations* — no env var to set (the encryption key for stored credentials is derived from `SESSION_SECRET`, which you've already got from step 2). It needs the mailbox's IMAP and SMTP host/port, and a password:
 
 - **Gmail** — `imap.gmail.com:993` (SSL) / `smtp.gmail.com:465` (SSL). Needs an [App Password](https://myaccount.google.com/apppasswords) (requires 2-Step Verification), not the regular account password.
 - **Outlook / Microsoft 365** — `outlook.office365.com:993` (SSL) / `smtp.office365.com:587` (uncheck "uses SSL/TLS" — it's STARTTLS on that port). Microsoft has phased out basic auth for IMAP/SMTP on Exchange Online mailboxes; an App Password (or your tenant's modern-auth equivalent) is required.
@@ -132,7 +132,7 @@ Each user connects their own mailbox from *Settings → Connect your email* — 
 
 ### 8. Enable sequences (optional)
 
-No separate setup — a sequence sends through whichever staff member enrolled the contact, using their already-connected mailbox from step 7 above, so at least one user needs email sync set up first. Build a sequence from *Settings → Sequences*, then enroll a contact from their Contact page. Like email sync, this only runs on its own once you add a cron job — see the cPanel deploy steps below.
+No separate setup — a sequence sends through whichever staff member enrolled the contact, using their already-connected mailbox from step 7 above, so at least one user needs email sync set up first. Build a sequence from *Settings → Sales → Sequences*, then enroll a contact from their Contact page. Like email sync, this only runs on its own once you add a cron job — see the cPanel deploy steps below.
 
 ### 9. Enable the daily task digest (optional)
 
@@ -149,11 +149,27 @@ Unlike email, this is one shared connection for the whole team, made through the
 3. Generate a **permanent access token**: Meta App Dashboard → App Settings → Basic (or *System Users* under Business Settings, for a token that doesn't expire) — a temporary 24-hour token from the quickstart page won't stay working.
 4. Copy the App Secret from App Settings → Basic too.
 
-**Connect in the CRM:** *Settings → WhatsApp Business* → paste in the Phone number ID, WABA ID, access token, and App Secret. The app tests the connection against Meta's API before saving.
+**Connect in the CRM:** *Settings → Integrations* → paste in the Phone number ID, WABA ID, access token, and App Secret. The app tests the connection against Meta's API before saving.
 
 **Register the webhook:** once connected, Settings shows a webhook URL and a verify token — paste both into Meta App Dashboard → WhatsApp → Configuration → Webhook, subscribe to the `messages` field. Meta calls that URL directly (no login), so incoming messages arrive instantly — no cron job needed for this one, unlike email sync.
 
-**The 24-hour window:** WhatsApp only allows freeform replies within 24 hours of the customer's last message to you; starting a new conversation outside that window requires a pre-approved message template, which this integration doesn't manage (that's a template-creation-and-review flow inside Meta Business Manager, separate from anything here). Sending outside the window fails with a clear error rather than silently doing nothing.
+**The 24-hour window:** WhatsApp only allows freeform replies within 24 hours of the customer's last message to you; starting a new conversation outside that window requires a pre-approved message template, which most of this integration doesn't manage (that's a template-creation-and-review flow inside Meta Business Manager, separate from anything here) — sending outside the window fails with a clear error rather than silently doing nothing. The one exception is the daily task digest below, which is proactive by design and so always sends as a template.
+
+### 11. Daily WhatsApp task reminder (optional)
+
+A once-a-day WhatsApp message summarizing what's due or overdue, per user. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `daily_task_digest` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Body: `Good morning {{1}}! You have {{2}} task(s) due today or overdue in GoTech CRM. Open the app to see the full list.`
+
+   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls.
+2. **Each user opts in** from *Settings → General → WhatsApp task reminders*, with their own phone number. Leaving it blank opts back out.
+3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
+
+`{{1}}` is filled with the user's first name, `{{2}}` with their task count — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
 
 ## Deploying on cPanel
 
@@ -184,7 +200,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 6. **Restart** the app from the Node.js Selector UI, then visit the Application URL. `server.js` builds the production bundle itself on every start (there's no separate "build" step to run) — the app takes ~20-30s to come up while `next build` runs each time; check `stderr.log` in the Application root if it doesn't come up.
 
-7. **(Optional) Schedule background jobs.** If anyone connects a mailbox (*Settings → Connect your email*), add a cPanel *Cron Jobs* entry — e.g. every 10 minutes — running:
+7. **(Optional) Schedule background jobs.** If anyone connects a mailbox (*Settings → Integrations*), add a cPanel *Cron Jobs* entry — e.g. every 10 minutes — running:
    ```bash
    cd /home/USERNAME/APPLICATION_ROOT && source /home/USERNAME/nodevenv/APPLICATION_ROOT/*/bin/activate && npm run sync-email
    ```
@@ -193,6 +209,8 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    If anyone uses Sequences too, add a second entry the same way for `npm run process-sequences` — an hourly schedule is plenty, since a step's delay is day-granularity. Without this, enrolled contacts never actually get their emails, even though enrolling still "succeeds."
 
    For the daily task digest, add a third entry for `npm run send-task-digests` on a once-a-day schedule (e.g. 7am) — it self-limits to roughly one send per connected mailbox per day regardless of how often it's actually invoked, so a more frequent schedule wouldn't double-send, but there's no reason to run it more than daily either.
+
+   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, also once a day in the morning. Same self-limiting behavior as the email digest.
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
@@ -286,6 +304,8 @@ src/
 | `npm run clear-data -- --yes` | Delete all CRM data (companies/contacts/deals/tasks/activity), keep logins |
 | `npm run sync-email` | Sync every connected mailbox once (what the cron job runs) |
 | `npm run process-sequences` | Send any due sequence steps once (what the cron job runs) |
+| `npm run send-task-digests` | Send the daily email task digest once (what the cron job runs) |
+| `npm run send-task-digests-whatsapp` | Send the daily WhatsApp task reminder once (what the cron job runs) |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |

@@ -97,9 +97,11 @@ export class WhatsAppSendError extends Error {
 // Business-initiated messages sent more than 24h after the customer's last
 // message are rejected with this code ("re-engagement message") — WhatsApp
 // requires a pre-approved message template to open a new conversation
-// outside that window; freeform text only works to reply within it. This
-// app doesn't manage templates, so that case surfaces as a clear error
-// rather than a silent failure or a confusing raw API message.
+// outside that window; freeform text only works to reply within it. Most of
+// this app only ever replies within that window, so that case surfaces as a
+// clear error rather than a silent failure or a confusing raw API message.
+// sendWhatsAppTemplateMessage below is the one caller that's proactive by
+// design (the daily task digest) and so always needs a template, not text.
 const OUTSIDE_SERVICE_WINDOW_CODE = 131047;
 
 export async function sendWhatsAppMessage(
@@ -127,6 +129,47 @@ export async function sendWhatsAppMessage(
         ? "This contact hasn't messaged you on WhatsApp in the last 24 hours. Outside that window, WhatsApp requires a pre-approved message template to start a new conversation — a plain reply only works within 24h of their last message to you."
         : (payload.error?.message ?? `WhatsApp API returned ${response.status}`);
     throw new WhatsAppSendError(message, code);
+  }
+  const messageId = payload.messages?.[0]?.id;
+  if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
+  return messageId;
+}
+
+// A template message, not text — the only message type WhatsApp allows a
+// business to send *proactively* (i.e. not in reply to a recent incoming
+// message; see OUTSIDE_SERVICE_WINDOW_CODE above). The template itself must
+// already exist and be approved in Meta Business Manager before this will
+// succeed; see the README's WhatsApp section for the exact one this app
+// expects for the daily task digest.
+export async function sendWhatsAppTemplateMessage(
+  account: WhatsAppAccount,
+  toPhone: string,
+  templateName: string,
+  languageCode: string,
+  bodyParameters: string[],
+): Promise<string> {
+  const accessToken = decryptSecret(account.encryptedAccessToken);
+  const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: normalizePhone(toPhone),
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: languageCode },
+        components:
+          bodyParameters.length > 0
+            ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
+            : [],
+      },
+    }),
+  });
+  const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
+  if (!response.ok) {
+    throw new WhatsAppSendError(payload.error?.message ?? `WhatsApp API returned ${response.status}`, payload.error?.code);
   }
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");

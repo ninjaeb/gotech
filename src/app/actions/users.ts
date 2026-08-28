@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { verifySession, requireAdminAction } from "@/lib/auth/dal";
+import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 import type { Role } from "@/generated/prisma/client";
 
 const createUserSchema = z.object({
@@ -171,5 +172,39 @@ export async function changePassword(
     data: { passwordHash: await hashPassword(parsed.data.newPassword) },
   });
 
+  return { success: true };
+}
+
+const myPhoneSchema = z.object({
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
+});
+
+export type MyPhoneState = { error: string } | { success: true } | undefined;
+
+// Self-service, like changePassword above — sets only the caller's own
+// number, for their own WhatsApp task-reminder opt-in (see
+// scripts/send-task-digests-whatsapp.ts). Clearing the field (blank) opts
+// back out.
+export async function updateMyPhone(
+  _prevState: MyPhoneState,
+  formData: FormData,
+): Promise<MyPhoneState> {
+  const session = await verifySession();
+
+  const parsed = myPhoneSchema.safeParse({ phone: formData.get("phone") });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  await db.user.update({
+    where: { id: session.userId },
+    data: { phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null },
+  });
+
+  revalidatePath("/settings");
   return { success: true };
 }

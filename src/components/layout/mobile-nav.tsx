@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SETTINGS_SUB_ITEMS } from "@/lib/settings-nav";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
@@ -128,20 +129,20 @@ export function MobileNav({
                         </span>
                       )}
                     </Link>
-                    {item.href === "/settings" && (
-                      <Link
-                        href="/settings/changelog"
-                        onClick={() => setOpen(false)}
-                        className={cn(
-                          "ml-8 flex items-center rounded-md px-3 py-2 text-xs font-medium transition-colors",
-                          pathname === "/settings/changelog"
-                            ? "text-indigo-300"
-                            : "text-slate-500 hover:text-slate-200",
-                        )}
-                      >
-                        Changelog
-                      </Link>
-                    )}
+                    {item.href === "/settings" &&
+                      SETTINGS_SUB_ITEMS.filter((sub) => !sub.adminOnly || user.role === "ADMIN").map((sub) => (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={() => setOpen(false)}
+                          className={cn(
+                            "ml-8 flex items-center rounded-md px-3 py-2 text-xs font-medium transition-colors",
+                            pathname === sub.href ? "text-indigo-300" : "text-slate-500 hover:text-slate-200",
+                          )}
+                        >
+                          {sub.label}
+                        </Link>
+                      ))}
                   </Fragment>
                 );
               })}

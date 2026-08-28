@@ -85,6 +85,14 @@ model User {
   // hours as unrated instead of guessing a cost.
   hourlyRate Decimal? @db.Decimal(10, 2)
 
+  // Self-service, like changing your own password — set only if this user
+  // wants their own daily WhatsApp task-reminder (see
+  // scripts/send-task-digests-whatsapp.ts). Not used for anything else;
+  // the WhatsApp *Business* number staff message clients from is a
+  // separate, shared WhatsAppAccount, unrelated to this.
+  phone                        String?
+  lastTaskDigestWhatsAppSentAt DateTime?
+
   // JSON: { [pageType]: { main: string[], sidebar: string[] } } — which
   // sections this user has dragged where on the Deal/Company/Contact detail
   // pages. A personal display preference, so it lives on User rather than
