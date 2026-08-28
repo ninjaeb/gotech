@@ -32,7 +32,7 @@ export default async function WhatsAppInboxPage() {
 
   return (
     <div>
-      <AutoRefresh />
+      <AutoRefresh intervalMs={2000} />
       <PageHeader
         title="WhatsApp"
         description={`${conversations.length} ${conversations.length === 1 ? "conversation" : "conversations"}`}

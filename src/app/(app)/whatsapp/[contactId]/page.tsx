@@ -38,7 +38,7 @@ export default async function WhatsAppThreadPage({
 
   return (
     <div className="flex flex-col">
-      <AutoRefresh />
+      <AutoRefresh intervalMs={2000} />
       <PageHeader
         breadcrumbs={[{ label: "WhatsApp", href: "/whatsapp" }, { label: contactName }]}
         title={contactName}
