@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -147,8 +148,7 @@ export async function updateServicePackage(
     },
   });
   revalidatePath("/settings/products");
-  revalidatePath(`/settings/products/${id}`);
-  return { success: true };
+  redirect("/settings/products");
 }
 
 export async function deleteServicePackage(id: string) {
