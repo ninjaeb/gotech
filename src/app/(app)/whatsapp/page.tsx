@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
 import { fullName, relativeToToday } from "@/lib/format";
 import { parseWhatsAppActivityContent } from "@/lib/whatsapp";
@@ -31,6 +32,7 @@ export default async function WhatsAppInboxPage() {
 
   return (
     <div>
+      <AutoRefresh />
       <PageHeader
         title="WhatsApp"
         description={`${conversations.length} ${conversations.length === 1 ? "conversation" : "conversations"}`}

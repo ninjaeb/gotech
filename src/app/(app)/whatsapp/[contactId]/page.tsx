@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
+import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { fullName } from "@/lib/format";
 import { WHATSAPP_ACCOUNT_ID, parseWhatsAppActivityContent } from "@/lib/whatsapp";
 import { WhatsAppThread, type ThreadMessage } from "@/components/whatsapp/whatsapp-thread";
@@ -37,6 +38,7 @@ export default async function WhatsAppThreadPage({
 
   return (
     <div className="flex flex-col">
+      <AutoRefresh />
       <PageHeader
         breadcrumbs={[{ label: "WhatsApp", href: "/whatsapp" }, { label: contactName }]}
         title={contactName}
