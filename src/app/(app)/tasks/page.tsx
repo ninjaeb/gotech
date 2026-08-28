@@ -20,11 +20,11 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
-function tabHref(key: FilterKey, query?: string, assignee?: string) {
+function tabHref(key: FilterKey, query?: string, assignee?: string, currentUserId?: string) {
   const params = new URLSearchParams();
   if (key !== "open") params.set("filter", key);
   if (query) params.set("q", query);
-  if (assignee) params.set("assignee", assignee);
+  if (assignee && assignee !== currentUserId) params.set("assignee", assignee);
   const qs = params.toString();
   return qs ? `/tasks?${qs}` : "/tasks";
 }
@@ -63,14 +63,17 @@ export default async function TasksPage({
     ? (rawFilter as FilterKey)
     : "open";
   const query = q?.trim();
-  const assigneeId = assignee?.trim() || undefined;
+  // Default to the current user's own tasks; "all" and "unassigned" are explicit choices.
+  const assigneeValue = assignee?.trim() || currentUser.id;
 
   const conditions: Prisma.TaskWhereInput[] = [buildWhere(filter)];
   if (query) {
     conditions.push({ OR: [{ title: { contains: query } }, { description: { contains: query } }] });
   }
-  if (assigneeId) {
-    conditions.push({ assignees: { some: { userId: assigneeId } } });
+  if (assigneeValue === "unassigned") {
+    conditions.push({ assignees: { none: {} } });
+  } else if (assigneeValue !== "all") {
+    conditions.push({ assignees: { some: { userId: assigneeValue } } });
   }
   const where: Prisma.TaskWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
@@ -124,7 +127,7 @@ export default async function TasksPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={tabHref(f.key, query, assigneeId)}
+            href={tabHref(f.key, query, assigneeValue, currentUser.id)}
             className={cn(
               "border-b-2 px-3 py-2 text-sm font-medium",
               filter === f.key
@@ -149,7 +152,7 @@ export default async function TasksPage({
             className="pl-9"
           />
         </div>
-        <AssigneeFilterSelect users={users} defaultValue={assigneeId} />
+        <AssigneeFilterSelect users={users} currentUserId={currentUser.id} defaultValue={assigneeValue} />
       </form>
 
       <Card>
@@ -162,7 +165,7 @@ export default async function TasksPage({
             hasEmailAccount={hasEmailAccount}
             hasWhatsAppAccount={hasWhatsAppAccount}
             emptyMessage={
-              query || assigneeId
+              query || (assigneeValue !== "all" && assigneeValue !== currentUser.id)
                 ? "No tasks match your filters."
                 : filter === "completed"
                   ? "No completed tasks yet."
