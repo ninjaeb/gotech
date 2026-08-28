@@ -299,6 +299,14 @@ model Contact {
   // re-scanning Activity rows.
   lastInboundEmailAt DateTime?
 
+  // A single team-wide read marker for this contact's WhatsApp thread, not
+  // per-user — matches the WhatsApp Business number itself being shared
+  // across the whole team rather than owned by one person the way email is.
+  // Set by markWhatsAppThreadRead whenever anyone opens the thread; a
+  // conversation counts as unread when its latest inbound message postdates
+  // this (see isWhatsAppConversationUnread in src/lib/whatsapp.ts).
+  whatsappLastReadAt DateTime?
+
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 

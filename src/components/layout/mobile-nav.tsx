@@ -39,11 +39,13 @@ const NAV_ITEMS = [
 export function MobileNav({
   user,
   myTaskAlertCount = 0,
+  whatsappUnreadCount = 0,
   notifications = [],
   unreadNotificationCount = 0,
 }: {
   user: { name: string; email: string; title: string | null; role: string };
   myTaskAlertCount?: number;
+  whatsappUnreadCount?: number;
   notifications?: NotificationItem[];
   unreadNotificationCount?: number;
 }) {
@@ -111,6 +113,8 @@ export function MobileNav({
                     ? pathname === "/"
                     : pathname === item.href || pathname.startsWith(`${item.href}/`);
                 const Icon = item.icon;
+                const badgeCount =
+                  item.href === "/tasks" ? myTaskAlertCount : item.href === "/whatsapp" ? whatsappUnreadCount : 0;
                 return (
                   <Fragment key={item.href}>
                     <Link
@@ -125,9 +129,9 @@ export function MobileNav({
                     >
                       <Icon className="h-4 w-4" />
                       {item.label}
-                      {item.href === "/tasks" && myTaskAlertCount > 0 && (
+                      {badgeCount > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
-                          {myTaskAlertCount}
+                          {badgeCount}
                         </span>
                       )}
                     </Link>

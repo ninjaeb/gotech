@@ -6,6 +6,24 @@ import type { NotificationItem } from "@/components/layout/notification-bell";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { notificationHref } from "@/lib/notification-href";
+import { isWhatsAppConversationUnread } from "@/lib/whatsapp";
+
+// Developers can't reach /whatsapp at all (nav item hidden, page itself
+// admin-gated) — skip the query on their every page load rather than pay
+// for a count nobody in that role will ever see.
+async function countUnreadWhatsAppConversations(isAdmin: boolean): Promise<number> {
+  if (!isAdmin) return 0;
+  const latest = await db.activity.findMany({
+    where: { type: "WHATSAPP", contactId: { not: null } },
+    orderBy: { createdAt: "desc" },
+    distinct: ["contactId"],
+    select: { content: true, createdAt: true, contact: { select: { whatsappLastReadAt: true } } },
+  });
+  return latest.filter(
+    (activity) =>
+      activity.contact && isWhatsAppConversationUnread(activity.content, activity.createdAt, activity.contact.whatsappLastReadAt),
+  ).length;
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -14,29 +32,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   endOfToday.setHours(0, 0, 0, 0);
   endOfToday.setDate(endOfToday.getDate() + 1);
 
-  const [myTaskAlertCount, notificationRows, unreadNotificationCount, latestNotification] = await Promise.all([
-    db.task.count({
-      where: { assignees: { some: { userId: user.id } }, completed: false, dueDate: { lt: endOfToday } },
-    }),
-    db.notification.findMany({
-      where: { userId: user.id },
-      orderBy: [{ read: "asc" }, { createdAt: "desc" }],
-      take: 15,
-      include: {
-        activity: { select: { taskId: true, contactId: true, companyId: true, dealId: true, projectId: true } },
-      },
-    }),
-    db.notification.count({ where: { userId: user.id, read: false } }),
-    // Separate from notificationRows above (sorted read-then-date, so its
-    // first row isn't reliably the newest) — this seeds the desktop-alert
-    // poller's cursor so it never re-notifies for something already on
-    // screen at load.
-    db.notification.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
-    }),
-  ]);
+  const [myTaskAlertCount, notificationRows, unreadNotificationCount, latestNotification, whatsappUnreadCount] =
+    await Promise.all([
+      db.task.count({
+        where: { assignees: { some: { userId: user.id } }, completed: false, dueDate: { lt: endOfToday } },
+      }),
+      db.notification.findMany({
+        where: { userId: user.id },
+        orderBy: [{ read: "asc" }, { createdAt: "desc" }],
+        take: 15,
+        include: {
+          activity: { select: { taskId: true, contactId: true, companyId: true, dealId: true, projectId: true } },
+        },
+      }),
+      db.notification.count({ where: { userId: user.id, read: false } }),
+      // Separate from notificationRows above (sorted read-then-date, so its
+      // first row isn't reliably the newest) — this seeds the desktop-alert
+      // poller's cursor so it never re-notifies for something already on
+      // screen at load.
+      db.notification.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      }),
+      countUnreadWhatsAppConversations(user.role === "ADMIN"),
+    ]);
 
   const notifications: NotificationItem[] = notificationRows.map((notification) => ({
     id: notification.id,
@@ -52,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar
         user={user}
         myTaskAlertCount={myTaskAlertCount}
+        whatsappUnreadCount={whatsappUnreadCount}
         notifications={notifications}
         unreadNotificationCount={unreadNotificationCount}
       />
@@ -59,6 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <MobileNav
           user={user}
           myTaskAlertCount={myTaskAlertCount}
+          whatsappUnreadCount={whatsappUnreadCount}
           notifications={notifications}
           unreadNotificationCount={unreadNotificationCount}
         />

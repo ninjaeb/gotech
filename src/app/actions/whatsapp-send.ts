@@ -15,7 +15,13 @@ const sendSchema = z.object({
   taskId: z.string().trim().nullish(),
 });
 
-export type SendWhatsAppFormState = { error: string } | { success: true } | undefined;
+export type SendWhatsAppFormState =
+  | { error: string }
+  // Echoes back the created message so the thread view can append it to its
+  // own state immediately, rather than waiting for the next poll tick to
+  // pick it up — your own sent message should never feel delayed.
+  | { success: true; message: { id: string; text: string; createdAt: string } }
+  | undefined;
 
 export async function sendWhatsAppToContact(
   contactId: string,
@@ -50,7 +56,7 @@ export async function sendWhatsAppToContact(
   }
 
   const dealId = await findUnambiguousOpenDeal(contactId);
-  await db.activity.create({
+  const activity = await db.activity.create({
     data: {
       type: "WHATSAPP",
       content: `${WHATSAPP_SENT_PREFIX}${parsed.data.message}`,
@@ -71,5 +77,16 @@ export async function sendWhatsAppToContact(
   revalidatePath("/whatsapp");
   if (dealId) revalidatePath(`/deals/${dealId}`);
   if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
-  return { success: true };
+  return {
+    success: true,
+    message: { id: activity.id, text: parsed.data.message, createdAt: activity.createdAt.toISOString() },
+  };
+}
+
+// Fire-and-forget from the thread view (see WhatsAppThread) whenever it's
+// opened or a new message arrives while it's open. Team-wide, not per-user —
+// see Contact.whatsappLastReadAt.
+export async function markWhatsAppThreadRead(contactId: string): Promise<void> {
+  await requireAdminAction();
+  await db.contact.update({ where: { id: contactId }, data: { whatsappLastReadAt: new Date() } });
 }

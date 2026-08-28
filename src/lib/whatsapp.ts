@@ -109,6 +109,20 @@ export function parseWhatsAppActivityContent(content: string): {
   return { direction: "OUTBOUND", text: content };
 }
 
+// A conversation is unread when its latest message is inbound and postdates
+// the shared, team-wide read marker (Contact.whatsappLastReadAt) — outbound
+// activities never count, regardless of how they compare to that marker,
+// since sending a message is itself an implicit "I've seen this thread."
+export function isWhatsAppConversationUnread(
+  latestContent: string,
+  latestCreatedAt: Date,
+  lastReadAt: Date | null,
+): boolean {
+  const { direction } = parseWhatsAppActivityContent(latestContent);
+  if (direction !== "INBOUND") return false;
+  return !lastReadAt || latestCreatedAt > lastReadAt;
+}
+
 export class WhatsAppSendError extends Error {
   code?: number;
   constructor(message: string, code?: number) {

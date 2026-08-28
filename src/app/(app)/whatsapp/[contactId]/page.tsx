@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { AutoRefresh } from "@/components/ui/auto-refresh";
 import { fullName } from "@/lib/format";
 import { WHATSAPP_ACCOUNT_ID, parseWhatsAppActivityContent } from "@/lib/whatsapp";
 import { WhatsAppThread, type ThreadMessage } from "@/components/whatsapp/whatsapp-thread";
@@ -31,14 +30,19 @@ export default async function WhatsAppThreadPage({
   if (!contact) notFound();
   const contactName = fullName(contact.firstName, contact.lastName);
 
-  const messages: ThreadMessage[] = activities.map((activity) => {
+  const initialMessages: ThreadMessage[] = activities.map((activity) => {
     const { direction, text } = parseWhatsAppActivityContent(activity.content);
-    return { id: activity.id, direction, text, createdAt: activity.createdAt, status: activity.whatsappStatus };
+    return {
+      id: activity.id,
+      direction,
+      text,
+      createdAt: activity.createdAt.toISOString(),
+      status: activity.whatsappStatus,
+    };
   });
 
   return (
     <div className="flex flex-col">
-      <AutoRefresh intervalMs={2000} />
       <PageHeader
         breadcrumbs={[{ label: "WhatsApp", href: "/whatsapp" }, { label: contactName }]}
         title={contactName}
@@ -47,7 +51,7 @@ export default async function WhatsAppThreadPage({
       <WhatsAppThread
         contactId={contact.id}
         contactName={contactName}
-        messages={messages}
+        initialMessages={initialMessages}
         hasWhatsAppAccount={hasWhatsAppAccount}
         contactPhone={contact.phone}
       />

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AlertCircle, Check, CheckCheck, Send } from "lucide-react";
-import { sendWhatsAppToContact } from "@/app/actions/whatsapp-send";
+import { sendWhatsAppToContact, markWhatsAppThreadRead } from "@/app/actions/whatsapp-send";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { Card } from "@/components/ui/card";
@@ -16,9 +16,11 @@ export type ThreadMessage = {
   id: string;
   direction: WhatsAppMessageDirection;
   text: string;
-  createdAt: Date;
+  createdAt: string;
   status: MessageStatus;
 };
+
+const POLL_INTERVAL_MS = 2000;
 
 function StatusTicks({ status }: { status: MessageStatus }) {
   if (status === "READ") return <CheckCheck className="h-3.5 w-3.5 text-sky-300" aria-label="Read" />;
@@ -28,40 +30,102 @@ function StatusTicks({ status }: { status: MessageStatus }) {
   return null;
 }
 
+// True when `next` differs from `prev` in a way the UI cares about (a new
+// message, or a status change on an existing one) — lets callers skip the
+// setState entirely on a poll tick where nothing changed, so React never
+// re-renders (and never risks disturbing focus/scroll) for a no-op fetch.
+function messagesChanged(prev: ThreadMessage[], next: ThreadMessage[]): boolean {
+  if (prev.length !== next.length) return true;
+  return next.some((message, i) => message.id !== prev[i].id || message.status !== prev[i].status);
+}
+
 export function WhatsAppThread({
   contactId,
   contactName,
-  messages,
+  initialMessages,
   hasWhatsAppAccount,
   contactPhone,
 }: {
   contactId: string;
   contactName: string;
-  messages: ThreadMessage[];
+  initialMessages: ThreadMessage[];
   hasWhatsAppAccount: boolean;
   contactPhone: string | null;
 }) {
   const action = sendWhatsAppToContact.bind(null, contactId);
   const [state, formAction, pending] = useActionState(action, undefined);
   const [text, setText] = useState("");
+  const [messages, setMessages] = useState(initialMessages);
   const formRef = useRef<HTMLFormElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Polls a small JSON endpoint and merges the result into local state,
+  // rather than the earlier router.refresh() approach — that re-rendered
+  // the whole Server Component tree on every tick, which could visibly
+  // disturb the composer below even though its value itself survived.
+  // Merging into state here touches only this component, so the composer
+  // (a sibling piece of state) is never in the blast radius at all.
+  useEffect(() => {
+    let cancelled = false;
+    let inFlight = false;
+
+    async function poll() {
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const res = await fetch(`/api/whatsapp/thread/${contactId}`, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const data: { messages: ThreadMessage[] } = await res.json();
+        if (cancelled) return;
+        setMessages((prev) => (messagesChanged(prev, data.messages) ? data.messages : prev));
+      } catch {
+        // Transient network hiccup — the next interval retries.
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    const interval = setInterval(poll, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [contactId]);
+
   // Scroll to the newest message on mount, and again whenever the thread
-  // grows (a send completing revalidates the page, which hands this
-  // component a longer `messages` array with the same identity otherwise).
+  // grows — always lands on the latest line rather than wherever the
+  // previous scroll position happened to be.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
-  // Clear the composer once a send actually succeeds. Doing this from a
-  // plain effect would trip react-hooks/set-state-in-effect, so this
-  // follows React's "adjust state during render" pattern instead — same
-  // shape as SendWhatsAppButton's post-success reset.
+  // Marks the thread read on mount and again every time it grows — an
+  // open thread should stay "read" live as replies arrive on screen, not
+  // just at the moment it was first opened. Fire-and-forget: nothing in
+  // the UI depends on this succeeding.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    markWhatsAppThreadRead(contactId).catch(() => {});
+  }, [contactId, messages.length]);
+
+  // Clears the composer and appends the sent message the instant a send
+  // succeeds, rather than waiting for the next poll tick to pick it up —
+  // your own message should never feel delayed. Doing this from a plain
+  // effect would trip react-hooks/set-state-in-effect, so this follows
+  // React's "adjust state during render" pattern instead, same shape as
+  // SendWhatsAppButton's post-success reset.
   const [lastHandledState, setLastHandledState] = useState(state);
   if (state !== lastHandledState) {
     setLastHandledState(state);
-    if (state && "success" in state) setText("");
+    if (state && "success" in state) {
+      setText("");
+      const sent = state.message;
+      setMessages((prev) =>
+        prev.some((m) => m.id === sent.id)
+          ? prev
+          : [...prev, { id: sent.id, direction: "OUTBOUND", text: sent.text, createdAt: sent.createdAt, status: "SENT" }],
+      );
+    }
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
