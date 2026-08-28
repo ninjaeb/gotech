@@ -139,6 +139,15 @@ model EmailAccount {
   // connecting a mailbox needs no extra required env var to deploy.
   encryptedPassword String  @db.Text
 
+  // Both purely cosmetic, editable independently of the credentials above
+  // (see updateEmailSenderSettings) — no reconnect needed to change either.
+  // fromName, when set, becomes the display name on the From header
+  // ("Jane Doe" <jane@gotech.com>) instead of a bare address; htmlSignature
+  // is raw HTML appended below the body of every email this account sends
+  // (see sendEmailViaAccount) whenever it's non-empty.
+  fromName       String?
+  htmlSignature  String? @db.Text
+
   // JSON: { [folderPath]: highestUidSeen } — an IMAP UID only ever increases
   // within a folder, so "highest UID synced" is a cheap, correct incremental
   // checkpoint per folder (INBOX and the account's Sent folder are tracked

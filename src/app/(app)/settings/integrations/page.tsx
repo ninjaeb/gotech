@@ -13,7 +13,7 @@ export default async function IntegrationsSettingsPage() {
     getSiteOrigin(),
     db.emailAccount.findUnique({
       where: { userId: currentUser.id },
-      select: { email: true, lastSyncedAt: true, lastSyncError: true },
+      select: { email: true, lastSyncedAt: true, lastSyncError: true, fromName: true, htmlSignature: true },
     }),
     db.whatsAppAccount.findUnique({
       where: { id: "singleton" },
@@ -39,7 +39,7 @@ export default async function IntegrationsSettingsPage() {
             Contact gets logged automatically, and you can send from here too. Runs on a schedule (see the
             README&apos;s cron job setup) plus whenever you hit Sync now.
           </p>
-          <EmailAccountForm account={emailAccount} />
+          <EmailAccountForm account={emailAccount} currentUserName={currentUser.name} />
         </CardBody>
       </Card>
 

@@ -6,6 +6,7 @@ import { connectEmailAccount, disconnectEmailAccount, syncEmailAccountNow } from
 import { FieldGroup, Input } from "@/components/ui/field";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { EmailSenderSettingsForm } from "@/components/settings/email-sender-settings-form";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +14,17 @@ type ConnectedAccount = {
   email: string;
   lastSyncedAt: Date | null;
   lastSyncError: string | null;
+  fromName: string | null;
+  htmlSignature: string | null;
 };
 
-export function EmailAccountForm({ account }: { account: ConnectedAccount | null }) {
+export function EmailAccountForm({
+  account,
+  currentUserName,
+}: {
+  account: ConnectedAccount | null;
+  currentUserName: string;
+}) {
   const [state, formAction, pending] = useActionState(connectEmailAccount, undefined);
 
   if (account) {
@@ -47,6 +56,12 @@ export function EmailAccountForm({ account }: { account: ConnectedAccount | null
             </ConfirmSubmitButton>
           </form>
         </div>
+
+        <EmailSenderSettingsForm
+          defaultFromName={account.fromName ?? ""}
+          defaultSignature={account.htmlSignature ?? ""}
+          currentUserName={currentUserName}
+        />
       </div>
     );
   }

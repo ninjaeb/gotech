@@ -104,6 +104,42 @@ export async function connectEmailAccount(
   return undefined;
 }
 
+const senderSettingsSchema = z.object({
+  fromName: z.string().trim().max(200, "Keep it under 200 characters"),
+  htmlSignature: z.string(),
+});
+
+export type EmailSenderSettingsFormState = { error: string } | { success: true } | undefined;
+
+// Deliberately separate from connectEmailAccount — a display name and
+// signature are cosmetic, not credentials, and forcing a full
+// disconnect/reconnect (re-entering IMAP/SMTP host/port/password) just to
+// edit a signature would be a bad trade for something this low-stakes.
+export async function updateEmailSenderSettings(
+  _prevState: EmailSenderSettingsFormState,
+  formData: FormData,
+): Promise<EmailSenderSettingsFormState> {
+  const parsed = senderSettingsSchema.safeParse({
+    fromName: formData.get("fromName"),
+    htmlSignature: formData.get("htmlSignature"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+
+  const user = await requireAdminAction();
+  await db.emailAccount.update({
+    where: { userId: user.id },
+    data: {
+      fromName: parsed.data.fromName || null,
+      htmlSignature: parsed.data.htmlSignature.trim() || null,
+    },
+  });
+
+  revalidatePath("/settings/integrations");
+  return { success: true };
+}
+
 export async function disconnectEmailAccount() {
   const user = await requireAdminAction();
   await db.emailAccount.deleteMany({ where: { userId: user.id } });

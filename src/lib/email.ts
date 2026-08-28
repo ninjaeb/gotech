@@ -216,12 +216,40 @@ export async function syncEmailAccount(account: EmailAccount): Promise<{ logged:
   return { logged: totalLogged };
 }
 
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Composed messages are plain text (typed into a <textarea>) — this gives
+// them the same paragraph/line-break structure in HTML as they have in the
+// plain-text part, without pulling in a markdown/rich-text dependency for
+// what's ultimately just a handful of typed lines.
+function textToHtml(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
+}
+
 export async function sendEmailViaAccount(
   account: EmailAccount,
   message: { to: string; subject: string; text: string },
 ) {
   const transport = await openSmtp(account);
-  await transport.sendMail({ from: account.email, to: message.to, subject: message.subject, text: message.text });
+  const from = account.fromName ? { name: account.fromName, address: account.email } : account.email;
+  const signature = account.htmlSignature?.trim();
+  await transport.sendMail({
+    from,
+    to: message.to,
+    subject: message.subject,
+    text: message.text,
+    // Only sent as multipart/alternative when there's a signature to show —
+    // an account with no signature set keeps sending plain-text-only, same
+    // as before this existed. The plain-text part is left signature-free
+    // either way: there's no reliable way to turn arbitrary signature HTML
+    // (logos, links, formatting) back into readable plain text.
+    ...(signature ? { html: `${textToHtml(message.text)}\n<br>\n${signature}` } : {}),
+  });
 }
 
 export { findUnambiguousOpenDeal };
