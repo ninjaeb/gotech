@@ -170,6 +170,21 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user. Needs
 2. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
 3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
 
+### 12. WhatsApp @mention notifications (optional)
+
+Whenever someone `@mentions` a teammate in a note or a task description, that teammate already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who mentioned them, the note/task text they were tagged in, and a link straight back to that page. Sent the moment the mention is saved, not on a schedule.
+
+Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `mention_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"\n\nOpen it here: {{3}}`
+
+   Submit for review, same as the digest template above.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+
 `{{1}}` is filled with the user's first name, `{{2}}` with their task count — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
 
 ## Deploying on cPanel

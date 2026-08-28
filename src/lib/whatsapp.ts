@@ -230,3 +230,63 @@ export async function sendWhatsAppTemplateMessage(
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
   return messageId;
 }
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as the daily task digest: whoever
+// mentioned someone is very unlikely to be within that recipient's own
+// 24h WhatsApp reply window.
+const MENTION_TEMPLATE_NAME = "mention_notification";
+const MENTION_TEMPLATE_LANGUAGE = "en";
+
+// Long enough to give real context, short of Meta's per-parameter limit —
+// multi-line notes/descriptions are also collapsed to one line, since a
+// literal line break reads oddly jammed into one quoted template sentence.
+const MENTION_EXCERPT_MAX_LENGTH = 200;
+
+function mentionExcerpt(text: string): string {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length > MENTION_EXCERPT_MAX_LENGTH
+    ? `${collapsed.slice(0, MENTION_EXCERPT_MAX_LENGTH - 1)}…`
+    : collapsed;
+}
+
+// Fires alongside (never instead of) the in-app Notification rows callers
+// already create for an @mention — this only reaches whichever of those
+// mentioned users has also opted in a number from Settings → Team. Every
+// failure mode here (WhatsApp not connected, a user has no number, the
+// template isn't approved yet) is swallowed rather than thrown: a WhatsApp
+// notification is a bonus on top of the in-app one, never a reason to fail
+// the note/task save that triggered it.
+export async function notifyMentionsViaWhatsApp(
+  userIds: string[],
+  mentionerName: string,
+  message: string,
+  link: string,
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds }, phone: { not: null } },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const excerpt = mentionExcerpt(message);
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(account, user.phone!, MENTION_TEMPLATE_NAME, MENTION_TEMPLATE_LANGUAGE, [
+        mentionerName,
+        excerpt,
+        link,
+      ]).catch((error) => {
+        console.error(
+          `Mention WhatsApp notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
+}

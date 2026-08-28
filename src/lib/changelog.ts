@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.22",
+    date: "2026-08-28",
+    title: "WhatsApp notifications for @mentions",
+    changes: [
+      "Being @mentioned in a note or task now also sends a WhatsApp message — who mentioned you, the tagged text, and a link back to the page — to anyone who's set a phone number in Settings → Team (same opt-in as the daily task reminder)",
+      "Requires a Meta-approved message template, same as the daily reminder (see the README for the template to submit)",
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-08-28",
     title: "Harder-to-miss unread WhatsApp messages",

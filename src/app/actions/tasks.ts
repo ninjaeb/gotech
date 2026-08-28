@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
+import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
+import { getSiteOrigin } from "@/lib/site-url";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
 // is null on create; on update it's the description before this edit, so
@@ -32,6 +34,9 @@ async function notifyTaskMentions(
   await db.notification.createMany({
     data: newlyMentioned.map((userId) => ({ userId, taskId, content })),
   });
+
+  const origin = await getSiteOrigin();
+  await notifyMentionsViaWhatsApp(newlyMentioned, currentUser.name, description, `${origin}/tasks/${taskId}`);
 }
 
 const taskSchema = z.object({

@@ -97,11 +97,12 @@ model User {
   // hours as unrated instead of guessing a cost.
   hourlyRate Decimal? @db.Decimal(10, 2)
 
-  // Set by an admin from Settings → Team, only for this user's opt-in
-  // daily WhatsApp task reminder (see scripts/send-task-digests-whatsapp.ts).
-  // Not used for anything else; the WhatsApp *Business* number staff
-  // message clients from is a separate, shared WhatsAppAccount, unrelated
-  // to this.
+  // Set by an admin from Settings → Team — this user's opt-in number for
+  // two internal WhatsApp notifications: the daily task reminder (see
+  // scripts/send-task-digests-whatsapp.ts) and being @mentioned (see
+  // notifyMentionsViaWhatsApp in src/lib/whatsapp.ts). Not used for
+  // anything else; the WhatsApp *Business* number staff message clients
+  // from is a separate, shared WhatsAppAccount, unrelated to this.
   phone                        String?
   lastTaskDigestWhatsAppSentAt DateTime?
 

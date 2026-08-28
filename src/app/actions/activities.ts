@@ -7,6 +7,9 @@ import { ActivityType } from "@/generated/prisma/client";
 import { getCurrentUser } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
 import { fullName } from "@/lib/format";
+import { notificationHref } from "@/lib/notification-href";
+import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
+import { getSiteOrigin } from "@/lib/site-url";
 
 const noteSchema = z.object({
   content: z.string().trim().min(1, "Note cannot be empty"),
@@ -92,6 +95,24 @@ export async function addActivity(formData: FormData) {
     await db.notification.createMany({
       data: mentionedUserIds.map((userId) => ({ userId, activityId: activity.id, content })),
     });
+
+    // Reuses the exact same priority order the in-app notification bell
+    // links to (see notificationHref) so the WhatsApp link can never point
+    // somewhere different than clicking the bell would.
+    const path = notificationHref({
+      taskId: null,
+      activity: {
+        taskId: data.taskId || null,
+        contactId: data.contactId || null,
+        companyId: data.companyId || null,
+        dealId: data.dealId || null,
+        projectId: data.projectId || null,
+      },
+    });
+    if (path) {
+      const origin = await getSiteOrigin();
+      await notifyMentionsViaWhatsApp(mentionedUserIds, currentUser.name, data.content, `${origin}${path}`);
+    }
   }
 
   if (data.contactId) revalidatePath(`/contacts/${data.contactId}`);
