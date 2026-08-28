@@ -10,7 +10,10 @@ export default async function NewQuoteTemplatePage() {
   await requireAdmin();
   const [currency, servicePackages] = await Promise.all([
     getCurrency(),
-    db.servicePackage.findMany({ orderBy: { name: "asc" } }),
+    db.servicePackage.findMany({
+      orderBy: { name: "asc" },
+      include: { components: { include: { product: true }, orderBy: { sortOrder: "asc" } } },
+    }),
   ]);
 
   const servicePackageOptions = servicePackages.map((pkg) => ({
@@ -18,6 +21,12 @@ export default async function NewQuoteTemplatePage() {
     name: pkg.name,
     description: pkg.description,
     unitPrice: Number(pkg.unitPrice),
+    components: pkg.components.map((c) => ({
+      servicePackageId: c.product.id,
+      description: c.product.description ? `${c.product.name} — ${c.product.description}` : c.product.name,
+      unitPrice: Number(c.product.unitPrice),
+      quantity: Number(c.quantity),
+    })),
   }));
 
   return (

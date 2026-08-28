@@ -1,5 +1,6 @@
 import {
   ActivityType,
+  BillingFrequency,
   EnrollmentStatus,
   Industry,
   InvoiceStatus,
@@ -255,6 +256,15 @@ export const PRODUCT_SERVICE_TYPE_LABELS: Record<ProductServiceType, string> = {
 export const PRODUCT_SERVICE_TYPE_BADGE_CLASSES: Record<ProductServiceType, string> = {
   PRODUCT: "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-500/30",
   SERVICE: "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+};
+
+export const BILLING_FREQUENCIES: BillingFrequency[] = ["ONE_TIME", "MONTHLY", "QUARTERLY", "YEARLY"];
+
+export const BILLING_FREQUENCY_LABELS: Record<BillingFrequency, string> = {
+  ONE_TIME: "One-time",
+  MONTHLY: "Monthly",
+  QUARTERLY: "Quarterly",
+  YEARLY: "Yearly",
 };
 
 export const PROJECT_STATUSES: ProjectStatus[] = [

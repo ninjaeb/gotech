@@ -13,7 +13,23 @@ import type { QuoteFormState } from "@/app/actions/quotes";
 // fields, and Decimal instances can't cross the Server → Client Component
 // boundary (React can only pass plain serializable objects as props).
 // Callers convert with Number(...) before passing these in.
-type ServicePackageOption = { id: string; name: string; description: string | null; unitPrice: number };
+// A bundle's own components — expanding it into these on pick, instead of
+// filling the current row, is what turns "sub line products & services"
+// into real quote lines rather than one collapsed line (see
+// handlePackageChange below). Empty for a plain (non-bundle) catalog item.
+type ServicePackageComponentOption = {
+  servicePackageId: string;
+  description: string;
+  unitPrice: number;
+  quantity: number;
+};
+type ServicePackageOption = {
+  id: string;
+  name: string;
+  description: string | null;
+  unitPrice: number;
+  components: ServicePackageComponentOption[];
+};
 type QuoteItemDraft = { description: string; quantity: number; unitPrice: number; servicePackageId: string | null };
 type QuoteDraft = { title: string; notes: string | null; items: QuoteItemDraft[] };
 type QuoteTemplateOption = { id: string; name: string; notes: string | null; items: QuoteItemDraft[] };
@@ -83,6 +99,24 @@ export function QuoteForm({
 
   function handlePackageChange(key: string, servicePackageId: string) {
     const pkg = servicePackages.find((p) => p.id === servicePackageId);
+    if (pkg && pkg.components.length > 0) {
+      // A bundle: swap the one row being edited for one real row per
+      // component, at the same position, instead of filling it in place.
+      setItems((current) =>
+        current.flatMap((item) =>
+          item.key === key
+            ? pkg.components.map((c) => ({
+                key: newDraftKey(),
+                description: c.description,
+                quantity: c.quantity.toString(),
+                unitPrice: c.unitPrice.toString(),
+                servicePackageId: c.servicePackageId,
+              }))
+            : [item],
+        ),
+      );
+      return;
+    }
     updateItem(key, {
       servicePackageId,
       ...(pkg
