@@ -28,7 +28,14 @@ export function WhatsAppAccountForm({
       <div className="space-y-4">
         <div className="rounded-md bg-slate-50 px-3 py-2.5 text-sm dark:bg-neutral-900">
           <p className="font-medium text-slate-800 dark:text-slate-200">
-            {account.displayPhoneNumber ?? account.phoneNumberId}
+            {account.displayPhoneNumber ?? "Connected"}
+          </p>
+          {/* Shown even though displayPhoneNumber already renders above — this is the
+              raw ID Meta's API is called with, so it's what to diff against the
+              "Phone number ID" field on Meta's WhatsApp → API Setup page when sends
+              fail with a "wrong object type" style error (e.g. GraphMethodException). */}
+          <p className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">
+            Phone number ID: {account.phoneNumberId}
           </p>
           {account.lastSyncError && (
             <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">Last error: {account.lastSyncError}</p>
