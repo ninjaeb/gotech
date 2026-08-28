@@ -158,17 +158,20 @@ Unlike email, this is one shared connection for the whole team, made through the
 
 ### 11. Daily WhatsApp task reminder (optional)
 
-A once-a-day WhatsApp message summarizing what's due or overdue, per user. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
+A once-a-day WhatsApp message summarizing what's due or overdue, per user, with a link straight to their own task list. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
 
 1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
    - Name: `daily_task_digest` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Body: `Good morning {{1}}! You have {{2}} task(s) due today or overdue in GoTech CRM. Open the app to see the full list.`
+   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in GoTech CRM. View your tasks: {{4}}`
 
-   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls.
-2. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
-3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
+   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. If you already created and approved the older 2-variable version of this template, it needs to be edited (or recreated) to this 4-variable body and re-approved — Meta rejects a send whose variable count doesn't match what was approved, so the old template won't work with the current code.
+2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
+3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
+4. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
+
+`{{1}}` is the user's first name, `{{2}}`/`{{3}}` their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in the message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
 
 ### 12. WhatsApp @mention notifications (optional)
 
@@ -185,7 +188,7 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
    Submit for review, same as the digest template above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
-`{{1}}` is filled with the user's first name, `{{2}}` with their task count — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
+`{{1}}` is filled with the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated), `{{3}}` a link back to that page — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
 
 ## Deploying on cPanel
 
@@ -206,7 +209,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), and optionally `GEMINI_API_KEY` to enable the AI Assistant.
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `GEMINI_API_KEY` to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI. Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash

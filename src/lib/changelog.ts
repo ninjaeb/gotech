@@ -10,12 +10,20 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.22",
+    version: "1.23",
     date: "2026-08-28",
     title: "WhatsApp notifications for @mentions",
     changes: [
       "Being @mentioned in a note or task now also sends a WhatsApp message — who mentioned you, the tagged text, and a link back to the page — to anyone who's set a phone number in Settings → Team (same opt-in as the daily task reminder)",
       "Requires a Meta-approved message template, same as the daily reminder (see the README for the template to submit)",
+    ],
+  },
+  {
+    version: "1.22",
+    date: "2026-08-28",
+    title: "WhatsApp task reminder now links to your tasks and splits overdue/due today",
+    changes: [
+      "The daily WhatsApp task reminder now reports overdue and due-today counts separately, and links straight to your own task list — requires updating the approved Meta template to the new 4-variable body (see the README) and setting a SITE_URL env var",
     ],
   },
   {

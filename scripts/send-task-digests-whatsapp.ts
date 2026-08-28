@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { db } from "../src/lib/db";
 import { sendWhatsAppTemplateMessage } from "../src/lib/whatsapp";
+import { getConfiguredSiteOrigin } from "../src/lib/site-url";
 import type { DigestTask } from "../src/lib/task-digest";
 
 // Run on a schedule (cPanel Cron Job — see README) — once a day, in the
@@ -22,6 +23,15 @@ async function main() {
   const whatsAppAccount = await db.whatsAppAccount.findUnique({ where: { id: "singleton" } });
   if (!whatsAppAccount) {
     console.log("WhatsApp Business isn't connected (Settings → Integrations) — nothing to digest.");
+    return;
+  }
+
+  // The template links back to the user's own task list, which needs an
+  // absolute URL — and unlike a request handler, a cron-run CLI script has
+  // no incoming Host header to build one from (see getConfiguredSiteOrigin).
+  const siteOrigin = getConfiguredSiteOrigin();
+  if (!siteOrigin) {
+    console.log("SITE_URL isn't set (see README's WhatsApp task reminder section) — nothing to digest.");
     return;
   }
 
@@ -66,15 +76,22 @@ async function main() {
       continue;
     }
 
+    const overdueCount = tasks.filter((task) => task.dueDate && task.dueDate < startOfToday).length;
+    const dueTodayCount = tasks.length - overdueCount;
     const firstName = user.name.trim().split(/\s+/)[0] || user.name;
+    const taskListUrl = `${siteOrigin}/tasks?assignee=${user.id}`;
 
     try {
       await sendWhatsAppTemplateMessage(whatsAppAccount, user.phone!, TEMPLATE_NAME, TEMPLATE_LANGUAGE, [
         firstName,
-        String(tasks.length),
+        String(overdueCount),
+        String(dueTodayCount),
+        taskListUrl,
       ]);
       await db.user.update({ where: { id: user.id }, data: { lastTaskDigestWhatsAppSentAt: now } });
-      console.log(`${user.name}: sent WhatsApp digest, ${tasks.length} task(s).`);
+      console.log(
+        `${user.name}: sent WhatsApp digest, ${overdueCount} overdue / ${dueTodayCount} due today.`,
+      );
     } catch (error) {
       console.error(`${user.name}: WhatsApp digest send failed —`, error instanceof Error ? error.message : error);
     }
