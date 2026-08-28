@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.22",
+    date: "2026-08-28",
+    title: "WhatsApp task reminder now links to your tasks and splits overdue/due today",
+    changes: [
+      "The daily WhatsApp task reminder now reports overdue and due-today counts separately, and links straight to your own task list — requires updating the approved Meta template to the new 4-variable body (see the README) and setting a SITE_URL env var",
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-08-28",
     title: "Harder-to-miss unread WhatsApp messages",
