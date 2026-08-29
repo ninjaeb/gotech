@@ -142,6 +142,15 @@ export class WhatsAppSendError extends Error {
 // design (the daily task digest) and so always needs a template, not text.
 const OUTSIDE_SERVICE_WINDOW_CODE = 131047;
 
+// The number of {{n}} variables (body + button combined) this send actually
+// included doesn't match what's approved in Meta Business Manager for that
+// template name/language — almost always because the template was edited
+// (or a newer app version expects more/fewer variables than what's
+// currently approved), never something a retry fixes. Surfaced with the
+// counts this send actually sent so it's diagnosable without also having
+// Meta's own template editor open side by side.
+const PARAM_COUNT_MISMATCH_CODE = 132000;
+
 export async function sendWhatsAppMessage(
   account: WhatsAppAccount,
   toPhone: string,
@@ -232,7 +241,18 @@ export async function sendWhatsAppTemplateMessage(
   });
   const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
   if (!response.ok) {
-    throw new WhatsAppSendError(payload.error?.message ?? `WhatsApp API returned ${response.status}`, payload.error?.code);
+    const code = payload.error?.code;
+    const rawMessage = payload.error?.message ?? `WhatsApp API returned ${response.status}`;
+    if (code === PARAM_COUNT_MISMATCH_CODE) {
+      throw new WhatsAppSendError(
+        `${rawMessage} — this send included ${bodyParameters.length} body variable(s)` +
+          `${buttonUrlSuffix !== undefined ? " and one button variable" : ""}. Check that "${templateName}"'s ` +
+          `currently approved body (and button, if it has one) in Meta Business Manager expects exactly that ` +
+          `many — a template edited there, or a mismatched app version, are the usual causes (see the README).`,
+        code,
+      );
+    }
+    throw new WhatsAppSendError(rawMessage, code);
   }
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
