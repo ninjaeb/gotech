@@ -10,12 +10,47 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.22",
+    version: "1.26",
     date: "2026-08-29",
     title: "Tasks page defaults to your own tasks",
     changes: [
       "The Tasks page assignee filter now defaults to your own tasks on every tab (Open/Overdue/Due today/Completed), instead of showing everyone's",
       "Added an \"Unassigned\" option to the assignee filter to find tasks with no owner; \"All assignees\" still shows everything",
+    ],
+  },
+  {
+    version: "1.25",
+    date: "2026-08-29",
+    title: "Test buttons for the WhatsApp templates, no terminal needed",
+    changes: [
+      "Settings → Integrations: Send now sends the real daily task reminder to everyone opted in, right away, ignoring the configured hour and each person's once-a-day limit",
+      "Send test on the task reminder and the @mention notification each send a one-off test message (placeholder counts for the reminder) to your own number, to confirm a template is approved and reachable without needing real due tasks or an actual @mention",
+    ],
+  },
+  {
+    version: "1.24",
+    date: "2026-08-29",
+    title: "Configurable send time for the WhatsApp task reminder",
+    changes: [
+      "Settings → Integrations: pick what time the daily WhatsApp task reminder sends, in the same timezone as the booking scheduler — previously fixed by whatever time the cron job happened to run",
+      "The reminder script now checks that configured hour itself, so its cron job should run hourly rather than once a day; a new --force flag bypasses the check for a manual test send",
+    ],
+  },
+  {
+    version: "1.23",
+    date: "2026-08-28",
+    title: "WhatsApp notifications for @mentions",
+    changes: [
+      "Being @mentioned in a note or task now also sends a WhatsApp message — who mentioned you, the tagged text, and a link back to the page — to anyone who's set a phone number in Settings → Team (same opt-in as the daily task reminder)",
+      "Requires a Meta-approved message template, same as the daily reminder (see the README for the template to submit)",
+    ],
+  },
+  {
+    version: "1.22",
+    date: "2026-08-28",
+    title: "WhatsApp task reminder now links to your tasks and splits overdue/due today",
+    changes: [
+      "The daily WhatsApp task reminder now reports overdue and due-today counts separately, and links straight to your own task list — requires updating the approved Meta template to the new 4-variable body (see the README) and setting a SITE_URL env var",
     ],
   },
   {

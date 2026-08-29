@@ -97,11 +97,12 @@ model User {
   // hours as unrated instead of guessing a cost.
   hourlyRate Decimal? @db.Decimal(10, 2)
 
-  // Set by an admin from Settings → Team, only for this user's opt-in
-  // daily WhatsApp task reminder (see scripts/send-task-digests-whatsapp.ts).
-  // Not used for anything else; the WhatsApp *Business* number staff
-  // message clients from is a separate, shared WhatsAppAccount, unrelated
-  // to this.
+  // Set by an admin from Settings → Team — this user's opt-in number for
+  // two internal WhatsApp notifications: the daily task reminder (see
+  // scripts/send-task-digests-whatsapp.ts) and being @mentioned (see
+  // notifyMentionsViaWhatsApp in src/lib/whatsapp.ts). Not used for
+  // anything else; the WhatsApp *Business* number staff message clients
+  // from is a separate, shared WhatsAppAccount, unrelated to this.
   phone                        String?
   lastTaskDigestWhatsAppSentAt DateTime?
 
@@ -201,12 +202,20 @@ model Settings {
   // Booking link (see src/lib/booking.ts). A fixed UTC offset rather than an
   // IANA timezone — simpler and DST-free, and the org this ships for doesn't
   // observe DST — labeled clearly in the Settings UI rather than pretending
-  // to be a full tz database.
+  // to be a full tz database. Also doubles as the org's timezone for
+  // taskReminderHour below, rather than adding a second offset setting for
+  // the same one org.
   bookingUtcOffsetMinutes Int    @default(480) // UTC+8
   bookingSlotMinutes      Int    @default(30)
   // JSON-encoded WeeklyHours (see src/lib/booking.ts) — 7 entries,
   // index 0 = Sunday..6 = Saturday, each { enabled, start: "HH:mm", end: "HH:mm" }.
   bookingWeeklyHours      String @default("[{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":true,\"start\":\"09:00\",\"end\":\"17:00\"},{\"enabled\":false,\"start\":\"09:00\",\"end\":\"17:00\"}]") @db.Text
+
+  // Local hour of day (0-23, in bookingUtcOffsetMinutes' timezone) the daily
+  // WhatsApp task reminder should send at — see
+  // scripts/send-task-digests-whatsapp.ts, which is meant to run hourly via
+  // cron and only actually sends during the hour that matches this.
+  taskReminderHour Int @default(8) // 8am
 }
 
 enum Industry {

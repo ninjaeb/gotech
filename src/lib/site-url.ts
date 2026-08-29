@@ -10,3 +10,16 @@ export async function getSiteOrigin() {
   const protocol = headersList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${protocol}://${host}`;
 }
+
+// Same job for a CLI script (send-task-digests-whatsapp.ts) instead of a
+// request — there's no incoming Host header to read outside of Next's
+// request context, so this needs its own env var. Optional everywhere else
+// in the app (see site-url's other export), which is why it isn't just
+// folded into DATABASE_URL/SESSION_SECRET's required set — only the WhatsApp
+// task-reminder link needs it. Returns null, rather than guessing at
+// localhost, so callers can skip the link entirely instead of sending a
+// broken one.
+export function getConfiguredSiteOrigin(): string | null {
+  const url = process.env.SITE_URL?.trim();
+  return url ? url.replace(/\/+$/, "") : null;
+}

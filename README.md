@@ -158,19 +158,43 @@ Unlike email, this is one shared connection for the whole team, made through the
 
 ### 11. Daily WhatsApp task reminder (optional)
 
-A once-a-day WhatsApp message summarizing what's due or overdue, per user. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
+A once-a-day WhatsApp message summarizing what's due or overdue, per user, with a link straight to their own task list. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
 
 1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
    - Name: `daily_task_digest` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Body: `Good morning {{1}}! You have {{2}} task(s) due today or overdue in GoTech CRM. Open the app to see the full list.`
+   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in GoTech CRM. View your tasks: {{4}}`
 
-   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls.
-2. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
-3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
+   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. If you already created and approved the older 2-variable version of this template, it needs to be edited (or recreated) to this 4-variable body and re-approved — Meta rejects a send whose variable count doesn't match what was approved, so the old template won't work with the current code.
+2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
+3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
+4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
+5. **Schedule the cron job to run hourly**, not once a day — see step 7 under *Deploying on cPanel* below. The script itself checks the configured send hour and only actually sends during the one hour that matches; an hourly cron just needs to run often enough to catch it, and the 20-hour per-user rate limit stops it from double-sending if the cron fires more than once during that hour.
 
-`{{1}}` is filled with the user's first name, `{{2}}` with their task count — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
+`{{1}}` is the user's first name, `{{2}}`/`{{3}}` their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in the message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
+
+To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`. The same Settings → Integrations card also has two buttons for this without a terminal: **Send now** runs the real digest against everyone opted in (same as `--force`), and **Send test** sends just the template itself, with placeholder counts, to your own number only — useful for confirming the template is approved and reachable without needing anyone to actually have tasks due.
+
+### 12. WhatsApp @mention notifications (optional)
+
+Whenever someone `@mentions` a teammate in a note or a task description, that teammate already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who mentioned them, the note/task text they were tagged in, and a link straight back to that page. Sent the moment the mention is saved, not on a schedule.
+
+Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template — this one with a tappable "Visit website" button rather than a pasted link, since Meta only allows one dynamic value per URL button and it can't reference a body variable directly:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `mention_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"`
+   - Buttons → Add button → Call to Action → **Visit website**, URL type **Dynamic**, Website URL: `https://your-actual-domain.com{{1}}` — replace `your-actual-domain.com` with wherever this app is actually reachable, and put `{{1}}` immediately after it with **no slash in between** (the app always sends a path that already starts with `/`, so a slash here would double up). Meta will ask for a sample value for both the body and button variables when you submit — anything realistic works, e.g. body `Sarah` / `Can you review the proposal before Friday?`, button `{{1}}` → `/contacts/abc123`.
+
+   Submit for review, same as the digest template above.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+
+`{{1}}` in the body is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated) — the button's own `{{1}}` (a separate variable, numbered independently of the body's) is the path this app sends, e.g. `/contacts/abc123` or `/tasks/xyz789`. The button's domain is whatever you typed into the template at creation time, not something this app controls per-message — if the app is ever reachable at a different domain, the template needs updating (and re-approval) to match.
+
+Since a mention only fires when someone actually gets @mentioned, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
 
 ## Deploying on cPanel
 
@@ -191,7 +215,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), and optionally `GEMINI_API_KEY` to enable the AI Assistant.
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `GEMINI_API_KEY` to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI. Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash
@@ -211,7 +235,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
    For the daily task digest, add a third entry for `npm run send-task-digests` on a once-a-day schedule (e.g. 7am) — it self-limits to roughly one send per connected mailbox per day regardless of how often it's actually invoked, so a more frequent schedule wouldn't double-send, but there's no reason to run it more than daily either.
 
-   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, also once a day in the morning. Same self-limiting behavior as the email digest.
+   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, but **hourly** rather than once a day — unlike the email digest, this one has its own configured send hour (Settings → Integrations) and checks it itself, so the cron just needs to run often enough to catch it.
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 

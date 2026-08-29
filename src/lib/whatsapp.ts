@@ -202,8 +202,23 @@ export async function sendWhatsAppTemplateMessage(
   templateName: string,
   languageCode: string,
   bodyParameters: string[],
+  // Fills the template's one dynamic-URL button, if it has one — Meta bakes
+  // the button's base URL into the approved template itself (entered once,
+  // in the template editor's "Website URL" field as e.g. "https://your-
+  // domain.com{{1}}") and only ever accepts a single suffix value per send,
+  // numbered {{1}} independently of the body's own {{1}}/{{2}}/... — so this
+  // is always just the path to append, never a full URL.
+  buttonUrlSuffix?: string,
 ): Promise<string> {
   const accessToken = decryptSecret(account.encryptedAccessToken);
+  const components = [
+    ...(bodyParameters.length > 0
+      ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
+      : []),
+    ...(buttonUrlSuffix
+      ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: buttonUrlSuffix }] }]
+      : []),
+  ];
   const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -212,14 +227,7 @@ export async function sendWhatsAppTemplateMessage(
       recipient_type: "individual",
       to: normalizePhone(toPhone),
       type: "template",
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-        components:
-          bodyParameters.length > 0
-            ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
-            : [],
-      },
+      template: { name: templateName, language: { code: languageCode }, components },
     }),
   });
   const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
@@ -229,4 +237,69 @@ export async function sendWhatsAppTemplateMessage(
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
   return messageId;
+}
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as the daily task digest: whoever
+// mentioned someone is very unlikely to be within that recipient's own
+// 24h WhatsApp reply window.
+const MENTION_TEMPLATE_NAME = "mention_notification";
+const MENTION_TEMPLATE_LANGUAGE = "en";
+
+// Long enough to give real context, short of Meta's per-parameter limit —
+// multi-line notes/descriptions are also collapsed to one line, since a
+// literal line break reads oddly jammed into one quoted template sentence.
+const MENTION_EXCERPT_MAX_LENGTH = 200;
+
+function mentionExcerpt(text: string): string {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  return collapsed.length > MENTION_EXCERPT_MAX_LENGTH
+    ? `${collapsed.slice(0, MENTION_EXCERPT_MAX_LENGTH - 1)}…`
+    : collapsed;
+}
+
+// Fires alongside (never instead of) the in-app Notification rows callers
+// already create for an @mention — this only reaches whichever of those
+// mentioned users has also opted in a number from Settings → Team. Every
+// failure mode here (WhatsApp not connected, a user has no number, the
+// template isn't approved yet) is swallowed rather than thrown: a WhatsApp
+// notification is a bonus on top of the in-app one, never a reason to fail
+// the note/task save that triggered it.
+export async function notifyMentionsViaWhatsApp(
+  userIds: string[],
+  mentionerName: string,
+  message: string,
+  // The path to append to the template's own fixed "Website URL" prefix
+  // (e.g. "/contacts/abc123") — NOT a full URL; see sendWhatsAppTemplateMessage.
+  path: string,
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds }, phone: { not: null } },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const excerpt = mentionExcerpt(message);
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(
+        account,
+        user.phone!,
+        MENTION_TEMPLATE_NAME,
+        MENTION_TEMPLATE_LANGUAGE,
+        [mentionerName, excerpt],
+        path,
+      ).catch((error) => {
+        console.error(
+          `Mention WhatsApp notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
 }

@@ -77,7 +77,8 @@ export function TeamMemberRow({
                 placeholder="+60 12 345 6789"
               />
               <p className="mt-1 text-xs text-slate-400">
-                {PHONE_FORMAT_HINT} Used only for the daily task-reminder opt-in. Leave blank to opt out.
+                {PHONE_FORMAT_HINT} Used for the daily task-reminder and @mention notifications over WhatsApp. Leave
+                blank to opt out of both.
               </p>
             </div>
           </div>
@@ -116,7 +117,7 @@ export function TeamMemberRow({
         <p className="truncate text-xs text-slate-400">
           {user.email}
           {user.title && ` · ${user.title}`} · joined {formatDate(user.createdAt)}
-          {user.phone && ` · WhatsApp reminders on`}
+          {user.phone && ` · WhatsApp notifications on`}
         </p>
       </div>
       <div className="flex items-center gap-3">
