@@ -174,7 +174,7 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
 
 `{{1}}` is the user's first name, `{{2}}`/`{{3}}` their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in the message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
 
-To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`.
+To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`. The same Settings → Integrations card also has two buttons for this without a terminal: **Send now** runs the real digest against everyone opted in (same as `--force`), and **Send test** sends just the template itself, with placeholder counts, to your own number only — useful for confirming the template is approved and reachable without needing anyone to actually have tasks due.
 
 ### 12. WhatsApp @mention notifications (optional)
 
@@ -193,6 +193,8 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
 `{{1}}` in the body is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated) — the button's own `{{1}}` (a separate variable, numbered independently of the body's) is the path this app sends, e.g. `/contacts/abc123` or `/tasks/xyz789`. The button's domain is whatever you typed into the template at creation time, not something this app controls per-message — if the app is ever reachable at a different domain, the template needs updating (and re-approval) to match.
+
+Since a mention only fires when someone actually gets @mentioned, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
 
 ## Deploying on cPanel
 

@@ -6,7 +6,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { encryptSecret } from "@/lib/email-crypto";
-import { WHATSAPP_ACCOUNT_ID, testWhatsAppConnection } from "@/lib/whatsapp";
+import { WHATSAPP_ACCOUNT_ID, testWhatsAppConnection, sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { getSiteOrigin } from "@/lib/site-url";
 
 const connectSchema = z.object({
   phoneNumberId: z.string().trim().min(1, "Phone number ID is required"),
@@ -73,4 +74,46 @@ export async function disconnectWhatsAppAccount() {
   await requireAdminAction();
   await db.whatsAppAccount.deleteMany({ where: { id: WHATSAPP_ACCOUNT_ID } });
   revalidatePath("/settings/integrations");
+}
+
+export type MentionNotificationTestState = { error: string } | { success: true } | undefined;
+
+// "Send test" button (Settings → Integrations) for the mention_notification
+// template — unlike the daily digest, an @mention notification has no
+// scheduled run to manually trigger, so this is the only way to check the
+// template is approved and working without waiting to actually be
+// @mentioned. Sends to the clicking admin's own number (never someone
+// else's), and — unlike notifyMentionsViaWhatsApp, which swallows every
+// failure since a WhatsApp notification there is only ever a bonus on top
+// of the in-app one — surfaces the real error, since the whole point here
+// is finding out whether it works.
+export async function sendMentionNotificationTest(
+  prevState: MentionNotificationTestState,
+  formData: FormData,
+): Promise<MentionNotificationTestState> {
+  void prevState;
+  void formData;
+  const admin = await requireAdminAction();
+
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) {
+    return { error: "WhatsApp Business isn't connected." };
+  }
+
+  const { phone } = await db.user.findUniqueOrThrow({ where: { id: admin.id }, select: { phone: true } });
+  if (!phone) {
+    return { error: "Set your own WhatsApp number first, from Settings → Team." };
+  }
+
+  const siteOrigin = await getSiteOrigin();
+  try {
+    await sendWhatsAppTemplateMessage(account, phone, "mention_notification", "en", [
+      admin.name,
+      "This is a test mention notification from GoTech CRM.",
+      `${siteOrigin}/settings/integrations`,
+    ]);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Send failed." };
+  }
+  return { success: true };
 }

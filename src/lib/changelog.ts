@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.25",
+    date: "2026-08-29",
+    title: "Test buttons for the WhatsApp templates, no terminal needed",
+    changes: [
+      "Settings → Integrations: Send now sends the real daily task reminder to everyone opted in, right away, ignoring the configured hour and each person's once-a-day limit",
+      "Send test on the task reminder and the @mention notification each send a one-off test message (placeholder counts for the reminder) to your own number, to confirm a template is approved and reachable without needing real due tasks or an actual @mention",
+    ],
+  },
+  {
     version: "1.24",
     date: "2026-08-29",
     title: "Configurable send time for the WhatsApp task reminder",
