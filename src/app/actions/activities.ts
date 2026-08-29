@@ -9,7 +9,6 @@ import { findMentionedUserIds } from "@/lib/mentions";
 import { fullName } from "@/lib/format";
 import { notificationHref } from "@/lib/notification-href";
 import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
-import { getSiteOrigin } from "@/lib/site-url";
 
 const noteSchema = z.object({
   content: z.string().trim().min(1, "Note cannot be empty"),
@@ -110,8 +109,7 @@ export async function addActivity(formData: FormData) {
       },
     });
     if (path) {
-      const origin = await getSiteOrigin();
-      await notifyMentionsViaWhatsApp(mentionedUserIds, currentUser.name, data.content, `${origin}${path}`);
+      await notifyMentionsViaWhatsApp(mentionedUserIds, currentUser.name, data.content, path);
     }
   }
 

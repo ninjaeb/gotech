@@ -202,8 +202,23 @@ export async function sendWhatsAppTemplateMessage(
   templateName: string,
   languageCode: string,
   bodyParameters: string[],
+  // Fills the template's one dynamic-URL button, if it has one — Meta bakes
+  // the button's base URL into the approved template itself (entered once,
+  // in the template editor's "Website URL" field as e.g. "https://your-
+  // domain.com{{1}}") and only ever accepts a single suffix value per send,
+  // numbered {{1}} independently of the body's own {{1}}/{{2}}/... — so this
+  // is always just the path to append, never a full URL.
+  buttonUrlSuffix?: string,
 ): Promise<string> {
   const accessToken = decryptSecret(account.encryptedAccessToken);
+  const components = [
+    ...(bodyParameters.length > 0
+      ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
+      : []),
+    ...(buttonUrlSuffix
+      ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: buttonUrlSuffix }] }]
+      : []),
+  ];
   const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
@@ -212,14 +227,7 @@ export async function sendWhatsAppTemplateMessage(
       recipient_type: "individual",
       to: normalizePhone(toPhone),
       type: "template",
-      template: {
-        name: templateName,
-        language: { code: languageCode },
-        components:
-          bodyParameters.length > 0
-            ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
-            : [],
-      },
+      template: { name: templateName, language: { code: languageCode }, components },
     }),
   });
   const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
@@ -262,7 +270,9 @@ export async function notifyMentionsViaWhatsApp(
   userIds: string[],
   mentionerName: string,
   message: string,
-  link: string,
+  // The path to append to the template's own fixed "Website URL" prefix
+  // (e.g. "/contacts/abc123") — NOT a full URL; see sendWhatsAppTemplateMessage.
+  path: string,
 ): Promise<void> {
   if (userIds.length === 0) return;
   const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
@@ -277,11 +287,14 @@ export async function notifyMentionsViaWhatsApp(
   const excerpt = mentionExcerpt(message);
   await Promise.all(
     users.map((user) =>
-      sendWhatsAppTemplateMessage(account, user.phone!, MENTION_TEMPLATE_NAME, MENTION_TEMPLATE_LANGUAGE, [
-        mentionerName,
-        excerpt,
-        link,
-      ]).catch((error) => {
+      sendWhatsAppTemplateMessage(
+        account,
+        user.phone!,
+        MENTION_TEMPLATE_NAME,
+        MENTION_TEMPLATE_LANGUAGE,
+        [mentionerName, excerpt],
+        path,
+      ).catch((error) => {
         console.error(
           `Mention WhatsApp notification failed for user ${user.id}:`,
           error instanceof Error ? error.message : error,

@@ -177,18 +177,19 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
 
 Whenever someone `@mentions` a teammate in a note or a task description, that teammate already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who mentioned them, the note/task text they were tagged in, and a link straight back to that page. Sent the moment the mention is saved, not on a schedule.
 
-Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template:
+Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template — this one with a tappable "Visit website" button rather than a pasted link, since Meta only allows one dynamic value per URL button and it can't reference a body variable directly:
 
 1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
    - Name: `mention_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"\n\nOpen it here: {{3}}`
+   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"`
+   - Buttons → Add button → Call to Action → **Visit website**, URL type **Dynamic**, Website URL: `https://your-actual-domain.com{{1}}` — replace `your-actual-domain.com` with wherever this app is actually reachable, and put `{{1}}` immediately after it with **no slash in between** (the app always sends a path that already starts with `/`, so a slash here would double up). Meta will ask for a sample value for both the body and button variables when you submit — anything realistic works, e.g. body `Sarah` / `Can you review the proposal before Friday?`, button `{{1}}` → `/contacts/abc123`.
 
    Submit for review, same as the digest template above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
-`{{1}}` is filled with the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated), `{{3}}` a link back to that page — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text).
+`{{1}}` in the body is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated) — the button's own `{{1}}` (a separate variable, numbered independently of the body's) is the path this app sends, e.g. `/contacts/abc123` or `/tasks/xyz789`. The button's domain is whatever you typed into the template at creation time, not something this app controls per-message — if the app is ever reachable at a different domain, the template needs updating (and re-approval) to match.
 
 ## Deploying on cPanel
 
