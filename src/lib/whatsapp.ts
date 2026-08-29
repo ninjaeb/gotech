@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { getSiteOrigin } from "@/lib/site-url";
+import { notificationHref, type ActivityEntityRefs } from "@/lib/notification-href";
 import type { WhatsAppAccount } from "@/generated/prisma/client";
 
 const GRAPH_API_VERSION = "v21.0";
@@ -267,12 +268,21 @@ export async function sendWhatsAppTemplateMessage(
 const MENTION_TEMPLATE_NAME = "mention_notification";
 const MENTION_TEMPLATE_LANGUAGE = "en";
 
+// The other direction: forwarding the mentioned person's WhatsApp reply
+// back to whoever mentioned them. A second template for the same reason as
+// the first — the mentioner is just as unlikely to be within their own 24h
+// window — see findPendingMentionNotification/sendMentionReplyViaWhatsApp
+// below and the README.
+const MENTION_REPLY_TEMPLATE_NAME = "mention_reply_notification";
+const MENTION_REPLY_TEMPLATE_LANGUAGE = "en";
+
 // Long enough to give real context, short of Meta's per-parameter limit —
-// multi-line notes/descriptions are also collapsed to one line, since a
-// literal line break reads oddly jammed into one quoted template sentence.
+// multi-line notes/descriptions (and WhatsApp replies) are also collapsed
+// to one line, since a literal line break reads oddly jammed into one
+// quoted template sentence.
 const MENTION_EXCERPT_MAX_LENGTH = 200;
 
-function mentionExcerpt(text: string): string {
+export function mentionExcerpt(text: string): string {
   const collapsed = text.replace(/\s+/g, " ").trim();
   return collapsed.length > MENTION_EXCERPT_MAX_LENGTH
     ? `${collapsed.slice(0, MENTION_EXCERPT_MAX_LENGTH - 1)}…`
@@ -288,9 +298,10 @@ function mentionExcerpt(text: string): string {
 // the note/task save that triggered it.
 export async function notifyMentionsViaWhatsApp(
   userIds: string[],
-  mentionerName: string,
+  mentioner: { id: string; name: string },
   message: string,
   path: string,
+  entityRefs: ActivityEntityRefs,
 ): Promise<void> {
   if (userIds.length === 0) return;
   const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
@@ -298,7 +309,7 @@ export async function notifyMentionsViaWhatsApp(
 
   const users = await db.user.findMany({
     where: { id: { in: userIds }, phone: { not: null } },
-    select: { id: true, phone: true },
+    select: { id: true, name: true, phone: true },
   });
   if (users.length === 0) return;
 
@@ -309,17 +320,61 @@ export async function notifyMentionsViaWhatsApp(
   // Business Manager expects (see the README).
   const link = `${await getSiteOrigin()}${path}`;
   await Promise.all(
-    users.map((user) =>
-      sendWhatsAppTemplateMessage(account, user.phone!, MENTION_TEMPLATE_NAME, MENTION_TEMPLATE_LANGUAGE, [
-        mentionerName,
-        excerpt,
-        link,
-      ]).catch((error) => {
+    users.map(async (user) => {
+      try {
+        const wamid = await sendWhatsAppTemplateMessage(
+          account,
+          user.phone!,
+          MENTION_TEMPLATE_NAME,
+          MENTION_TEMPLATE_LANGUAGE,
+          [mentioner.name, excerpt, link],
+        );
+        // Lets a later swipe-to-reply on this exact message be matched back
+        // here (via WhatsApp's "context.id" on the inbound webhook payload)
+        // and forwarded on to the mentioner — see the webhook route.
+        await db.whatsAppMentionNotification.create({
+          data: { wamid, mentionerId: mentioner.id, mentioneeName: user.name, excerpt, ...entityRefs },
+        });
+      } catch (error) {
         console.error(
           `Mention WhatsApp notification failed for user ${user.id}:`,
           error instanceof Error ? error.message : error,
         );
-      }),
-    ),
+      }
+    }),
   );
+}
+
+// Looks up which sent mention notification (if any) an inbound WhatsApp
+// message is swipe-replying to, by the wamid WhatsApp echoes back as
+// `context.id` on the webhook payload. Returns null for anything else —
+// a reply to some other message, or a fresh message with no quote at all.
+export async function findPendingMentionNotification(wamid: string) {
+  return db.whatsAppMentionNotification.findUnique({
+    where: { wamid },
+    include: { mentioner: { select: { id: true, name: true, phone: true } } },
+  });
+}
+
+type PendingMentionNotification = NonNullable<Awaited<ReturnType<typeof findPendingMentionNotification>>>;
+
+// Forwards the mentioned person's WhatsApp reply on to whoever mentioned
+// them in the first place, quoting both the original excerpt and the
+// reply. No-ops (rather than throwing) when the mentioner never set their
+// own number — the caller still logs the reply in the CRM either way, this
+// is only the WhatsApp-side half of that.
+export async function sendMentionReplyViaWhatsApp(
+  account: WhatsAppAccount,
+  pending: PendingMentionNotification,
+  replyText: string,
+): Promise<void> {
+  if (!pending.mentioner.phone) return;
+  const path = notificationHref({ taskId: null, activity: pending });
+  const link = path ? `${await getSiteOrigin()}${path}` : await getSiteOrigin();
+  await sendWhatsAppTemplateMessage(account, pending.mentioner.phone, MENTION_REPLY_TEMPLATE_NAME, MENTION_REPLY_TEMPLATE_LANGUAGE, [
+    pending.mentioneeName,
+    pending.excerpt,
+    mentionExcerpt(replyText),
+    link,
+  ]);
 }

@@ -13,6 +13,7 @@ import { WhatsAppAccountForm } from "@/components/settings/whatsapp-account-form
 import { SendTaskReminderNowButton } from "@/components/settings/send-task-reminder-now-button";
 import { SendTaskDigestTemplateTestButton } from "@/components/settings/send-task-digest-template-test-button";
 import { SendMentionNotificationTestButton } from "@/components/settings/send-mention-notification-test-button";
+import { SendMentionReplyNotificationTestButton } from "@/components/settings/send-mention-reply-notification-test-button";
 
 // e.g. 0 -> "12:00 AM", 13 -> "1:00 PM" — a stable, locale-independent label
 // for the hour <select>, same reasoning as booking.ts's formatSlotLabel.
@@ -126,13 +127,23 @@ export default async function IntegrationsSettingsPage() {
         <CardHeader>
           <CardTitle>WhatsApp @mention notifications</CardTitle>
         </CardHeader>
-        <CardBody>
-          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-            Sent automatically whenever someone is @mentioned in a note or task, to anyone mentioned
-            who&apos;s also set a phone number (Settings → Team). No schedule to check here — use this to
-            confirm the Meta template is approved and working, sent to your own number.
-          </p>
-          <SendMentionNotificationTestButton />
+        <CardBody className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+              Sent automatically whenever someone is @mentioned in a note or task, to anyone mentioned
+              who&apos;s also set a phone number (Settings → Team). No schedule to check here — use this to
+              confirm the Meta template is approved and working, sent to your own number.
+            </p>
+            <SendMentionNotificationTestButton />
+          </div>
+          <div className="border-t border-slate-200 pt-4 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4 dark:border-neutral-800">
+            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+              Swipe-to-reply on that WhatsApp notification and the reply is forwarded back to whoever
+              mentioned them, and logged in the CRM on the same note or task. Also needs its own approved
+              template — use this to confirm it&apos;s working.
+            </p>
+            <SendMentionReplyNotificationTestButton />
+          </div>
         </CardBody>
       </Card>
     </div>

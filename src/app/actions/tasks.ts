@@ -34,7 +34,13 @@ async function notifyTaskMentions(
     data: newlyMentioned.map((userId) => ({ userId, taskId, content })),
   });
 
-  await notifyMentionsViaWhatsApp(newlyMentioned, currentUser.name, description, `/tasks/${taskId}`);
+  await notifyMentionsViaWhatsApp(newlyMentioned, currentUser, description, `/tasks/${taskId}`, {
+    taskId,
+    contactId: null,
+    companyId: null,
+    dealId: null,
+    projectId: null,
+  });
 }
 
 const taskSchema = z.object({

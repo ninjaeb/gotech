@@ -6,8 +6,11 @@ import {
   WHATSAPP_ACCOUNT_ID,
   WHATSAPP_RECEIVED_PREFIX,
   findContactIdByWhatsAppPhone,
+  findPendingMentionNotification,
+  sendMentionReplyViaWhatsApp,
   verifyWebhookSignature,
 } from "@/lib/whatsapp";
+import type { WhatsAppAccount } from "@/generated/prisma/client";
 
 // Meta's one-time handshake when the webhook URL is registered/re-verified
 // in the Meta App Dashboard: echo back hub.challenge if hub.verify_token
@@ -32,6 +35,10 @@ type WhatsAppTextMessage = {
   timestamp: string;
   type: string;
   text?: { body: string };
+  // Present when this message is a swipe-to-reply/quote of an earlier one —
+  // `id` there is that earlier message's own wamid. Used to detect a reply
+  // to a mention notification; see handleMentionReply below.
+  context?: { id: string };
 };
 
 // Meta's message-delivery lifecycle events — one per status hop (a single
@@ -68,6 +75,57 @@ function describeMessage(message: WhatsAppTextMessage): string {
   return `[${message.type} message — open WhatsApp to view]`;
 }
 
+// A swipe-reply to a mention notification: forwards it on to whoever did
+// the mentioning (best-effort — logged either way even if that fails, e.g.
+// they never set their own number) and logs it as an Activity + bell
+// Notification on the same entity the original mention was about, so it
+// shows up in the CRM even for people who weren't on either end of the
+// WhatsApp exchange. Never touches Contact-conversation logging — this is
+// a reply between two internal Users, not a customer conversation.
+async function handleMentionReply(
+  account: WhatsAppAccount,
+  pending: NonNullable<Awaited<ReturnType<typeof findPendingMentionNotification>>>,
+  message: WhatsAppTextMessage,
+): Promise<void> {
+  const replyText = describeMessage(message);
+
+  try {
+    await sendMentionReplyViaWhatsApp(account, pending, replyText);
+  } catch (error) {
+    console.error(
+      `Forwarding mention reply to ${pending.mentioner.name} failed:`,
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  try {
+    const activity = await db.activity.create({
+      data: {
+        type: "WHATSAPP",
+        content: `${pending.mentioneeName} replied via WhatsApp to ${pending.mentioner.name}'s mention: "${replyText}"`,
+        contactId: pending.contactId,
+        companyId: pending.companyId,
+        dealId: pending.dealId,
+        projectId: pending.projectId,
+        taskId: pending.taskId,
+        externalId: `whatsapp:${message.id}`,
+        createdAt: new Date(Number(message.timestamp) * 1000),
+      },
+    });
+    await db.notification.create({
+      data: {
+        userId: pending.mentionerId,
+        activityId: activity.id,
+        content: `${pending.mentioneeName} replied to your mention on WhatsApp`,
+      },
+    });
+  } catch (error) {
+    // P2002 = unique constraint violation on externalId — already logged
+    // (Meta can redeliver the same webhook event).
+    if (!(error instanceof Object && "code" in error && error.code === "P2002")) throw error;
+  }
+}
+
 // Meta delivers every inbound message and status update (sent/delivered/
 // read receipts) here. `messages` and `statuses` entries are both actioned;
 // anything else (e.g. account-review events) is acknowledged and ignored.
@@ -96,6 +154,14 @@ export async function POST(request: NextRequest) {
   );
 
   for (const message of messages) {
+    if (message.context?.id) {
+      const pending = await findPendingMentionNotification(message.context.id);
+      if (pending) {
+        await handleMentionReply(account, pending, message);
+        continue;
+      }
+    }
+
     const contactId = await findContactIdByWhatsAppPhone(message.from);
     if (!contactId) continue;
 

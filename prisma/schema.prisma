@@ -112,14 +112,15 @@ model User {
   // on the entities being viewed.
   sectionLayout String? @db.Text
 
-  emailAccount        EmailAccount?
-  deals               Deal[]
-  timeEntries         TimeEntry[]
-  sequenceEnrollments SequenceEnrollment[]
-  assignedTasks       TaskAssignee[]
-  followingTasks      TaskFollower[]
-  notifications       Notification[]
-  contactLists        ContactList[]
+  emailAccount             EmailAccount?
+  deals                    Deal[]
+  timeEntries              TimeEntry[]
+  sequenceEnrollments      SequenceEnrollment[]
+  assignedTasks            TaskAssignee[]
+  followingTasks           TaskFollower[]
+  notifications            Notification[]
+  contactLists             ContactList[]
+  sentMentionNotifications WhatsAppMentionNotification[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -146,8 +147,8 @@ model EmailAccount {
   // ("Jane Doe" <jane@gotech.com>) instead of a bare address; htmlSignature
   // is raw HTML appended below the body of every email this account sends
   // (see sendEmailViaAccount) whenever it's non-empty.
-  fromName       String?
-  htmlSignature  String? @db.Text
+  fromName      String?
+  htmlSignature String? @db.Text
 
   // JSON: { [folderPath]: highestUidSeen } — an IMAP UID only ever increases
   // within a folder, so "highest UID synced" is a cheap, correct incremental
@@ -255,11 +256,12 @@ model Company {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  contacts   Contact[]
-  deals      Deal[]
-  tasks      Task[]
-  activities Activity[]
-  resources  CompanyResource[]
+  contacts             Contact[]
+  deals                Deal[]
+  tasks                Task[]
+  activities           Activity[]
+  resources            CompanyResource[]
+  mentionNotifications WhatsAppMentionNotification[]
 
   @@index([name])
 }
@@ -319,13 +321,14 @@ model Contact {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 
-  deals               Deal[]
-  tasks               Task[]
-  activities          Activity[]
-  bookings            Booking[]
-  clientUser          ClientUser?
-  sequenceEnrollments SequenceEnrollment[]
-  listMemberships     ContactListMember[]
+  deals                Deal[]
+  tasks                Task[]
+  activities           Activity[]
+  bookings             Booking[]
+  clientUser           ClientUser?
+  sequenceEnrollments  SequenceEnrollment[]
+  mentionNotifications WhatsAppMentionNotification[]
+  listMemberships      ContactListMember[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -491,11 +494,12 @@ model Deal {
   owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId String?
 
-  tasks      Task[]
-  activities Activity[]
-  quotes     Quote[]
-  resources  DealResource[]
-  project    Project?
+  tasks                Task[]
+  activities           Activity[]
+  quotes               Quote[]
+  resources            DealResource[]
+  project              Project?
+  mentionNotifications WhatsAppMentionNotification[]
 
   @@index([companyId])
   @@index([contactId])
@@ -542,9 +546,10 @@ model Project {
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String @unique
 
-  tasks      Task[]
-  activities Activity[]
-  invoices   Invoice[]
+  tasks                Task[]
+  activities           Activity[]
+  invoices             Invoice[]
+  mentionNotifications WhatsAppMentionNotification[]
 }
 
 model Task {
@@ -571,11 +576,12 @@ model Task {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
-  timeEntries   TimeEntry[]
-  assignees     TaskAssignee[]
-  followers     TaskFollower[]
-  notifications Notification[]
-  activities    Activity[]
+  timeEntries          TimeEntry[]
+  assignees            TaskAssignee[]
+  followers            TaskFollower[]
+  notifications        Notification[]
+  activities           Activity[]
+  mentionNotifications WhatsAppMentionNotification[]
 
   @@index([contactId])
   @@index([companyId])
@@ -705,6 +711,51 @@ model Notification {
 
   @@index([userId, read])
   @@index([activityId])
+  @@index([taskId])
+}
+
+// One row per WhatsApp @mention notification actually sent (see
+// notifyMentionsViaWhatsApp in src/lib/whatsapp.ts). Lets an inbound
+// WhatsApp reply that quotes that message — Meta's Cloud API includes the
+// quoted message's id as "context.id" on the webhook payload — be matched
+// back to who to forward the reply to (mentioner) and which entity to log
+// it against. Never deleted once matched: the same sent message can be
+// swipe-replied to more than once.
+model WhatsAppMentionNotification {
+  id    String @id @default(cuid())
+  wamid String @unique
+
+  mentioner   User   @relation(fields: [mentionerId], references: [id], onDelete: Cascade)
+  mentionerId String
+
+  // Snapshotted, not a relation — same tradeoff as Notification's own
+  // mention content (stays meaningful even if the mentioned user is later
+  // renamed or removed), and forwarding a reply only ever needs display
+  // text for them, never a live lookup.
+  mentioneeName String
+  excerpt       String @db.Text
+
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String?
+
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([contactId])
+  @@index([companyId])
+  @@index([dealId])
+  @@index([projectId])
   @@index([taskId])
 }
 

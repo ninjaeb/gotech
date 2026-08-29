@@ -200,6 +200,28 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
 
 Since a mention only fires when someone actually gets @mentioned, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
 
+### 13. Mention reply forwarding via WhatsApp (optional)
+
+Builds on section 12 above: if the mentioned person swipes-to-reply (quotes) the WhatsApp notification they got, that reply is forwarded on to whoever mentioned them — also via WhatsApp — and logged in the CRM as an activity on the same note/task, so it shows up there even for people who weren't on either end of the WhatsApp exchange. A plain new message to the Business number (not a reply-to/quote of that specific notification) isn't treated as a mention reply — tell your team to actually use "reply" on that message in WhatsApp, not just type a fresh one.
+
+This is its own proactive send (the mentioner is very unlikely to be within their own 24h reply window either), so it needs a second approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `mention_reply_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "You got a reply on GoTech CRM"
+   - Body: `{{1}} replied to your mention in GoTech CRM.` on its own line, then a blank line, then `You said: "{{2}}"`, then a blank line, then `Their reply: "{{3}}"`, then a blank line, then `{{4}}`
+   - Footer (optional, static text only): anything you like
+   - No buttons — same reasoning as section 12's template: the link is sent as the body's own `{{4}}` variable and WhatsApp renders it as tappable on its own. Sample values Meta asks for when you submit: e.g. `Sarah` / `Can you review the proposal before Friday?` / `Yes, looks good to me` / `https://crm.yourcompany.com/contacts/abc123`.
+
+   Submit for review, same as the other templates above.
+2. Nothing else to configure. If WhatsApp Business isn't connected, or the original mentioner never set their own phone number, or this template isn't approved yet, the reply is still logged in the CRM as normal — only the WhatsApp forward is silently skipped.
+
+`{{1}}` is the replying (mentioned) user's name, `{{2}}` the original note/task excerpt they were mentioned in, `{{3}}` their reply text (long text is truncated same as `{{2}}`), `{{4}}` a full link back to that page.
+
+The **Send test** button in the same Settings → Integrations card (next to section 12's) sends a one-off test with placeholder content to your own number, to confirm this template is approved and reachable without waiting for a real reply.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).

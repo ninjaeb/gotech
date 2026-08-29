@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.31",
+    date: "2026-08-29",
+    title: "Mention-reply forwarding via WhatsApp",
+    changes: [
+      "Swipe-reply to a WhatsApp @mention notification and it's now forwarded to whoever mentioned you, and logged in the CRM on the same note or task — see the README's WhatsApp section for the new template this needs",
+    ],
+  },
+  {
     version: "1.30",
     date: "2026-08-29",
     title: "Fixed a duplicated host in the WhatsApp webhook URL",

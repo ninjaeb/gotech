@@ -117,3 +117,40 @@ export async function sendMentionNotificationTest(
   }
   return { success: true };
 }
+
+// "Send test" for the mention_reply_notification template — the other half
+// of the mention-reply loop (see notifyMentionsViaWhatsApp and the webhook
+// route's handleMentionReply), with no real reply to wait for. Sends to
+// the clicking admin's own number with placeholder content, same reasoning
+// and same real-error-surfacing as sendMentionNotificationTest above.
+export async function sendMentionReplyNotificationTest(
+  prevState: MentionNotificationTestState,
+  formData: FormData,
+): Promise<MentionNotificationTestState> {
+  void prevState;
+  void formData;
+  const admin = await requireAdminAction();
+
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) {
+    return { error: "WhatsApp Business isn't connected." };
+  }
+
+  const { phone } = await db.user.findUniqueOrThrow({ where: { id: admin.id }, select: { phone: true } });
+  if (!phone) {
+    return { error: "Set your own WhatsApp number first, from Settings → Team." };
+  }
+
+  const siteOrigin = await getSiteOrigin();
+  try {
+    await sendWhatsAppTemplateMessage(account, phone, "mention_reply_notification", "en", [
+      admin.name,
+      "This is a test mention notification from GoTech CRM.",
+      "This is a test reply.",
+      `${siteOrigin}/settings/integrations`,
+    ]);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Send failed." };
+  }
+  return { success: true };
+}

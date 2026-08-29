@@ -98,18 +98,16 @@ export async function addActivity(formData: FormData) {
     // Reuses the exact same priority order the in-app notification bell
     // links to (see notificationHref) so the WhatsApp link can never point
     // somewhere different than clicking the bell would.
-    const path = notificationHref({
-      taskId: null,
-      activity: {
-        taskId: data.taskId || null,
-        contactId: data.contactId || null,
-        companyId: data.companyId || null,
-        dealId: data.dealId || null,
-        projectId: data.projectId || null,
-      },
-    });
+    const entityRefs = {
+      taskId: data.taskId || null,
+      contactId: data.contactId || null,
+      companyId: data.companyId || null,
+      dealId: data.dealId || null,
+      projectId: data.projectId || null,
+    };
+    const path = notificationHref({ taskId: null, activity: entityRefs });
     if (path) {
-      await notifyMentionsViaWhatsApp(mentionedUserIds, currentUser.name, data.content, path);
+      await notifyMentionsViaWhatsApp(mentionedUserIds, currentUser, data.content, path, entityRefs);
     }
   }
 
