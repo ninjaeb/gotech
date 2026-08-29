@@ -19,7 +19,7 @@ const MIN_HOURS_BETWEEN_SENDS = 20;
 // template (not plain text) because this is a proactive, business-initiated
 // message: most recipients won't be within WhatsApp's 24h reply window, and
 // a template is the only message type Meta allows outside it.
-const TEMPLATE_NAME = "daily_task_digest";
+export const TEMPLATE_NAME = "daily_task_digest_v2";
 const TEMPLATE_LANGUAGE = "en";
 
 export type TaskReminderRunResult = {

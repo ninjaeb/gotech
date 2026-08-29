@@ -7,7 +7,7 @@ import { setCurrency, setBookingSettings, setTaskReminderHour } from "@/lib/sett
 import { CURRENCY_CODES } from "@/lib/currency";
 import type { WeeklyHours } from "@/lib/booking";
 import { requireAdminAction } from "@/lib/auth/dal";
-import { runTaskReminders, type TaskReminderRunResult } from "@/lib/task-reminder";
+import { runTaskReminders, TEMPLATE_NAME, type TaskReminderRunResult } from "@/lib/task-reminder";
 import { sendWhatsAppTemplateMessage, WHATSAPP_ACCOUNT_ID } from "@/lib/whatsapp";
 import { getConfiguredSiteOrigin } from "@/lib/site-url";
 
@@ -90,12 +90,13 @@ export async function sendTaskRemindersNow(
 
 export type TaskDigestTemplateTestState = { error: string } | { success: true } | undefined;
 
-// "Send test" button (Settings → Integrations) for the daily_task_digest
-// template itself — separate from "Send now" above, which runs the real
-// digest against real task data and skips anyone (the clicking admin
-// included) who has nothing due. This always sends, with placeholder
-// counts, to just the clicking admin's own number — the point is checking
-// the template is approved and reachable, not reporting real task state.
+// "Send test" button (Settings → Integrations) for the digest template
+// itself (TEMPLATE_NAME in task-reminder.ts) — separate from "Send now"
+// above, which runs the real digest against real task data and skips
+// anyone (the clicking admin included) who has nothing due. This always
+// sends, with placeholder counts, to just the clicking admin's own
+// number — the point is checking the template is approved and
+// reachable, not reporting real task state.
 export async function sendTaskDigestTemplateTest(
   prevState: TaskDigestTemplateTestState,
   formData: FormData,
@@ -124,7 +125,7 @@ export async function sendTaskDigestTemplateTest(
     await sendWhatsAppTemplateMessage(
       account,
       phone,
-      "daily_task_digest",
+      TEMPLATE_NAME,
       "en",
       [firstName, "2", "3", `${siteOrigin}/tasks?filter=due&assignee=${admin.id}`],
       [firstName],
