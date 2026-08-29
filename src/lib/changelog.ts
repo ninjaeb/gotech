@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.28",
+    date: "2026-08-29",
+    title: "Fixed a duplicated host in the WhatsApp webhook URL",
+    changes: [
+      "Settings → Integrations' WhatsApp webhook URL could come out as \"https://yourdomain.com, yourdomain.com/api/whatsapp/webhook\" behind more than one reverse-proxy hop, which Meta then rejected as invalid — now only the first hop's host/protocol is used",
+    ],
+  },
+  {
     version: "1.27",
     date: "2026-08-29",
     title: "Fixed Currency and reminder-hour settings appearing to revert after Save",
