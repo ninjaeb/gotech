@@ -30,7 +30,7 @@ export default async function SettingsPage() {
                   <Label htmlFor="currency">
                     Used for every deal value across the CRM (dashboard, pipeline, AI summaries)
                   </Label>
-                  <Select id="currency" name="currency" defaultValue={currency}>
+                  <Select key={currency} id="currency" name="currency" defaultValue={currency}>
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
                         {c.code} — {c.name}

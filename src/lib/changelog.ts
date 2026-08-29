@@ -10,6 +10,31 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.30",
+    date: "2026-08-29",
+    title: "Fixed a duplicated host in the WhatsApp webhook URL",
+    changes: [
+      "Settings → Integrations' WhatsApp webhook URL could come out as \"https://yourdomain.com, yourdomain.com/api/whatsapp/webhook\" behind more than one reverse-proxy hop, which Meta then rejected as invalid — now only the first hop's host/protocol is used",
+    ],
+  },
+  {
+    version: "1.29",
+    date: "2026-08-29",
+    title: "Fixed Currency and reminder-hour settings appearing to revert after Save",
+    changes: [
+      "Settings → General's Currency picker and Settings → Integrations' daily reminder send-time picker now correctly show the value you just saved, instead of snapping back to what they were before",
+    ],
+  },
+  {
+    version: "1.28",
+    date: "2026-08-29",
+    title: "Tasks page defaults to your own tasks",
+    changes: [
+      "The Tasks page assignee filter now defaults to your own tasks on every tab (Open/Overdue/Due today/Completed), instead of showing everyone's",
+      "Added an \"Unassigned\" option to the assignee filter to find tasks with no owner; \"All assignees\" still shows everything",
+    ],
+  },
+  {
     version: "1.27",
     date: "2026-08-29",
     title: "Fix WhatsApp template param mismatches for real templates",
