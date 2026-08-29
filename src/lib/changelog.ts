@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.26",
+    date: "2026-08-29",
+    title: "Fix the WhatsApp thread's scroll-to-bottom for real",
+    changes: [
+      "Opening a WhatsApp conversation now reliably lands on the true last message instead of stopping just short of it behind the composer — the fix now scrolls the page's own scroll container to its actual bottom rather than estimating a margin",
+    ],
+  },
+  {
     version: "1.25",
     date: "2026-08-29",
     title: "Test buttons for the WhatsApp templates, no terminal needed",
