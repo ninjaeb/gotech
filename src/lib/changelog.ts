@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.27",
+    date: "2026-08-29",
+    title: "Fixed Currency and reminder-hour settings appearing to revert after Save",
+    changes: [
+      "Settings → General's Currency picker and Settings → Integrations' daily reminder send-time picker now correctly show the value you just saved, instead of snapping back to what they were before",
+    ],
+  },
+  {
     version: "1.26",
     date: "2026-08-29",
     title: "Tasks page defaults to your own tasks",
