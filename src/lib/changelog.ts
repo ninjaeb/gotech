@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.22",
+    date: "2026-08-29",
+    title: "Tasks page defaults to your own tasks",
+    changes: [
+      "The Tasks page assignee filter now defaults to your own tasks on every tab (Open/Overdue/Due today/Completed), instead of showing everyone's",
+      "Added an \"Unassigned\" option to the assignee filter to find tasks with no owner; \"All assignees\" still shows everything",
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-08-28",
     title: "Harder-to-miss unread WhatsApp messages",
