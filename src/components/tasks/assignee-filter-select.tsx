@@ -17,6 +17,7 @@ export function AssigneeFilterSelect({
       className="w-auto"
     >
       <option value="">All assignees</option>
+      <option value="unassigned">Unassigned</option>
       {users.map((user) => (
         <option key={user.id} value={user.id}>
           {user.name}

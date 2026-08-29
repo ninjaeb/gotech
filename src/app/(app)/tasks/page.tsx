@@ -20,11 +20,16 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
-function tabHref(key: FilterKey, query?: string, assignee?: string) {
+// `assigneeParam` is `undefined` to omit the URL param entirely (the
+// implicit "defaults to me" state — see assigneeExplicit below) and any
+// string, including "", to set it explicitly (an explicit "All assignees"
+// is `assignee=`, not an absent param, so it doesn't quietly revert to the
+// default when navigating between tabs).
+function tabHref(key: FilterKey, query?: string, assigneeParam?: string) {
   const params = new URLSearchParams();
   if (key !== "open") params.set("filter", key);
   if (query) params.set("q", query);
-  if (assignee) params.set("assignee", assignee);
+  if (assigneeParam !== undefined) params.set("assignee", assigneeParam);
   const qs = params.toString();
   return qs ? `/tasks?${qs}` : "/tasks";
 }
@@ -63,13 +68,20 @@ export default async function TasksPage({
     ? (rawFilter as FilterKey)
     : "open";
   const query = q?.trim();
-  const assigneeId = assignee?.trim() || undefined;
+  // Defaults to the viewer's own tasks the first time they land here with
+  // no assignee choice made yet (e.g. from the sidebar) — "assignee" only
+  // stays absent from the URL until the select is touched, since even
+  // picking "All assignees" submits it as an explicit empty value.
+  const assigneeExplicit = assignee !== undefined;
+  const assigneeId = assigneeExplicit ? assignee.trim() || undefined : currentUser.id;
 
   const conditions: Prisma.TaskWhereInput[] = [buildWhere(filter)];
   if (query) {
     conditions.push({ OR: [{ title: { contains: query } }, { description: { contains: query } }] });
   }
-  if (assigneeId) {
+  if (assigneeId === "unassigned") {
+    conditions.push({ assignees: { none: {} } });
+  } else if (assigneeId) {
     conditions.push({ assignees: { some: { userId: assigneeId } } });
   }
   const where: Prisma.TaskWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
@@ -124,7 +136,7 @@ export default async function TasksPage({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={tabHref(f.key, query, assigneeId)}
+            href={tabHref(f.key, query, assigneeExplicit ? (assigneeId ?? "") : undefined)}
             className={cn(
               "border-b-2 px-3 py-2 text-sm font-medium",
               filter === f.key
@@ -162,7 +174,7 @@ export default async function TasksPage({
             hasEmailAccount={hasEmailAccount}
             hasWhatsAppAccount={hasWhatsAppAccount}
             emptyMessage={
-              query || assigneeId
+              query || (assigneeExplicit && assigneeId)
                 ? "No tasks match your filters."
                 : filter === "completed"
                   ? "No completed tasks yet."
