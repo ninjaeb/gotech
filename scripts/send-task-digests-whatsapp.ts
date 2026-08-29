@@ -2,14 +2,22 @@ import "dotenv/config";
 import { db } from "../src/lib/db";
 import { sendWhatsAppTemplateMessage } from "../src/lib/whatsapp";
 import { getConfiguredSiteOrigin } from "../src/lib/site-url";
+import { getBookingSettings, getTaskReminderHour } from "../src/lib/settings";
 import type { DigestTask } from "../src/lib/task-digest";
 
-// Run on a schedule (cPanel Cron Job — see README) — once a day, in the
-// morning, is the point. lastTaskDigestWhatsAppSentAt below rate-limits
-// actual sends to roughly once every 20h regardless of how often this
-// script itself gets invoked, mirroring send-task-digests.ts's email
-// version, so a more frequent cron (or a manual re-run) won't double-send.
+// Run hourly (cPanel Cron Job — see README) — the configured send hour
+// (Settings → Integrations) is what actually decides when it fires, not the
+// cron schedule itself, so cron just needs to run often enough to catch it.
+// lastTaskDigestWhatsAppSentAt below rate-limits actual sends to roughly
+// once every 20h regardless of how often this script itself gets invoked,
+// mirroring send-task-digests.ts's email version, so an hourly cron won't
+// double-send within the matching hour.
 const MIN_HOURS_BETWEEN_SENDS = 20;
+
+// Bypasses the configured-send-hour check below, for manually testing or
+// triggering a send right now regardless of what time it is:
+//   npm run send-task-digests-whatsapp -- --force
+const FORCE = process.argv.includes("--force");
 
 // Must match an approved template in Meta Business Manager exactly — see
 // the README's WhatsApp section for the exact text to submit. Sent as a
@@ -42,6 +50,18 @@ async function main() {
   }
 
   const now = new Date();
+
+  if (!FORCE) {
+    const [{ utcOffsetMinutes }, targetHour] = await Promise.all([getBookingSettings(), getTaskReminderHour()]);
+    const localHour = new Date(now.getTime() + utcOffsetMinutes * 60_000).getUTCHours();
+    if (localHour !== targetHour) {
+      console.log(
+        `Configured to send at ${targetHour}:00 (Settings → Integrations), it's ${localHour}:00 there now — skipping. Run with --force to send now regardless.`,
+      );
+      return;
+    }
+  }
+
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);

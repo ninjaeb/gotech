@@ -169,9 +169,12 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
    Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. If you already created and approved the older 2-variable version of this template, it needs to be edited (or recreated) to this 4-variable body and re-approved — Meta rejects a send whose variable count doesn't match what was approved, so the old template won't work with the current code.
 2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
 3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
-4. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below.
+4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
+5. **Schedule the cron job to run hourly**, not once a day — see step 7 under *Deploying on cPanel* below. The script itself checks the configured send hour and only actually sends during the one hour that matches; an hourly cron just needs to run often enough to catch it, and the 20-hour per-user rate limit stops it from double-sending if the cron fires more than once during that hour.
 
 `{{1}}` is the user's first name, `{{2}}`/`{{3}}` their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in the message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
+
+To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`.
 
 ### 12. WhatsApp @mention notifications (optional)
 
@@ -230,7 +233,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
    For the daily task digest, add a third entry for `npm run send-task-digests` on a once-a-day schedule (e.g. 7am) — it self-limits to roughly one send per connected mailbox per day regardless of how often it's actually invoked, so a more frequent schedule wouldn't double-send, but there's no reason to run it more than daily either.
 
-   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, also once a day in the morning. Same self-limiting behavior as the email digest.
+   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, but **hourly** rather than once a day — unlike the email digest, this one has its own configured send hour (Settings → Integrations) and checks it itself, so the cron just needs to run often enough to catch it.
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 

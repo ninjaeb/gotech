@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { setCurrency, setBookingSettings } from "@/lib/settings";
+import { setCurrency, setBookingSettings, setTaskReminderHour } from "@/lib/settings";
 import { CURRENCY_CODES } from "@/lib/currency";
 import type { WeeklyHours } from "@/lib/booking";
 import { requireAdminAction } from "@/lib/auth/dal";
@@ -52,4 +52,16 @@ export async function updateBookingSettings(formData: FormData) {
   });
   revalidatePath("/settings/forms");
   revalidatePath("/book");
+}
+
+const taskReminderHourSchema = z.coerce.number().int().min(0).max(23);
+
+export async function updateTaskReminderHour(formData: FormData) {
+  await requireAdminAction();
+  const parsed = taskReminderHourSchema.safeParse(formData.get("taskReminderHour"));
+  if (!parsed.success) {
+    throw new Error("Invalid hour");
+  }
+  await setTaskReminderHour(parsed.data);
+  revalidatePath("/settings/integrations");
 }

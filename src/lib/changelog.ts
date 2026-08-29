@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.24",
+    date: "2026-08-29",
+    title: "Configurable send time for the WhatsApp task reminder",
+    changes: [
+      "Settings → Integrations: pick what time the daily WhatsApp task reminder sends, in the same timezone as the booking scheduler — previously fixed by whatever time the cron job happened to run",
+      "The reminder script now checks that configured hour itself, so its cron job should run hourly rather than once a day; a new --force flag bypasses the check for a manual test send",
+    ],
+  },
+  {
     version: "1.23",
     date: "2026-08-28",
     title: "WhatsApp notifications for @mentions",
