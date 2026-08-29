@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.34",
+    date: "2026-08-29",
+    title: "New \"Overdue & today\" tasks tab",
+    changes: [
+      "Added a combined Overdue + Due today tab to the Tasks page, and the WhatsApp task reminder's link now lands there instead of the broader Open tab, filtered to that assignee — matching exactly what the message itself reports",
+    ],
+  },
+  {
     version: "1.33",
     date: "2026-08-29",
     title: "One cron job instead of three",

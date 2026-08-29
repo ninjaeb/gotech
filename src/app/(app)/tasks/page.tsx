@@ -13,6 +13,7 @@ import type { Prisma } from "@/generated/prisma/client";
 
 const FILTERS = [
   { key: "open", label: "Open" },
+  { key: "due", label: "Overdue & today" },
   { key: "overdue", label: "Overdue" },
   { key: "today", label: "Due today" },
   { key: "completed", label: "Completed" },
@@ -41,6 +42,11 @@ function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
   endOfToday.setDate(endOfToday.getDate() + 1);
 
   switch (filter) {
+    // Overdue and due-today combined, in one filter rather than two — what
+    // the daily task digest (email and WhatsApp) actually reports counts
+    // for, so its link can land here instead of the broader "Open" tab.
+    case "due":
+      return { completed: false, dueDate: { lt: endOfToday } };
     case "overdue":
       return { completed: false, dueDate: { lt: startOfToday } };
     case "today":

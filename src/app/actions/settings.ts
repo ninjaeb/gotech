@@ -126,7 +126,7 @@ export async function sendTaskDigestTemplateTest(
       phone,
       "daily_task_digest",
       "en",
-      [firstName, "2", "3", `${siteOrigin}/tasks?assignee=${admin.id}`],
+      [firstName, "2", "3", `${siteOrigin}/tasks?filter=due&assignee=${admin.id}`],
       [firstName],
     );
   } catch (error) {
