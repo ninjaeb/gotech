@@ -137,7 +137,7 @@ No separate setup — a sequence sends through whichever staff member enrolled t
 
 ### 9. Enable the daily task digest (optional)
 
-Also no separate setup — like sequences, it sends through whichever user's own connected mailbox from step 7 (only users with one connected get a digest; everyone else is silently skipped). Once a day, each user with a connected mailbox gets emailed a plain-text list of their assigned tasks that are due today or overdue — nothing if they have none. Needs its own cron job (see the cPanel deploy steps below) to actually run.
+Also no separate setup — like sequences, it sends through whichever user's own connected mailbox from step 7 (only users with one connected get a digest; everyone else is silently skipped). Once a day, each user with a connected mailbox gets emailed a plain-text list of their assigned tasks that are due today or overdue — nothing if they have none. Rides along on the same cron job as email sync itself (see the cPanel deploy steps below) — no separate entry needed; it just self-limits to roughly once a day per mailbox regardless of how often that cron actually runs.
 
 ### 10. Enable WhatsApp Business (optional)
 
@@ -174,7 +174,7 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
 2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in the body's `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
 3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
 4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
-5. **Schedule the cron job to run hourly**, not once a day — see step 7 under *Deploying on cPanel* below. The script itself checks the configured send hour and only actually sends during the one hour that matches; an hourly cron just needs to run often enough to catch it, and the 20-hour per-user rate limit stops it from double-sending if the cron fires more than once during that hour.
+5. **Nothing to schedule separately** — this rides along on the same cron job as email sync (see step 7 under *Deploying on cPanel* below), which already runs far more often than the hourly cadence this needs. It checks the configured send hour itself and only actually sends during the one hour that matches; the 20-hour per-user rate limit stops it from double-sending if that hour gets checked more than once.
 
 The header's `{{1}}` (if you added one) and the body's `{{1}}` are both the user's first name; the body's `{{2}}`/`{{3}}` are their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
 
@@ -257,13 +257,11 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    ```bash
    cd /home/USERNAME/APPLICATION_ROOT && source /home/USERNAME/nodevenv/APPLICATION_ROOT/*/bin/activate && npm run sync-email
    ```
-   (the exact `source` path is the same one the Node app screen shows for running commands by hand). Without this, connected mailboxes only sync when someone clicks *Sync now*.
+   (the exact `source` path is the same one the Node app screen shows for running commands by hand). This one entry covers three things every time it runs: syncing every connected mailbox, the daily email task digest, and the daily WhatsApp task reminder (needs a Meta-approved template first — see *Daily WhatsApp task reminder* above) — both digests check their own rate limit (and, for the WhatsApp one, its configured send hour too) internally, so it's safe to check them this often even though each only actually sends roughly once a day. Without this cron entry, mailboxes only sync when someone clicks *Sync now*, and neither digest ever sends on its own.
 
    If anyone uses Sequences too, add a second entry the same way for `npm run process-sequences` — an hourly schedule is plenty, since a step's delay is day-granularity. Without this, enrolled contacts never actually get their emails, even though enrolling still "succeeds."
 
-   For the daily task digest, add a third entry for `npm run send-task-digests` on a once-a-day schedule (e.g. 7am) — it self-limits to roughly one send per connected mailbox per day regardless of how often it's actually invoked, so a more frequent schedule wouldn't double-send, but there's no reason to run it more than daily either.
-
-   For the daily WhatsApp task reminder (see *Daily WhatsApp task reminder* above — needs a Meta-approved template first), add a fourth entry the same way for `npm run send-task-digests-whatsapp`, but **hourly** rather than once a day — unlike the email digest, this one has its own configured send hour (Settings → Integrations) and checks it itself, so the cron just needs to run often enough to catch it.
+   `npm run send-task-digests` and `npm run send-task-digests-whatsapp` (the latter with `-- --force` to bypass its rate limit and send hour) still work as one-off commands for testing a digest by hand — see the sections above — but neither needs its own cron entry anymore.
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
@@ -356,10 +354,10 @@ src/
 | `npm run lint` | Run ESLint |
 | `npm run create-user -- --email=… --name=…` | Add another login |
 | `npm run clear-data -- --yes` | Delete all CRM data (companies/contacts/deals/tasks/activity), keep logins |
-| `npm run sync-email` | Sync every connected mailbox once (what the cron job runs) |
+| `npm run sync-email` | Sync every connected mailbox, then check both daily digests, once (what the cron job runs) |
 | `npm run process-sequences` | Send any due sequence steps once (what the cron job runs) |
-| `npm run send-task-digests` | Send the daily email task digest once (what the cron job runs) |
-| `npm run send-task-digests-whatsapp` | Send the daily WhatsApp task reminder once (what the cron job runs) |
+| `npm run send-task-digests` | Manually check/send the daily email task digest once, outside the cron job |
+| `npm run send-task-digests-whatsapp` | Manually check/send the daily WhatsApp task reminder once, outside the cron job |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |

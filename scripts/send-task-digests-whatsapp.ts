@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { runTaskReminders } from "../src/lib/task-reminder";
 
-// Run hourly (cPanel Cron Job — see README) — the configured send hour
-// (Settings → Integrations) is what actually decides when it fires, not the
-// cron schedule itself, so cron just needs to run often enough to catch it.
+// Manual/troubleshooting entrypoint — the cron job runs this same logic
+// (via runTaskReminders) as part of `npm run sync-email`, so this script
+// isn't itself part of the recommended cron setup anymore (see README).
 //
 // Bypasses the configured-send-hour check and each user's own 20h rate
 // limit, for manually testing or troubleshooting a send right now:

@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.33",
+    date: "2026-08-29",
+    title: "One cron job instead of three",
+    changes: [
+      "The daily email task digest and the daily WhatsApp task reminder now ride along on the same cron job as email sync, instead of each needing their own — see the README's updated cPanel setup steps if you deployed before this",
+    ],
+  },
+  {
     version: "1.32",
     date: "2026-08-29",
     title: "WhatsApp formatting and attachments",

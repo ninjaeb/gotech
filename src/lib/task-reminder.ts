@@ -4,14 +4,14 @@ import { getConfiguredSiteOrigin } from "@/lib/site-url";
 import { getBookingSettings, getTaskReminderHour } from "@/lib/settings";
 import type { DigestTask } from "@/lib/task-digest";
 
-// Shared by scripts/send-task-digests-whatsapp.ts (the cron entrypoint) and
-// the "Send now" button in Settings → Integrations (manual/troubleshooting
-// sends) — one send path, so the two can never drift apart.
+// Shared by scripts/sync-email.ts (the cron entrypoint), the manual/
+// troubleshooting scripts/send-task-digests-whatsapp.ts, and the "Send now"
+// button in Settings → Integrations — one send path, so none of the three
+// can ever drift apart.
 
 // Rate-limits actual sends to roughly once every 20h per user regardless of
-// how often the cron script itself gets invoked, mirroring
-// send-task-digests.ts's email version — but not force's job to ignore, see
-// below.
+// how often this gets invoked, mirroring runEmailTaskDigests in
+// src/lib/task-digest.ts — but not force's job to ignore, see below.
 const MIN_HOURS_BETWEEN_SENDS = 20;
 
 // Must match an approved template in Meta Business Manager exactly — see

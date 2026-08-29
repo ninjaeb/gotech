@@ -163,8 +163,9 @@ model EmailAccount {
   syncState        String    @default("{}") @db.Text
   lastSyncedAt     DateTime?
   lastSyncError    String?   @db.Text
-  // Rate-limits scripts/send-task-digests.ts to roughly once a day
-  // regardless of how often its cron job actually runs.
+  // Rate-limits runEmailTaskDigests (src/lib/task-digest.ts) to roughly once
+  // a day regardless of how often its cron job (scripts/sync-email.ts)
+  // actually runs.
   lastDigestSentAt DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
