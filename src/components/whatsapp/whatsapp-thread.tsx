@@ -39,6 +39,20 @@ function messagesChanged(prev: ThreadMessage[], next: ThreadMessage[]): boolean 
   return next.some((message, i) => message.id !== prev[i].id || message.status !== prev[i].status);
 }
 
+// The thread itself has no scroll container of its own — the page's <main>
+// (see the (app) layout) is what actually scrolls. Walking up to find it,
+// rather than assuming it's always <main>, keeps this correct if the
+// surrounding layout ever changes.
+function getScrollParent(el: HTMLElement | null): HTMLElement {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const { overflowY } = getComputedStyle(node);
+    if ((overflowY === "auto" || overflowY === "scroll") && node.scrollHeight > node.clientHeight) return node;
+    node = node.parentElement;
+  }
+  return document.scrollingElement as HTMLElement;
+}
+
 export function WhatsAppThread({
   contactId,
   contactName,
@@ -57,23 +71,21 @@ export function WhatsAppThread({
   const [text, setText] = useState("");
   const [messages, setMessages] = useState(initialMessages);
   const formRef = useRef<HTMLFormElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
 
   // The composer (or the "can't send" fallback) is `sticky bottom-0` — it
   // visually floats over whatever the scroll container's last few pixels
-  // are, rather than taking up space that scrolling naturally clears. Without
-  // accounting for its height, scrolling the newest message "into view"
-  // still leaves it rendered underneath the composer instead of above it.
-  // Measuring it live (rather than a fixed guess) keeps this correct as the
-  // textarea grows past one line.
+  // are, rather than taking up space that scrolling naturally clears. It
+  // still reserves that much height in normal flow, though, so once the
+  // scroll effect below scrolls the page's scroll container all the way to
+  // its actual bottom, that reserved space is exactly what the composer
+  // covers — never the message above it. Tracking the height here only to
+  // re-run that scroll when the composer grows (e.g. a multi-line draft),
+  // since growing it can otherwise leave the latest message newly hidden.
   useEffect(() => {
     const el = footerRef.current;
     if (!el) return;
-    // contentRect excludes padding/border, undershooting the actual space
-    // the (padded, bordered) composer bar occupies — read the real
-    // rendered box instead of relying on it.
     const observer = new ResizeObserver(() => setFooterHeight(el.getBoundingClientRect().height));
     observer.observe(el);
     return () => observer.disconnect();
@@ -113,13 +125,19 @@ export function WhatsAppThread({
   }, [contactId]);
 
   // Scroll to the newest message on mount, and again whenever the thread
-  // grows — always lands on the latest line rather than wherever the
-  // previous scroll position happened to be. Also re-runs when footerHeight
-  // changes: on first mount that's still 0 (ResizeObserver hasn't reported
-  // the composer's real height yet), so the very first scroll undershoots —
-  // this re-scrolls once the real margin is known.
+  // grows or the composer's height changes — always lands on the true
+  // bottom rather than wherever the previous scroll position happened to
+  // be. Scrolls the actual scroll container (the page's <main>, found via
+  // getScrollParent) to its own max scrollTop, rather than scrollIntoView
+  // on some anchor element plus a guessed scroll-margin — since the sticky
+  // composer's reserved height is already part of that container's
+  // scrollHeight, landing at its true bottom can never leave the composer
+  // covering a message above it.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    const el = footerRef.current;
+    if (!el) return;
+    const scrollParent = getScrollParent(el);
+    scrollParent.scrollTop = scrollParent.scrollHeight;
   }, [messages.length, footerHeight]);
 
   // Marks the thread read on mount and again every time it grows — an
@@ -213,7 +231,6 @@ export function WhatsAppThread({
             </div>
           );
         })}
-        <div ref={bottomRef} style={{ scrollMarginBottom: footerHeight }} />
       </div>
 
       {canSend ? (

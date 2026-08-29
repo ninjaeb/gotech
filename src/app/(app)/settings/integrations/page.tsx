@@ -10,6 +10,9 @@ import { Label, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { EmailAccountForm } from "@/components/settings/email-account-form";
 import { WhatsAppAccountForm } from "@/components/settings/whatsapp-account-form";
+import { SendTaskReminderNowButton } from "@/components/settings/send-task-reminder-now-button";
+import { SendTaskDigestTemplateTestButton } from "@/components/settings/send-task-digest-template-test-button";
+import { SendMentionNotificationTestButton } from "@/components/settings/send-mention-notification-test-button";
 
 // e.g. 0 -> "12:00 AM", 13 -> "1:00 PM" — a stable, locale-independent label
 // for the hour <select>, same reasoning as booking.ts's formatSlotLabel.
@@ -81,7 +84,7 @@ export default async function IntegrationsSettingsPage() {
             phone number, and the README for the cron job and Meta template this needs. In the same
             timezone as the booking scheduler ({formatUtcOffset(bookingSettings.utcOffsetMinutes)}).
           </p>
-          <form action={updateTaskReminderHour} className="flex flex-wrap items-end gap-3">
+          <form action={updateTaskReminderHour} className="mb-4 flex flex-wrap items-end gap-3">
             <div>
               <Label htmlFor="taskReminderHour">Send at</Label>
               <Select id="taskReminderHour" name="taskReminderHour" defaultValue={taskReminderHour} className="w-40">
@@ -94,6 +97,36 @@ export default async function IntegrationsSettingsPage() {
             </div>
             <Button type="submit">Save</Button>
           </form>
+          <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 dark:border-neutral-800">
+            <div>
+              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+                Send the real digest to everyone opted in, right now — ignoring the send-hour above and
+                each person&apos;s once-a-day limit.
+              </p>
+              <SendTaskReminderNowButton />
+            </div>
+            <div>
+              <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+                Just checking the template itself works? Send a test with placeholder counts to your own
+                number only — skips everyone else and the per-user due-task lookup.
+              </p>
+              <SendTaskDigestTemplateTestButton />
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp @mention notifications</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Sent automatically whenever someone is @mentioned in a note or task, to anyone mentioned
+            who&apos;s also set a phone number (Settings → Team). No schedule to check here — use this to
+            confirm the Meta template is approved and working, sent to your own number.
+          </p>
+          <SendMentionNotificationTestButton />
         </CardBody>
       </Card>
     </div>
