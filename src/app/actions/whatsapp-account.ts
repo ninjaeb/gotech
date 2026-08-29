@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { encryptSecret } from "@/lib/email-crypto";
 import { WHATSAPP_ACCOUNT_ID, testWhatsAppConnection, sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import { getSiteOrigin } from "@/lib/site-url";
 
 const connectSchema = z.object({
   phoneNumberId: z.string().trim().min(1, "Phone number ID is required"),
@@ -104,15 +105,13 @@ export async function sendMentionNotificationTest(
     return { error: "Set your own WhatsApp number first, from Settings → Team." };
   }
 
+  const siteOrigin = await getSiteOrigin();
   try {
-    await sendWhatsAppTemplateMessage(
-      account,
-      phone,
-      "mention_notification",
-      "en",
-      [admin.name, "This is a test mention notification from GoTech CRM."],
-      "/settings/integrations",
-    );
+    await sendWhatsAppTemplateMessage(account, phone, "mention_notification", "en", [
+      admin.name,
+      "This is a test mention notification from GoTech CRM.",
+      `${siteOrigin}/settings/integrations`,
+    ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
   }

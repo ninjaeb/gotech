@@ -10,7 +10,7 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.28",
+    version: "1.30",
     date: "2026-08-29",
     title: "Fixed a duplicated host in the WhatsApp webhook URL",
     changes: [
@@ -18,7 +18,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.27",
+    version: "1.29",
     date: "2026-08-29",
     title: "Fixed Currency and reminder-hour settings appearing to revert after Save",
     changes: [
@@ -26,12 +26,29 @@ export const CHANGELOG: ChangelogEntry[] = [
     ],
   },
   {
-    version: "1.26",
+    version: "1.28",
     date: "2026-08-29",
     title: "Tasks page defaults to your own tasks",
     changes: [
       "The Tasks page assignee filter now defaults to your own tasks on every tab (Open/Overdue/Due today/Completed), instead of showing everyone's",
       "Added an \"Unassigned\" option to the assignee filter to find tasks with no owner; \"All assignees\" still shows everything",
+    ],
+  },
+  {
+    version: "1.27",
+    date: "2026-08-29",
+    title: "Fix WhatsApp template param mismatches for real templates",
+    changes: [
+      "The @mention notification is back to sending its link as a plain body variable (a full URL) instead of a button — matches what most people actually approve in Meta Business Manager, and fixes a \"Number of parameters does not match\" error against a template built that way",
+      "The daily task digest now also sends a header variable (the recipient's first name), for templates that greet by name in the header as well as the body — previously omitted, causing the same param-mismatch error for any template with a header variable",
+    ],
+  },
+  {
+    version: "1.26",
+    date: "2026-08-29",
+    title: "Fix the WhatsApp thread's scroll-to-bottom for real",
+    changes: [
+      "Opening a WhatsApp conversation now reliably lands on the true last message instead of stopping just short of it behind the composer — the fix now scrolls the page's own scroll container to its actual bottom rather than estimating a margin",
     ],
   },
   {

@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
+import { getSiteOrigin } from "@/lib/site-url";
 import type { WhatsAppAccount } from "@/generated/prisma/client";
 
 const GRAPH_API_VERSION = "v21.0";
@@ -142,6 +143,15 @@ export class WhatsAppSendError extends Error {
 // design (the daily task digest) and so always needs a template, not text.
 const OUTSIDE_SERVICE_WINDOW_CODE = 131047;
 
+// The number of {{n}} variables (body + button combined) this send actually
+// included doesn't match what's approved in Meta Business Manager for that
+// template name/language — almost always because the template was edited
+// (or a newer app version expects more/fewer variables than what's
+// currently approved), never something a retry fixes. Surfaced with the
+// counts this send actually sent so it's diagnosable without also having
+// Meta's own template editor open side by side.
+const PARAM_COUNT_MISMATCH_CODE = 132000;
+
 export async function sendWhatsAppMessage(
   account: WhatsAppAccount,
   toPhone: string,
@@ -202,21 +212,20 @@ export async function sendWhatsAppTemplateMessage(
   templateName: string,
   languageCode: string,
   bodyParameters: string[],
-  // Fills the template's one dynamic-URL button, if it has one — Meta bakes
-  // the button's base URL into the approved template itself (entered once,
-  // in the template editor's "Website URL" field as e.g. "https://your-
-  // domain.com{{1}}") and only ever accepts a single suffix value per send,
-  // numbered {{1}} independently of the body's own {{1}}/{{2}}/... — so this
-  // is always just the path to append, never a full URL.
-  buttonUrlSuffix?: string,
+  // Only needed when the approved template's own Header has a {{n}}
+  // variable in it (a static header needs no component here at all) —
+  // numbered independently of the body's own {{1}}/{{2}}/..., so e.g. a
+  // header {{1}} and a body {{1}} can (and often do) carry the same value
+  // without being "the same" variable to Meta.
+  headerParameters: string[] = [],
 ): Promise<string> {
   const accessToken = decryptSecret(account.encryptedAccessToken);
   const components = [
+    ...(headerParameters.length > 0
+      ? [{ type: "header", parameters: headerParameters.map((text) => ({ type: "text", text })) }]
+      : []),
     ...(bodyParameters.length > 0
       ? [{ type: "body", parameters: bodyParameters.map((text) => ({ type: "text", text })) }]
-      : []),
-    ...(buttonUrlSuffix
-      ? [{ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: buttonUrlSuffix }] }]
       : []),
   ];
   const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/messages`, {
@@ -232,7 +241,18 @@ export async function sendWhatsAppTemplateMessage(
   });
   const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
   if (!response.ok) {
-    throw new WhatsAppSendError(payload.error?.message ?? `WhatsApp API returned ${response.status}`, payload.error?.code);
+    const code = payload.error?.code;
+    const rawMessage = payload.error?.message ?? `WhatsApp API returned ${response.status}`;
+    if (code === PARAM_COUNT_MISMATCH_CODE) {
+      throw new WhatsAppSendError(
+        `${rawMessage} — this send included ${headerParameters.length} header and ${bodyParameters.length} ` +
+          `body variable(s). Check that "${templateName}"'s currently approved header/body in Meta Business ` +
+          `Manager expects exactly that many — a template edited there, or a mismatched app version, are the ` +
+          `usual causes (see the README).`,
+        code,
+      );
+    }
+    throw new WhatsAppSendError(rawMessage, code);
   }
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
@@ -270,8 +290,6 @@ export async function notifyMentionsViaWhatsApp(
   userIds: string[],
   mentionerName: string,
   message: string,
-  // The path to append to the template's own fixed "Website URL" prefix
-  // (e.g. "/contacts/abc123") — NOT a full URL; see sendWhatsAppTemplateMessage.
   path: string,
 ): Promise<void> {
   if (userIds.length === 0) return;
@@ -285,16 +303,18 @@ export async function notifyMentionsViaWhatsApp(
   if (users.length === 0) return;
 
   const excerpt = mentionExcerpt(message);
+  // Sent as a third plain body variable, not a button — WhatsApp renders any
+  // URL inside body text as tappable client-side, no button component
+  // needed, and this is what the template actually approved in Meta
+  // Business Manager expects (see the README).
+  const link = `${await getSiteOrigin()}${path}`;
   await Promise.all(
     users.map((user) =>
-      sendWhatsAppTemplateMessage(
-        account,
-        user.phone!,
-        MENTION_TEMPLATE_NAME,
-        MENTION_TEMPLATE_LANGUAGE,
-        [mentionerName, excerpt],
-        path,
-      ).catch((error) => {
+      sendWhatsAppTemplateMessage(account, user.phone!, MENTION_TEMPLATE_NAME, MENTION_TEMPLATE_LANGUAGE, [
+        mentionerName,
+        excerpt,
+        link,
+      ]).catch((error) => {
         console.error(
           `Mention WhatsApp notification failed for user ${user.id}:`,
           error instanceof Error ? error.message : error,

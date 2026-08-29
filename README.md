@@ -164,15 +164,17 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
    - Name: `daily_task_digest` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in GoTech CRM. View your tasks: {{4}}`
+   - Header, with exactly one variable: `{{1}}, here is your daily task digest` (or your own wording, as long as it has exactly one `{{1}}`) — this app always sends a header component for this template, so a header with no variable, or none at all, will mismatch just like too many/too few body variables would. Numbered independently of the body's own `{{1}}`, even though this app sends the same first name into both.
+   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in GoTech CRM.` on its own line, then a blank line, then `View your tasks: {{4}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated daily task digest from GoTech CRM"
 
-   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. If you already created and approved the older 2-variable version of this template, it needs to be edited (or recreated) to this 4-variable body and re-approved — Meta rejects a send whose variable count doesn't match what was approved, so the old template won't work with the current code.
-2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
+   Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. Whatever your header/body variable counts end up being, they need to exactly match what this app sends (1 header + 4 body, per above) — Meta rejects a send whose variable count doesn't match what was approved, so an older or differently-shaped version of this template won't work with the current code.
+2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in the body's `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
 3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
 4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
 5. **Schedule the cron job to run hourly**, not once a day — see step 7 under *Deploying on cPanel* below. The script itself checks the configured send hour and only actually sends during the one hour that matches; an hourly cron just needs to run often enough to catch it, and the 20-hour per-user rate limit stops it from double-sending if the cron fires more than once during that hour.
 
-`{{1}}` is the user's first name, `{{2}}`/`{{3}}` their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in the message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
+The header's `{{1}}` (if you added one) and the body's `{{1}}` are both the user's first name; the body's `{{2}}`/`{{3}}` are their overdue/due-today counts, `{{4}}` a link to their own task list (`/tasks?assignee=<their user id>`, open tasks only — WhatsApp auto-links a plain URL in message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
 
 To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`. The same Settings → Integrations card also has two buttons for this without a terminal: **Send now** runs the real digest against everyone opted in (same as `--force`), and **Send test** sends just the template itself, with placeholder counts, to your own number only — useful for confirming the template is approved and reachable without needing anyone to actually have tasks due.
 
@@ -180,19 +182,21 @@ To trigger a send manually regardless of the configured hour (e.g. to test it), 
 
 Whenever someone `@mentions` a teammate in a note or a task description, that teammate already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who mentioned them, the note/task text they were tagged in, and a link straight back to that page. Sent the moment the mention is saved, not on a schedule.
 
-Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template — this one with a tappable "Visit website" button rather than a pasted link, since Meta only allows one dynamic value per URL button and it can't reference a body variable directly:
+Like the daily digest, this is proactive (not a reply to anything the recipient sent), so it needs its own approved template:
 
 1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
    - Name: `mention_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"`
-   - Buttons → Add button → Call to Action → **Visit website**, URL type **Dynamic**, Website URL: `https://your-actual-domain.com{{1}}` — replace `your-actual-domain.com` with wherever this app is actually reachable, and put `{{1}}` immediately after it with **no slash in between** (the app always sends a path that already starts with `/`, so a slash here would double up). Meta will ask for a sample value for both the body and button variables when you submit — anything realistic works, e.g. body `Sarah` / `Can you review the proposal before Friday?`, button `{{1}}` → `/contacts/abc123`.
+   - Header (optional, static text only — no variable): anything you like, e.g. "You have a mention in GoTech CRM"
+   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own, no button component needed. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Can you review the proposal before Friday?` / `https://crm.yourcompany.com/contacts/abc123`.
 
    Submit for review, same as the digest template above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
-`{{1}}` in the body is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated) — the button's own `{{1}}` (a separate variable, numbered independently of the body's) is the path this app sends, e.g. `/contacts/abc123` or `/tasks/xyz789`. The button's domain is whatever you typed into the template at creation time, not something this app controls per-message — if the app is ever reachable at a different domain, the template needs updating (and re-approval) to match.
+`{{1}}` is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated), `{{3}}` a full link back to that page, built from your `SITE_URL` env var (same one the daily digest uses) plus the page's path.
 
 Since a mention only fires when someone actually gets @mentioned, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
 
