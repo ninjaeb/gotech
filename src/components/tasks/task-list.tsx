@@ -88,7 +88,7 @@ export function TaskList({
         const clientName = clientContact ? fullName(clientContact.firstName, clientContact.lastName) : "";
 
         return (
-          <li key={task.id} className="flex items-start gap-3 py-3">
+          <li key={task.id} className="flex flex-wrap items-start gap-3 py-3">
             {(() => {
               const indicator = (
                 <span
@@ -123,7 +123,7 @@ export function TaskList({
               );
             })()}
 
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 sm:order-2">
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/tasks/${task.id}`}
@@ -207,42 +207,47 @@ export function TaskList({
                   )}
                 </div>
               )}
-              <div className="mt-2 flex items-center gap-1">
-                {canManage && hasEmailAccount && clientContact?.email && (
-                  <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
-                )}
-                {canManage && hasWhatsAppAccount && clientContact?.phone && (
-                  <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
-                )}
-                <Link
-                  href={`/tasks/${task.id}/time`}
-                  aria-label="Log time"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-                >
-                  <Clock className="h-4 w-4" />
-                </Link>
-                {canManage && (
-                  <>
-                    <Link
-                      href={`/tasks/${task.id}/edit`}
-                      aria-label="Edit task"
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            </div>
+
+            {/* Full width and wraps below the content on narrow screens
+                (order unset, so it just follows in DOM flow after content);
+                from sm: up there's room for it beside the content on the
+                same row, like before. */}
+            <div className="flex w-full items-center gap-1 pl-8 sm:order-3 sm:w-auto sm:shrink-0 sm:pl-0">
+              {canManage && hasEmailAccount && clientContact?.email && (
+                <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+              )}
+              {canManage && hasWhatsAppAccount && clientContact?.phone && (
+                <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+              )}
+              <Link
+                href={`/tasks/${task.id}/time`}
+                aria-label="Log time"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+              >
+                <Clock className="h-4 w-4" />
+              </Link>
+              {canManage && (
+                <>
+                  <Link
+                    href={`/tasks/${task.id}/edit`}
+                    aria-label="Edit task"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Link>
+                  <form action={deleteTask.bind(null, task.id)}>
+                    <ConfirmSubmitButton
+                      confirmMessage="Delete this task?"
+                      variant="ghost"
+                      size="sm"
+                      className="!px-1.5 text-slate-400 hover:text-rose-600"
                     >
-                      <Pencil className="h-4 w-4" />
-                    </Link>
-                    <form action={deleteTask.bind(null, task.id)}>
-                      <ConfirmSubmitButton
-                        confirmMessage="Delete this task?"
-                        variant="ghost"
-                        size="sm"
-                        className="!px-1.5 text-slate-400 hover:text-rose-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </ConfirmSubmitButton>
-                    </form>
-                  </>
-                )}
-              </div>
+                      <Trash2 className="h-4 w-4" />
+                    </ConfirmSubmitButton>
+                  </form>
+                </>
+              )}
             </div>
           </li>
         );
