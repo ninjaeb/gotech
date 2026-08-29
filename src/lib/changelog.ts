@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.35",
+    date: "2026-08-29",
+    title: "Mention-reply WhatsApp forwarding now goes both ways",
+    changes: [
+      "Swipe-replying to a forwarded mention reply now forwards it right back, so the two of you can keep going back and forth on WhatsApp instead of the thread stopping after one round trip",
+    ],
+  },
+  {
     version: "1.34",
     date: "2026-08-29",
     title: "New \"Overdue & today\" tasks tab",

@@ -6,7 +6,13 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { encryptSecret } from "@/lib/email-crypto";
-import { WHATSAPP_ACCOUNT_ID, testWhatsAppConnection, sendWhatsAppTemplateMessage } from "@/lib/whatsapp";
+import {
+  WHATSAPP_ACCOUNT_ID,
+  MENTION_TEMPLATE_NAME,
+  MENTION_REPLY_TEMPLATE_NAME,
+  testWhatsAppConnection,
+  sendWhatsAppTemplateMessage,
+} from "@/lib/whatsapp";
 import { getSiteOrigin } from "@/lib/site-url";
 
 const connectSchema = z.object({
@@ -107,7 +113,7 @@ export async function sendMentionNotificationTest(
 
   const siteOrigin = await getSiteOrigin();
   try {
-    await sendWhatsAppTemplateMessage(account, phone, "mention_notification", "en", [
+    await sendWhatsAppTemplateMessage(account, phone, MENTION_TEMPLATE_NAME, "en", [
       admin.name,
       "This is a test mention notification from GoTech CRM.",
       `${siteOrigin}/settings/integrations`,
@@ -143,7 +149,7 @@ export async function sendMentionReplyNotificationTest(
 
   const siteOrigin = await getSiteOrigin();
   try {
-    await sendWhatsAppTemplateMessage(account, phone, "mention_reply_notification", "en", [
+    await sendWhatsAppTemplateMessage(account, phone, MENTION_REPLY_TEMPLATE_NAME, "en", [
       admin.name,
       "This is a test mention notification from GoTech CRM.",
       "This is a test reply.",

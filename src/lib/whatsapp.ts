@@ -440,15 +440,18 @@ export async function downloadWhatsAppMedia(
 // not plain text, for the same reason as the daily task digest: whoever
 // mentioned someone is very unlikely to be within that recipient's own
 // 24h WhatsApp reply window.
-const MENTION_TEMPLATE_NAME = "mention_notification";
+export const MENTION_TEMPLATE_NAME = "mention_notification";
 const MENTION_TEMPLATE_LANGUAGE = "en";
 
-// The other direction: forwarding the mentioned person's WhatsApp reply
-// back to whoever mentioned them. A second template for the same reason as
-// the first — the mentioner is just as unlikely to be within their own 24h
-// window — see findPendingMentionNotification/sendMentionReplyViaWhatsApp
-// below and the README.
-const MENTION_REPLY_TEMPLATE_NAME = "mention_reply_notification";
+// The other direction: forwarding a reply back to whoever's swipe-reply it
+// answers — first the mentioner, then (if they reply too) back to the
+// mentionee, and so on for as long as the two keep swipe-replying. One
+// template for every hop after the first, since it's always the same
+// shape ("X replied: you said / their reply") regardless of which of the
+// two parties is being forwarded to this time — see
+// findPendingMentionNotification/sendMentionReplyViaWhatsApp below and the
+// README.
+export const MENTION_REPLY_TEMPLATE_NAME = "mention_reply_notification";
 const MENTION_REPLY_TEMPLATE_LANGUAGE = "en";
 
 // Long enough to give real context, short of Meta's per-parameter limit —
@@ -508,7 +511,7 @@ export async function notifyMentionsViaWhatsApp(
         // here (via WhatsApp's "context.id" on the inbound webhook payload)
         // and forwarded on to the mentioner — see the webhook route.
         await db.whatsAppMentionNotification.create({
-          data: { wamid, mentionerId: mentioner.id, mentioneeName: user.name, excerpt, ...entityRefs },
+          data: { wamid, recipientId: user.id, forwardToId: mentioner.id, excerpt, ...entityRefs },
         });
       } catch (error) {
         console.error(
@@ -520,34 +523,41 @@ export async function notifyMentionsViaWhatsApp(
   );
 }
 
-// Looks up which sent mention notification (if any) an inbound WhatsApp
-// message is swipe-replying to, by the wamid WhatsApp echoes back as
-// `context.id` on the webhook payload. Returns null for anything else —
+// Looks up which sent mention/reply notification (if any) an inbound
+// WhatsApp message is swipe-replying to, by the wamid WhatsApp echoes back
+// as `context.id` on the webhook payload. Returns null for anything else —
 // a reply to some other message, or a fresh message with no quote at all.
 export async function findPendingMentionNotification(wamid: string) {
   return db.whatsAppMentionNotification.findUnique({
     where: { wamid },
-    include: { mentioner: { select: { id: true, name: true, phone: true } } },
+    include: {
+      recipient: { select: { id: true, name: true, phone: true } },
+      forwardTo: { select: { id: true, name: true, phone: true } },
+    },
   });
 }
 
 type PendingMentionNotification = NonNullable<Awaited<ReturnType<typeof findPendingMentionNotification>>>;
 
-// Forwards the mentioned person's WhatsApp reply on to whoever mentioned
-// them in the first place, quoting both the original excerpt and the
-// reply. No-ops (rather than throwing) when the mentioner never set their
-// own number — the caller still logs the reply in the CRM either way, this
-// is only the WhatsApp-side half of that.
+// Forwards whichever of the two parties (mentioner/mentionee) just
+// swipe-replied on to the other one, quoting both what's being replied to
+// and the new reply itself. Returns the new message's wamid so the caller
+// can track it for the *next* possible reply — see handleMentionReply in
+// the webhook route, which is what keeps the chain going indefinitely
+// instead of stopping after one round trip. Returns null (rather than
+// throwing) when the other party never set their own number — the caller
+// still logs the reply in the CRM either way, this is only the
+// WhatsApp-side half of that.
 export async function sendMentionReplyViaWhatsApp(
   account: WhatsAppAccount,
   pending: PendingMentionNotification,
   replyText: string,
-): Promise<void> {
-  if (!pending.mentioner.phone) return;
+): Promise<string | null> {
+  if (!pending.forwardTo.phone) return null;
   const path = notificationHref({ taskId: null, activity: pending });
   const link = path ? `${await getSiteOrigin()}${path}` : await getSiteOrigin();
-  await sendWhatsAppTemplateMessage(account, pending.mentioner.phone, MENTION_REPLY_TEMPLATE_NAME, MENTION_REPLY_TEMPLATE_LANGUAGE, [
-    pending.mentioneeName,
+  return sendWhatsAppTemplateMessage(account, pending.forwardTo.phone, MENTION_REPLY_TEMPLATE_NAME, MENTION_REPLY_TEMPLATE_LANGUAGE, [
+    pending.recipient.name,
     pending.excerpt,
     mentionExcerpt(replyText),
     link,

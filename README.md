@@ -204,7 +204,7 @@ Since a mention only fires when someone actually gets @mentioned, there's no cro
 
 ### 13. Mention reply forwarding via WhatsApp (optional)
 
-Builds on section 12 above: if the mentioned person swipes-to-reply (quotes) the WhatsApp notification they got, that reply is forwarded on to whoever mentioned them — also via WhatsApp — and logged in the CRM as an activity on the same note/task, so it shows up there even for people who weren't on either end of the WhatsApp exchange. A plain new message to the Business number (not a reply-to/quote of that specific notification) isn't treated as a mention reply — tell your team to actually use "reply" on that message in WhatsApp, not just type a fresh one.
+Builds on section 12 above: if the mentioned person swipes-to-reply (quotes) the WhatsApp notification they got, that reply is forwarded on to whoever mentioned them — also via WhatsApp — and logged in the CRM as an activity on the same note/task, so it shows up there even for people who weren't on either end of the WhatsApp exchange. It keeps going from there: swipe-replying to *that* forwarded message sends the reply right back, and so on for as long as the two of them keep swipe-replying — each forward quotes what's being answered, so the thread stays readable even after several hops. A plain new message to the Business number (not a reply-to/quote of the specific message you want to answer) isn't treated as a reply in this chain — tell your team to actually use "reply" in WhatsApp, not just type a fresh message.
 
 This is its own proactive send (the mentioner is very unlikely to be within their own 24h reply window either), so it needs a second approved template:
 

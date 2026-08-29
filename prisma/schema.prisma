@@ -126,7 +126,8 @@ model User {
   followingTasks           TaskFollower[]
   notifications            Notification[]
   contactLists             ContactList[]
-  sentMentionNotifications WhatsAppMentionNotification[]
+  sentMentionNotifications     WhatsAppMentionNotification[] @relation("MentionNotificationForwardTo")
+  receivedMentionNotifications WhatsAppMentionNotification[] @relation("MentionNotificationRecipient")
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -745,15 +746,25 @@ model WhatsAppMentionNotification {
   id    String @id @default(cuid())
   wamid String @unique
 
-  mentioner   User   @relation(fields: [mentionerId], references: [id], onDelete: Cascade)
-  mentionerId String
+  // Whoever this exact WhatsApp message was sent to. If they swipe-reply
+  // to it, the reply forwards on to forwardTo below and a new row is
+  // created with recipient/forwardTo swapped (see handleMentionReply in
+  // the webhook route) — so the exchange keeps forwarding indefinitely in
+  // either direction, not just the one round trip this table originally
+  // supported. The first hop's recipient is whoever got @mentioned.
+  recipient   User   @relation("MentionNotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
 
-  // Snapshotted, not a relation — same tradeoff as Notification's own
-  // mention content (stays meaningful even if the mentioned user is later
-  // renamed or removed), and forwarding a reply only ever needs display
-  // text for them, never a live lookup.
-  mentioneeName String
-  excerpt       String @db.Text
+  // The other party in this exchange — a reply to this message forwards
+  // to them. First hop: whoever wrote the @mention. Every hop after:
+  // whoever's reply this message itself just forwarded.
+  forwardTo   User   @relation("MentionNotificationForwardTo", fields: [forwardToId], references: [id], onDelete: Cascade)
+  forwardToId String
+
+  // Quoted back as "You said: ..." if recipient replies — the original
+  // @mention text on the first hop, or whichever reply text this message
+  // itself just forwarded, on every hop after.
+  excerpt String @db.Text
 
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
   contactId String?

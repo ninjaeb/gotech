@@ -119,13 +119,18 @@ async function buildInboundMediaContent(
   };
 }
 
-// A swipe-reply to a mention notification: forwards it on to whoever did
-// the mentioning (best-effort — logged either way even if that fails, e.g.
-// they never set their own number) and logs it as an Activity + bell
-// Notification on the same entity the original mention was about, so it
-// shows up in the CRM even for people who weren't on either end of the
-// WhatsApp exchange. Never touches Contact-conversation logging — this is
-// a reply between two internal Users, not a customer conversation.
+// A swipe-reply to a mention notification, or to a previous forward of
+// one: sends it on to the other party (best-effort — logged either way
+// even if that fails, e.g. they never set their own number) and logs it
+// as an Activity + bell Notification on the same entity the original
+// mention was about, so it shows up in the CRM even for people who
+// weren't on either end of the WhatsApp exchange. If the forward goes
+// out, a new WhatsAppMentionNotification row is stored for *that*
+// message too (recipient/forwardTo swapped from `pending`), so a further
+// swipe-reply keeps the exchange going indefinitely in either direction
+// instead of dead-ending after one round trip. Never touches
+// Contact-conversation logging — this is a reply between two internal
+// Users, not a customer conversation.
 async function handleMentionReply(
   account: WhatsAppAccount,
   pending: NonNullable<Awaited<ReturnType<typeof findPendingMentionNotification>>>,
@@ -133,20 +138,39 @@ async function handleMentionReply(
 ): Promise<void> {
   const replyText = describeMessage(message);
 
+  let forwardWamid: string | null = null;
   try {
-    await sendMentionReplyViaWhatsApp(account, pending, replyText);
+    forwardWamid = await sendMentionReplyViaWhatsApp(account, pending, replyText);
   } catch (error) {
     console.error(
-      `Forwarding mention reply to ${pending.mentioner.name} failed:`,
+      `Forwarding WhatsApp reply to ${pending.forwardTo.name} failed:`,
       error instanceof Error ? error.message : error,
     );
+  }
+
+  if (forwardWamid) {
+    await db.whatsAppMentionNotification
+      .create({
+        data: {
+          wamid: forwardWamid,
+          recipientId: pending.forwardToId,
+          forwardToId: pending.recipientId,
+          excerpt: replyText,
+          contactId: pending.contactId,
+          companyId: pending.companyId,
+          dealId: pending.dealId,
+          projectId: pending.projectId,
+          taskId: pending.taskId,
+        },
+      })
+      .catch((error) => console.error("Failed to store mention-reply chain state:", error));
   }
 
   try {
     const activity = await db.activity.create({
       data: {
         type: "WHATSAPP",
-        content: `${pending.mentioneeName} replied via WhatsApp to ${pending.mentioner.name}'s mention: "${replyText}"`,
+        content: `${pending.recipient.name} replied via WhatsApp to ${pending.forwardTo.name}: "${replyText}"`,
         contactId: pending.contactId,
         companyId: pending.companyId,
         dealId: pending.dealId,
@@ -158,9 +182,9 @@ async function handleMentionReply(
     });
     await db.notification.create({
       data: {
-        userId: pending.mentionerId,
+        userId: pending.forwardToId,
         activityId: activity.id,
-        content: `${pending.mentioneeName} replied to your mention on WhatsApp`,
+        content: `${pending.recipient.name} replied to you on WhatsApp`,
       },
     });
   } catch (error) {
