@@ -163,7 +163,7 @@ Unlike email, this is one shared connection for the whole team, made through the
 A once-a-day WhatsApp message summarizing what's due or overdue, per user, with a link straight to their own task list. Needs WhatsApp Business connected (above) and, because it's sent proactively rather than in reply to anything, a template approved in Meta Business Manager first — a plain-text message would fail for anyone outside the 24-hour window, which in practice is almost everyone every morning.
 
 1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
-   - Name: `daily_task_digest_v2` (must match `TEMPLATE_NAME` in `src/lib/task-reminder.ts` exactly — if you ever need to create another revision of this template, Meta requires a new name rather than editing the approved one in place, so update that constant to match)
+   - Name: `_daily_task_digest_v2` (must match `TEMPLATE_NAME` in `src/lib/task-reminder.ts` exactly, underscore and all — if you ever need to create another revision of this template, Meta requires a new name rather than editing the approved one in place, so update that constant to match whatever you actually typed into Meta's "Name your template" field)
    - Category: `Utility`
    - Language: `English`
    - Header, with exactly one variable: `{{1}}, here is your daily task digest` (or your own wording, as long as it has exactly one `{{1}}`) — this app always sends a header component for this template, so a header with no variable, or none at all, will mismatch just like too many/too few body variables would. Numbered independently of the body's own `{{1}}`, even though this app sends the same first name into both.
