@@ -120,12 +120,16 @@ export async function runTaskReminders({ force = false }: { force?: boolean } = 
     const taskListUrl = `${siteOrigin}/tasks?assignee=${user.id}`;
 
     try {
-      await sendWhatsAppTemplateMessage(whatsAppAccount, user.phone!, TEMPLATE_NAME, TEMPLATE_LANGUAGE, [
-        firstName,
-        String(overdueCount),
-        String(dueTodayCount),
-        taskListUrl,
-      ]);
+      // The approved template's own Header greets by name too (its own
+      // {{1}}, numbered independently of the body's) — see the README.
+      await sendWhatsAppTemplateMessage(
+        whatsAppAccount,
+        user.phone!,
+        TEMPLATE_NAME,
+        TEMPLATE_LANGUAGE,
+        [firstName, String(overdueCount), String(dueTodayCount), taskListUrl],
+        [firstName],
+      );
       await db.user.update({ where: { id: user.id }, data: { lastTaskDigestWhatsAppSentAt: now } });
       result.sent.push({ name: user.name, overdueCount, dueTodayCount });
     } catch (error) {

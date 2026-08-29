@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.27",
+    date: "2026-08-29",
+    title: "Fix WhatsApp template param mismatches for real templates",
+    changes: [
+      "The @mention notification is back to sending its link as a plain body variable (a full URL) instead of a button — matches what most people actually approve in Meta Business Manager, and fixes a \"Number of parameters does not match\" error against a template built that way",
+      "The daily task digest now also sends a header variable (the recipient's first name), for templates that greet by name in the header as well as the body — previously omitted, causing the same param-mismatch error for any template with a header variable",
+    ],
+  },
+  {
     version: "1.26",
     date: "2026-08-29",
     title: "Fix the WhatsApp thread's scroll-to-bottom for real",
