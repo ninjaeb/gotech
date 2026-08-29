@@ -10,6 +10,7 @@ import {
 import type { Activity } from "@/generated/prisma/client";
 import { formatDateTime } from "@/lib/format";
 import { ActivityContent } from "@/components/activity/activity-content";
+import { WhatsAppMediaPreview } from "@/components/whatsapp/whatsapp-media";
 import type { UserOption } from "@/lib/mentions";
 
 const ICONS = {
@@ -52,6 +53,18 @@ export function ActivityFeed({
                 users={users}
                 className="text-sm text-slate-700 dark:text-slate-300"
               />
+              {activity.whatsappMediaType && (
+                <div className="mt-1.5 max-w-xs">
+                  <WhatsAppMediaPreview
+                    media={{
+                      type: activity.whatsappMediaType,
+                      url: `/api/whatsapp/media/${activity.id}`,
+                      mimeType: activity.whatsappMediaMimeType ?? "application/octet-stream",
+                      name: activity.whatsappMediaName,
+                    }}
+                  />
+                </div>
+              )}
               <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">
                 {formatDateTime(activity.createdAt)}
               </p>

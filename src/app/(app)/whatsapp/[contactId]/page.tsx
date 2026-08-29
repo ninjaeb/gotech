@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { fullName } from "@/lib/format";
-import { WHATSAPP_ACCOUNT_ID, parseWhatsAppActivityContent } from "@/lib/whatsapp";
+import { WHATSAPP_ACCOUNT_ID, activityToThreadMessage } from "@/lib/whatsapp";
 import { WhatsAppThread, type ThreadMessage } from "@/components/whatsapp/whatsapp-thread";
 
 export default async function WhatsAppThreadPage({
@@ -23,23 +23,22 @@ export default async function WhatsAppThreadPage({
     db.activity.findMany({
       where: { type: "WHATSAPP", contactId },
       orderBy: { createdAt: "asc" },
-      select: { id: true, content: true, createdAt: true, whatsappStatus: true },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        whatsappStatus: true,
+        whatsappMediaType: true,
+        whatsappMediaMimeType: true,
+        whatsappMediaName: true,
+      },
     }),
   ]);
 
   if (!contact) notFound();
   const contactName = fullName(contact.firstName, contact.lastName);
 
-  const initialMessages: ThreadMessage[] = activities.map((activity) => {
-    const { direction, text } = parseWhatsAppActivityContent(activity.content);
-    return {
-      id: activity.id,
-      direction,
-      text,
-      createdAt: activity.createdAt.toISOString(),
-      status: activity.whatsappStatus,
-    };
-  });
+  const initialMessages: ThreadMessage[] = activities.map(activityToThreadMessage);
 
   return (
     <div className="flex flex-col">

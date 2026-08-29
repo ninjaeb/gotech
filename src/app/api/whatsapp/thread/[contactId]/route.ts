@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
-import { parseWhatsAppActivityContent } from "@/lib/whatsapp";
+import { activityToThreadMessage } from "@/lib/whatsapp";
 
 // Polled client-side by WhatsAppThread so new inbound messages and delivery-
 // status changes show up without a full page refresh — keeps the reply
@@ -18,19 +18,16 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const activities = await db.activity.findMany({
     where: { type: "WHATSAPP", contactId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, content: true, createdAt: true, whatsappStatus: true },
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      whatsappStatus: true,
+      whatsappMediaType: true,
+      whatsappMediaMimeType: true,
+      whatsappMediaName: true,
+    },
   });
 
-  return NextResponse.json({
-    messages: activities.map((activity) => {
-      const { direction, text } = parseWhatsAppActivityContent(activity.content);
-      return {
-        id: activity.id,
-        direction,
-        text,
-        createdAt: activity.createdAt.toISOString(),
-        status: activity.whatsappStatus,
-      };
-    }),
-  });
+  return NextResponse.json({ messages: activities.map(activityToThreadMessage) });
 }

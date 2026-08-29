@@ -1,26 +1,58 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, CheckCheck, Send } from "lucide-react";
+import { AlertCircle, Bold, Check, CheckCheck, Code, Italic, Paperclip, Send, Strikethrough, X } from "lucide-react";
 import { sendWhatsAppToContact, markWhatsAppThreadRead } from "@/app/actions/whatsapp-send";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { Card } from "@/components/ui/card";
+import { WhatsAppMediaPreview } from "@/components/whatsapp/whatsapp-media";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { WhatsAppMessageDirection } from "@/lib/whatsapp";
+import type { WhatsAppThreadMessage } from "@/lib/whatsapp";
 
 type MessageStatus = "SENT" | "DELIVERED" | "READ" | "FAILED" | null;
 
-export type ThreadMessage = {
-  id: string;
-  direction: WhatsAppMessageDirection;
-  text: string;
-  createdAt: string;
-  status: MessageStatus;
-};
+export type ThreadMessage = WhatsAppThreadMessage;
 
 const POLL_INTERVAL_MS = 2000;
+
+// The exact placeholder text a media message gets when it has no caption
+// (see MEDIA_LABEL in whatsapp-send.ts and the webhook route) — skipped
+// when rendering a message that already shows its media inline, since
+// "Sent an image" under a visible image is redundant. A real caption still
+// renders normally either way.
+const MEDIA_PLACEHOLDER_TEXT = new Set(["Sent an image", "Sent a document", "Sent a video"]);
+
+// WhatsApp's own inline formatting syntax — *bold*, _italic_, ~strike~, and
+// (unlike typical single-backtick markdown) ```monospace``` with three.
+// Parsed here so staff see the same rendering their contact's WhatsApp app
+// will show, not the literal asterisks/underscores.
+const FORMAT_PATTERN = /\*([^*\n]+)\*|_([^_\n]+)_|~([^~\n]+)~|```([^`\n]+)```/g;
+
+function renderWhatsAppText(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let key = 0;
+  FORMAT_PATTERN.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = FORMAT_PATTERN.exec(text))) {
+    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index));
+    const [, bold, italic, strike, mono] = match;
+    if (bold !== undefined) nodes.push(<strong key={key++}>{bold}</strong>);
+    else if (italic !== undefined) nodes.push(<em key={key++}>{italic}</em>);
+    else if (strike !== undefined) nodes.push(<s key={key++}>{strike}</s>);
+    else if (mono !== undefined)
+      nodes.push(
+        <code key={key++} className="rounded bg-black/10 px-1 py-0.5 text-[0.85em] dark:bg-white/10">
+          {mono}
+        </code>,
+      );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes;
+}
 
 function StatusTicks({ status }: { status: MessageStatus }) {
   if (status === "READ") return <CheckCheck className="h-3.5 w-3.5 text-sky-300" aria-label="Read" />;
@@ -53,6 +85,21 @@ function getScrollParent(el: HTMLElement | null): HTMLElement {
   return document.scrollingElement as HTMLElement;
 }
 
+const ACCEPTED_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "video/mp4",
+  "video/3gpp",
+  "text/plain",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+].join(",");
+
 export function WhatsAppThread({
   contactId,
   contactName,
@@ -69,8 +116,11 @@ export function WhatsAppThread({
   const action = sendWhatsAppToContact.bind(null, contactId);
   const [state, formAction, pending] = useActionState(action, undefined);
   const [text, setText] = useState("");
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [messages, setMessages] = useState(initialMessages);
   const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const footerRef = useRef<HTMLElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
 
@@ -81,8 +131,9 @@ export function WhatsAppThread({
   // scroll effect below scrolls the page's scroll container all the way to
   // its actual bottom, that reserved space is exactly what the composer
   // covers — never the message above it. Tracking the height here only to
-  // re-run that scroll when the composer grows (e.g. a multi-line draft),
-  // since growing it can otherwise leave the latest message newly hidden.
+  // re-run that scroll when the composer grows (e.g. a multi-line draft or
+  // an attachment chip), since growing it can otherwise leave the latest
+  // message newly hidden.
   useEffect(() => {
     const el = footerRef.current;
     if (!el) return;
@@ -160,20 +211,56 @@ export function WhatsAppThread({
     setLastHandledState(state);
     if (state && "success" in state) {
       setText("");
+      setAttachment(null);
       const sent = state.message;
       setMessages((prev) =>
         prev.some((m) => m.id === sent.id)
           ? prev
-          : [...prev, { id: sent.id, direction: "OUTBOUND", text: sent.text, createdAt: sent.createdAt, status: "SENT" }],
+          : [
+              ...prev,
+              {
+                id: sent.id,
+                direction: "OUTBOUND",
+                text: sent.text,
+                createdAt: sent.createdAt,
+                status: "SENT",
+                media: sent.media,
+              },
+            ],
       );
     }
   }
+
+  // A file input is uncontrolled — clearing `attachment` state alone
+  // doesn't clear what the browser still shows selected, so this mirrors
+  // that reset into the actual DOM element. Ref access belongs in an
+  // effect, not the state-adjustment-during-render block above.
+  useEffect(() => {
+    if (state && "success" in state && fileInputRef.current) fileInputRef.current.value = "";
+  }, [state]);
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       formRef.current?.requestSubmit();
     }
+  }
+
+  // Wraps the textarea's current selection in a WhatsApp formatting marker
+  // (or, with nothing selected, just places the cursor between an empty
+  // pair) — the same one-marker-each-side syntax WhatsApp itself parses,
+  // so this never needs its own preview: what's typed is what renders.
+  function wrapSelection(marker: string) {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + marker + text.slice(start, end) + marker + text.slice(end);
+    setText(next);
+    requestAnimationFrame(() => {
+      el.focus();
+      el.setSelectionRange(start + marker.length, end + marker.length);
+    });
   }
 
   const canSend = hasWhatsAppAccount && !!contactPhone;
@@ -195,6 +282,7 @@ export function WhatsAppThread({
         )}
         {rows.map(({ message, showDayDivider }) => {
           const outbound = message.direction === "OUTBOUND";
+          const showText = message.text && !(message.media && MEDIA_PLACEHOLDER_TEXT.has(message.text));
           return (
             <div key={message.id}>
               {showDayDivider && (
@@ -216,7 +304,12 @@ export function WhatsAppThread({
                       : "bg-white text-slate-800 dark:bg-neutral-800 dark:text-slate-100",
                   )}
                 >
-                  <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                  {message.media && (
+                    <div className={cn(showText ? "mb-1.5" : "")}>
+                      <WhatsAppMediaPreview media={message.media} />
+                    </div>
+                  )}
+                  {showText && <p className="whitespace-pre-wrap break-words">{renderWhatsAppText(message.text)}</p>}
                   <div
                     className={cn(
                       "mt-1 flex items-center justify-end gap-1 text-[11px]",
@@ -242,18 +335,88 @@ export function WhatsAppThread({
           action={formAction}
           className="sticky bottom-0 rounded-b-lg border-t border-slate-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 sm:px-6"
         >
+          <div className="mb-1.5 flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={() => wrapSelection("*")}
+              title="Bold"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => wrapSelection("_")}
+              title="Italic"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            >
+              <Italic className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => wrapSelection("~")}
+              title="Strikethrough"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            >
+              <Strikethrough className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => wrapSelection("```")}
+              title="Monospace"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            >
+              <Code className="h-3.5 w-3.5" />
+            </button>
+            <span className="mx-1 h-4 w-px bg-slate-200 dark:bg-neutral-700" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach a file"
+              className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              name="attachment"
+              accept={ACCEPTED_ATTACHMENT_TYPES}
+              className="hidden"
+              onChange={(event) => setAttachment(event.target.files?.[0] ?? null)}
+            />
+          </div>
+
+          {attachment && (
+            <div className="mb-2 flex items-center gap-2 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs text-slate-600 dark:bg-neutral-800 dark:text-slate-300">
+              <Paperclip className="h-3.5 w-3.5 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{attachment.name}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setAttachment(null);
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                }}
+                className="shrink-0 rounded p-0.5 hover:bg-slate-200 dark:hover:bg-neutral-700"
+                title="Remove attachment"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
             <Textarea
+              ref={textareaRef}
               name="message"
-              required
               rows={1}
-              placeholder={`Message ${contactName}…`}
+              placeholder={attachment ? "Add a caption (optional)…" : `Message ${contactName}…`}
               value={text}
               onChange={(event) => setText(event.target.value)}
               onKeyDown={handleKeyDown}
               className="max-h-32 flex-1 resize-none"
             />
-            <Button type="submit" disabled={pending || !text.trim()}>
+            <Button type="submit" disabled={pending || (!text.trim() && !attachment)}>
               <Send className="h-4 w-4" />
               {pending ? "Sending…" : "Send"}
             </Button>

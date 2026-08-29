@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { getSiteOrigin } from "@/lib/site-url";
 import { notificationHref, type ActivityEntityRefs } from "@/lib/notification-href";
-import type { WhatsAppAccount } from "@/generated/prisma/client";
+import type { WhatsAppAccount, WhatsAppMediaType, WhatsAppMessageStatus } from "@/generated/prisma/client";
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -123,6 +123,53 @@ export function isWhatsAppConversationUnread(
   const { direction } = parseWhatsAppActivityContent(latestContent);
   if (direction !== "INBOUND") return false;
   return !lastReadAt || latestCreatedAt > lastReadAt;
+}
+
+export type WhatsAppThreadMedia = {
+  type: WhatsAppMediaType;
+  url: string;
+  mimeType: string;
+  name: string | null;
+};
+
+export type WhatsAppThreadMessage = {
+  id: string;
+  direction: WhatsAppMessageDirection;
+  text: string;
+  createdAt: string;
+  status: WhatsAppMessageStatus | null;
+  media: WhatsAppThreadMedia | null;
+};
+
+// Shared by the thread page's initial load and its poll route so the two
+// can never build a differently-shaped message — media is served through
+// /api/whatsapp/media/[activityId] rather than embedded here, so a poll
+// tick never has to re-serialize a multi-MB attachment's bytes.
+export function activityToThreadMessage(activity: {
+  id: string;
+  content: string;
+  createdAt: Date;
+  whatsappStatus: WhatsAppMessageStatus | null;
+  whatsappMediaType: WhatsAppMediaType | null;
+  whatsappMediaMimeType: string | null;
+  whatsappMediaName: string | null;
+}): WhatsAppThreadMessage {
+  const { direction, text } = parseWhatsAppActivityContent(activity.content);
+  return {
+    id: activity.id,
+    direction,
+    text,
+    createdAt: activity.createdAt.toISOString(),
+    status: activity.whatsappStatus,
+    media: activity.whatsappMediaType
+      ? {
+          type: activity.whatsappMediaType,
+          url: `/api/whatsapp/media/${activity.id}`,
+          mimeType: activity.whatsappMediaMimeType ?? "application/octet-stream",
+          name: activity.whatsappMediaName,
+        }
+      : null,
+  };
 }
 
 export class WhatsAppSendError extends Error {
@@ -258,6 +305,134 @@ export async function sendWhatsAppTemplateMessage(
   const messageId = payload.messages?.[0]?.id;
   if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
   return messageId;
+}
+
+export type WhatsAppMediaKind = "image" | "document" | "video";
+
+// This app's own caps, tighter than Meta's for documents (which Meta
+// allows up to 100MB) — kept sane for the data:-URL-in-the-database
+// approach Activity.whatsappMediaData uses (see schema.prisma), and for
+// the Server Action body-size limit (next.config.ts) a base64-inflated
+// upload has to fit under. Images/video match Meta's own real caps, which
+// would reject a larger file before this ever mattered.
+export const MAX_MEDIA_BYTES: Record<WhatsAppMediaKind, number> = {
+  image: 5 * 1024 * 1024,
+  video: 16 * 1024 * 1024,
+  document: 16 * 1024 * 1024,
+};
+
+export function whatsAppMediaKindForMimeType(mimeType: string): WhatsAppMediaKind {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  return "document";
+}
+
+// Shared by every writer of Activity.whatsappMediaType (the outbound send
+// action and the inbound webhook) so the lowercase kind used for Meta's own
+// `type` field and this app's uppercase enum column never drift apart.
+export const WHATSAPP_MEDIA_KIND_TO_TYPE: Record<WhatsAppMediaKind, WhatsAppMediaType> = {
+  image: "IMAGE",
+  video: "VIDEO",
+  document: "DOCUMENT",
+};
+
+// Uploads raw bytes to Meta's Media API and returns the resulting media
+// id — a WhatsApp send references media by this id, not by embedding the
+// bytes in the /messages call itself. Node's global FormData/Blob (no
+// extra package) is enough for the multipart body Meta expects here.
+async function uploadWhatsAppMedia(account: WhatsAppAccount, buffer: Buffer, mimeType: string): Promise<string> {
+  const accessToken = decryptSecret(account.encryptedAccessToken);
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("file", new Blob([new Uint8Array(buffer)], { type: mimeType }));
+  const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/media`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  });
+  const payload: { id?: string; error?: { message?: string; code?: number } } = await response.json();
+  if (!response.ok || !payload.id) {
+    throw new WhatsAppSendError(payload.error?.message ?? `WhatsApp media upload returned ${response.status}`, payload.error?.code);
+  }
+  return payload.id;
+}
+
+// Sends an image/document/video — same "must be within the 24h session
+// window unless it's a template" rule as sendWhatsAppMessage applies here
+// too (Meta returns the same OUTSIDE_SERVICE_WINDOW_CODE for a media send
+// as for a text one). `caption` renders below the media on WhatsApp;
+// `filename` only matters for (and is only shown on) a document.
+export async function sendWhatsAppMediaMessage(
+  account: WhatsAppAccount,
+  toPhone: string,
+  kind: WhatsAppMediaKind,
+  buffer: Buffer,
+  mimeType: string,
+  options: { caption?: string; filename?: string } = {},
+): Promise<string> {
+  const accessToken = decryptSecret(account.encryptedAccessToken);
+  const mediaId = await uploadWhatsAppMedia(account, buffer, mimeType);
+  const mediaObject: { id: string; caption?: string; filename?: string } = { id: mediaId };
+  if (options.caption) mediaObject.caption = options.caption;
+  if (kind === "document" && options.filename) mediaObject.filename = options.filename;
+
+  const response = await fetch(`${GRAPH_API_BASE}/${account.phoneNumberId}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: normalizePhone(toPhone),
+      type: kind,
+      [kind]: mediaObject,
+    }),
+  });
+  const payload: { messages?: { id: string }[]; error?: { message?: string; code?: number } } = await response.json();
+  if (!response.ok) {
+    const code = payload.error?.code;
+    if (code === OUTSIDE_SERVICE_WINDOW_CODE) {
+      throw new WhatsAppSendError(
+        "This contact hasn't messaged you on WhatsApp in the last 24 hours. Outside that window, WhatsApp requires a pre-approved message template to start a new conversation — a plain reply (or attachment) only works within 24h of their last message to you.",
+        code,
+      );
+    }
+    throw new WhatsAppSendError(payload.error?.message ?? `WhatsApp API returned ${response.status}`, code);
+  }
+  const messageId = payload.messages?.[0]?.id;
+  if (!messageId) throw new WhatsAppSendError("WhatsApp accepted the request but returned no message id.");
+  return messageId;
+}
+
+// The webhook only ever hands us a short-lived media id for an inbound
+// image/document/video — the actual bytes are a separate, authenticated
+// round trip: look up a temporary download URL for that id, then fetch it.
+// Returns null (never throws) on any failure — the caller falls back to
+// logging a plain placeholder, same as it always has, rather than losing
+// the whole webhook delivery over one attachment.
+export async function downloadWhatsAppMedia(
+  account: WhatsAppAccount,
+  mediaId: string,
+): Promise<{ buffer: Buffer; mimeType: string } | null> {
+  try {
+    const accessToken = decryptSecret(account.encryptedAccessToken);
+    const metaResponse = await fetch(`${GRAPH_API_BASE}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!metaResponse.ok) return null;
+    const meta: { url?: string; mime_type?: string; file_size?: number } = await metaResponse.json();
+    if (!meta.url) return null;
+    const kind = whatsAppMediaKindForMimeType(meta.mime_type ?? "");
+    if (meta.file_size !== undefined && meta.file_size > MAX_MEDIA_BYTES[kind]) return null;
+
+    const fileResponse = await fetch(meta.url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!fileResponse.ok) return null;
+    const buffer = Buffer.from(await fileResponse.arrayBuffer());
+    if (buffer.byteLength > MAX_MEDIA_BYTES[kind]) return null;
+    return { buffer, mimeType: meta.mime_type ?? "application/octet-stream" };
+  } catch (error) {
+    console.error("Downloading inbound WhatsApp media failed:", error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 // Must match an approved template in Meta Business Manager exactly — see

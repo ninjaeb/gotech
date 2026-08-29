@@ -61,6 +61,12 @@ enum WhatsAppMessageStatus {
   FAILED
 }
 
+enum WhatsAppMediaType {
+  IMAGE
+  DOCUMENT
+  VIDEO
+}
+
 enum LeadSource {
   WEBSITE
   REFERRAL
@@ -679,6 +685,19 @@ model Activity {
   // WhatsApp message:"); null for inbound WhatsApp and every other type.
   // See WhatsAppMessageStatus.
   whatsappStatus WhatsAppMessageStatus?
+
+  // Set together, only on a WhatsApp activity that carries an attachment
+  // (either direction) — content is then the caption, or a placeholder
+  // like "Sent an image" when there wasn't one. whatsappMediaData is
+  // base64, same data:-URL-in-the-database approach as Contact.photoUrl
+  // (see src/lib/photo.ts) and for the same reason (no durable filesystem
+  // to write to on this app's cPanel deploy target) — but served through
+  // /api/whatsapp/media/[activityId] rather than embedded inline, so the
+  // thread's 2-second poll never has to re-serialize multi-MB bytes.
+  whatsappMediaType     WhatsAppMediaType?
+  whatsappMediaMimeType String?
+  whatsappMediaName     String? // original/suggested filename — mainly for documents
+  whatsappMediaData     String?            @db.LongText
 
   notifications Notification[]
 

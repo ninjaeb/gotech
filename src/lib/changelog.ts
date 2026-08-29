@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.32",
+    date: "2026-08-29",
+    title: "WhatsApp formatting and attachments",
+    changes: [
+      "The WhatsApp reply box now has a Bold/Italic/Strikethrough/Monospace toolbar, rendered the same way for both you and the contact",
+      "Attach a photo, video, or document to a WhatsApp message — sent and received attachments both show up inline in the thread and on the contact/company/deal/task activity feed",
+    ],
+  },
+  {
     version: "1.31",
     date: "2026-08-29",
     title: "Mention-reply forwarding via WhatsApp",

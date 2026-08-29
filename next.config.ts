@@ -22,8 +22,13 @@ const root = turbopackRoot();
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
-      // Default is 1mb; raised for the Google Contacts CSV import upload.
-      bodySizeLimit: "5mb",
+      // Default is 1mb. 24mb covers the largest WhatsApp attachment this
+      // app allows (16MB video/document — see MAX_MEDIA_BYTES in
+      // src/lib/whatsapp.ts) once base64-inflated by the Server Action's
+      // own FormData encoding (~4/3), plus headroom; comfortably above the
+      // 5mb this was previously raised to for the Google Contacts CSV
+      // import upload too.
+      bodySizeLimit: "24mb",
     },
   },
   ...(root ? { turbopack: { root } } : {}),

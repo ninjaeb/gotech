@@ -9,8 +9,9 @@ import {
   findPendingMentionNotification,
   sendMentionReplyViaWhatsApp,
   verifyWebhookSignature,
+  downloadWhatsAppMedia,
 } from "@/lib/whatsapp";
-import type { WhatsAppAccount } from "@/generated/prisma/client";
+import type { WhatsAppAccount, WhatsAppMediaType } from "@/generated/prisma/client";
 
 // Meta's one-time handshake when the webhook URL is registered/re-verified
 // in the Meta App Dashboard: echo back hub.challenge if hub.verify_token
@@ -29,12 +30,17 @@ export async function GET(request: NextRequest) {
   return new NextResponse("Forbidden", { status: 403 });
 }
 
+type WhatsAppMediaPayload = { id: string; mime_type?: string; caption?: string; filename?: string };
+
 type WhatsAppTextMessage = {
   from: string;
   id: string;
   timestamp: string;
   type: string;
   text?: { body: string };
+  image?: WhatsAppMediaPayload;
+  document?: WhatsAppMediaPayload;
+  video?: WhatsAppMediaPayload;
   // Present when this message is a swipe-to-reply/quote of an earlier one —
   // `id` there is that earlier message's own wamid. Used to detect a reply
   // to a mention notification; see handleMentionReply below.
@@ -66,13 +72,51 @@ function toWhatsAppMessageStatus(status: string): "SENT" | "DELIVERED" | "READ" 
   return KNOWN_STATUSES.has(status) ? (status.toUpperCase() as "SENT" | "DELIVERED" | "READ" | "FAILED") : null;
 }
 
-// A non-text message (image, document, location, voice note, etc.) — this
-// app doesn't download/store WhatsApp media, so it logs a marker instead of
-// the content, same spirit as skipping an email attachment's bytes while
-// still logging that the email arrived.
+// A non-text, non-media message (location, voice note, contact card,
+// etc.) — this app doesn't download/store those, so it logs a marker
+// instead of the content, same spirit as skipping an email attachment's
+// bytes while still logging that the email arrived. Image/document/video
+// get real handling instead — see buildInboundMediaContent below.
 function describeMessage(message: WhatsAppTextMessage): string {
   if (message.type === "text" && message.text?.body) return message.text.body;
   return `[${message.type} message — open WhatsApp to view]`;
+}
+
+const MEDIA_LABEL: Record<"IMAGE" | "DOCUMENT" | "VIDEO", string> = {
+  IMAGE: "Sent an image",
+  DOCUMENT: "Sent a document",
+  VIDEO: "Sent a video",
+};
+
+type InboundMedia = {
+  type: WhatsAppMediaType;
+  mimeType: string;
+  name: string | null;
+  data: string;
+};
+
+// Downloads and stores an inbound image/document/video from a Contact
+// conversation so it displays inline in the thread — unlike a mention
+// reply (see handleMentionReply), a customer conversation is worth the
+// extra round trip. Returns null on download failure (falls back to the
+// same placeholder text describeMessage would give a message this app
+// can't otherwise render) or when the message isn't media at all.
+async function buildInboundMediaContent(
+  account: WhatsAppAccount,
+  message: WhatsAppTextMessage,
+): Promise<{ content: string; media: InboundMedia | null } | null> {
+  const payload = message.image ?? message.document ?? message.video;
+  if (!payload) return null;
+
+  const downloaded = await downloadWhatsAppMedia(account, payload.id);
+  if (!downloaded) {
+    return { content: `[${message.type} message — open WhatsApp to view]`, media: null };
+  }
+  const type: WhatsAppMediaType = message.image ? "IMAGE" : message.video ? "VIDEO" : "DOCUMENT";
+  return {
+    content: payload.caption?.trim() || MEDIA_LABEL[type],
+    media: { type, mimeType: downloaded.mimeType, name: payload.filename ?? null, data: downloaded.buffer.toString("base64") },
+  };
 }
 
 // A swipe-reply to a mention notification: forwards it on to whoever did
@@ -166,15 +210,24 @@ export async function POST(request: NextRequest) {
     if (!contactId) continue;
 
     const dealId = await findUnambiguousOpenDeal(contactId);
+    const inboundMedia = await buildInboundMediaContent(account, message);
     try {
       await db.activity.create({
         data: {
           type: "WHATSAPP",
-          content: `${WHATSAPP_RECEIVED_PREFIX}${describeMessage(message)}`,
+          content: `${WHATSAPP_RECEIVED_PREFIX}${inboundMedia?.content ?? describeMessage(message)}`,
           contactId,
           dealId,
           externalId: `whatsapp:${message.id}`,
           createdAt: new Date(Number(message.timestamp) * 1000),
+          ...(inboundMedia?.media
+            ? {
+                whatsappMediaType: inboundMedia.media.type,
+                whatsappMediaMimeType: inboundMedia.media.mimeType,
+                whatsappMediaName: inboundMedia.media.name,
+                whatsappMediaData: inboundMedia.media.data,
+              }
+            : {}),
         },
       });
     } catch (error) {
