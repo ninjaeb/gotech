@@ -121,12 +121,14 @@ export async function sendTaskDigestTemplateTest(
 
   const firstName = admin.name.trim().split(/\s+/)[0] || admin.name;
   try {
-    await sendWhatsAppTemplateMessage(account, phone, "daily_task_digest", "en", [
-      firstName,
-      "2",
-      "3",
-      `${siteOrigin}/tasks?assignee=${admin.id}`,
-    ]);
+    await sendWhatsAppTemplateMessage(
+      account,
+      phone,
+      "daily_task_digest",
+      "en",
+      [firstName, "2", "3", `${siteOrigin}/tasks?assignee=${admin.id}`],
+      [firstName],
+    );
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
   }

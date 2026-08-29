@@ -87,8 +87,6 @@ export default async function IntegrationsSettingsPage() {
           <form action={updateTaskReminderHour} className="mb-4 flex flex-wrap items-end gap-3">
             <div>
               <Label htmlFor="taskReminderHour">Send at</Label>
-              {/* key forces a remount when taskReminderHour changes — see
-                  the Currency select in ../page.tsx for why this is needed. */}
               <Select
                 key={taskReminderHour}
                 id="taskReminderHour"
