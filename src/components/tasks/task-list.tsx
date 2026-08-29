@@ -207,43 +207,42 @@ export function TaskList({
                   )}
                 </div>
               )}
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1">
-              {canManage && hasEmailAccount && clientContact?.email && (
-                <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
-              )}
-              {canManage && hasWhatsAppAccount && clientContact?.phone && (
-                <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
-              )}
-              <Link
-                href={`/tasks/${task.id}/time`}
-                aria-label="Log time"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-              >
-                <Clock className="h-4 w-4" />
-              </Link>
-              {canManage && (
-                <>
-                  <Link
-                    href={`/tasks/${task.id}/edit`}
-                    aria-label="Edit task"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Link>
-                  <form action={deleteTask.bind(null, task.id)}>
-                    <ConfirmSubmitButton
-                      confirmMessage="Delete this task?"
-                      variant="ghost"
-                      size="sm"
-                      className="!px-1.5 text-slate-400 hover:text-rose-600"
+              <div className="mt-2 flex items-center gap-1">
+                {canManage && hasEmailAccount && clientContact?.email && (
+                  <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+                )}
+                {canManage && hasWhatsAppAccount && clientContact?.phone && (
+                  <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
+                )}
+                <Link
+                  href={`/tasks/${task.id}/time`}
+                  aria-label="Log time"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                >
+                  <Clock className="h-4 w-4" />
+                </Link>
+                {canManage && (
+                  <>
+                    <Link
+                      href={`/tasks/${task.id}/edit`}
+                      aria-label="Edit task"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </ConfirmSubmitButton>
-                  </form>
-                </>
-              )}
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                    <form action={deleteTask.bind(null, task.id)}>
+                      <ConfirmSubmitButton
+                        confirmMessage="Delete this task?"
+                        variant="ghost"
+                        size="sm"
+                        className="!px-1.5 text-slate-400 hover:text-rose-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </ConfirmSubmitButton>
+                    </form>
+                  </>
+                )}
+              </div>
             </div>
           </li>
         );
