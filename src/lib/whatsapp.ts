@@ -563,3 +563,101 @@ export async function sendMentionReplyViaWhatsApp(
     link,
   ]);
 }
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as mention_notification above:
+// whoever assigned the task is very unlikely to be within the assignee's
+// own 24h WhatsApp reply window.
+export const TASK_ASSIGNMENT_TEMPLATE_NAME = "task_assignment_notification";
+const TASK_ASSIGNMENT_TEMPLATE_LANGUAGE = "en";
+
+// Fires alongside (never instead of) the in-app Notification rows callers
+// already create when a task gets a new assignee — this only reaches
+// whichever of those assignees has also opted in a number from Settings →
+// Team. Every failure mode here (WhatsApp not connected, a user has no
+// number, the template isn't approved yet) is swallowed rather than thrown:
+// a WhatsApp notification is a bonus on top of the in-app one, never a
+// reason to fail the task save that triggered it.
+export async function notifyTaskAssignmentViaWhatsApp(
+  userIds: string[],
+  assignerName: string,
+  taskTitle: string,
+  path: string,
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds }, phone: { not: null } },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const link = `${await getSiteOrigin()}${path}`;
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(
+        account,
+        user.phone!,
+        TASK_ASSIGNMENT_TEMPLATE_NAME,
+        TASK_ASSIGNMENT_TEMPLATE_LANGUAGE,
+        [assignerName, taskTitle, link],
+      ).catch((error) => {
+        console.error(
+          `Task assignment WhatsApp notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
+}
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as the other proactive notifications
+// above: whoever changed the task's status is very unlikely to be within a
+// follower's own 24h WhatsApp reply window.
+export const TASK_STATUS_TEMPLATE_NAME = "task_status_notification";
+const TASK_STATUS_TEMPLATE_LANGUAGE = "en";
+
+// Fires alongside (never instead of) the in-app Notification rows callers
+// already create when a followed task's completion status changes — this
+// only reaches whichever of those followers has also opted in a number
+// from Settings → Team. Every failure mode here is swallowed rather than
+// thrown, same reasoning as the other WhatsApp notification helpers above.
+export async function notifyTaskStatusViaWhatsApp(
+  userIds: string[],
+  actorName: string,
+  taskTitle: string,
+  statusText: string,
+  path: string,
+): Promise<void> {
+  if (userIds.length === 0) return;
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { id: { in: userIds }, phone: { not: null } },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const link = `${await getSiteOrigin()}${path}`;
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(account, user.phone!, TASK_STATUS_TEMPLATE_NAME, TASK_STATUS_TEMPLATE_LANGUAGE, [
+        actorName,
+        taskTitle,
+        statusText,
+        link,
+      ]).catch((error) => {
+        console.error(
+          `Task status WhatsApp notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
+}

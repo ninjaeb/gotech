@@ -10,6 +10,33 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.40",
+    date: "2026-08-30",
+    title: "Delay the task assignment notification",
+    changes: [
+      "Settings → Integrations → WhatsApp task assignment notifications: pick a Send after delay (Immediately, 15/30 min, 1-5 hours) instead of always notifying the instant a task is assigned",
+      "Removing someone as an assignee before their delayed notification fires cancels it — they never hear about a task they're no longer on",
+    ],
+  },
+  {
+    version: "1.39",
+    date: "2026-08-30",
+    title: "Auto-follow on assignment, and status-change notifications for followers",
+    changes: [
+      "Assigning someone a task now automatically follows that task for you too, so you don't have to remember to add yourself as a follower to stay in the loop",
+      "Following a task now actually does something: marking a followed task complete or reopening it notifies every other follower, in-app and via WhatsApp for anyone with a phone number set — requires a new Meta-approved template (see the README)",
+    ],
+  },
+  {
+    version: "1.38",
+    date: "2026-08-30",
+    title: "WhatsApp notifications for task assignment",
+    changes: [
+      "Assigning someone a task now also sends a WhatsApp message — who assigned it, the task's title, and a link straight to it — to anyone assigned who's set a phone number in Settings → Team (same opt-in as the daily reminder and @mention notifications)",
+      "Requires a Meta-approved message template, same as the other WhatsApp notifications (see the README for the template to submit)",
+    ],
+  },
+  {
     version: "1.37",
     date: "2026-08-30",
     title: "An actual \"Install app\" button",

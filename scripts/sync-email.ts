@@ -3,9 +3,11 @@ import { db } from "../src/lib/db";
 import { syncEmailAccount } from "../src/lib/email";
 import { runEmailTaskDigests } from "../src/lib/task-digest";
 import { runTaskReminders } from "../src/lib/task-reminder";
+import { sendDuePendingTaskAssignmentNotifications } from "../src/lib/task-assignment-notification";
 
 // The one cron job (see README) this app actually needs: syncs every
-// connected mailbox, then checks both daily digests (email and WhatsApp).
+// connected mailbox, then checks both daily digests (email and WhatsApp),
+// then sends any delayed task-assignment notifications that have come due.
 // Both digest runners are internally rate-limited (roughly once per 20h,
 // and the WhatsApp one also checks its own configured send hour) so it's
 // safe — and intended — to check them on every run of this same frequent
@@ -59,6 +61,15 @@ async function main() {
     }
   } catch (error) {
     console.error("WhatsApp task digest run failed —", error instanceof Error ? error.message : error);
+  }
+
+  try {
+    const { sent, failed } = await sendDuePendingTaskAssignmentNotifications();
+    if (sent > 0 || failed > 0) {
+      console.log(`Delayed task assignment notifications: ${sent} sent, ${failed} failed.`);
+    }
+  } catch (error) {
+    console.error("Delayed task assignment notification run failed —", error instanceof Error ? error.message : error);
   }
 }
 

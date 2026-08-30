@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { setCurrency, setBookingSettings, setTaskReminderHour } from "@/lib/settings";
+import {
+  setCurrency,
+  setBookingSettings,
+  setTaskReminderHour,
+  setTaskAssignmentNotificationDelayMinutes,
+} from "@/lib/settings";
+import { TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES } from "@/lib/task-notification-delay";
 import { CURRENCY_CODES } from "@/lib/currency";
 import type { WeeklyHours } from "@/lib/booking";
 import { requireAdminAction } from "@/lib/auth/dal";
@@ -67,6 +73,23 @@ export async function updateTaskReminderHour(formData: FormData) {
     throw new Error("Invalid hour");
   }
   await setTaskReminderHour(parsed.data);
+  revalidatePath("/settings/integrations");
+}
+
+const taskAssignmentNotificationDelaySchema = z.coerce
+  .number()
+  .int()
+  .refine((minutes) => (TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES as readonly number[]).includes(minutes), {
+    message: "Invalid delay",
+  });
+
+export async function updateTaskAssignmentNotificationDelay(formData: FormData) {
+  await requireAdminAction();
+  const parsed = taskAssignmentNotificationDelaySchema.safeParse(formData.get("delayMinutes"));
+  if (!parsed.success) {
+    throw new Error("Invalid delay");
+  }
+  await setTaskAssignmentNotificationDelayMinutes(parsed.data);
   revalidatePath("/settings/integrations");
 }
 
