@@ -48,6 +48,7 @@ export function TaskList({
   canManage = true,
   hasEmailAccount = false,
   hasWhatsAppAccount = false,
+  stackActions = false,
 }: {
   tasks: TaskWithRelations[];
   users?: UserOption[];
@@ -64,6 +65,14 @@ export function TaskList({
   // whose result they'd never render anyway.
   hasEmailAccount?: boolean;
   hasWhatsAppAccount?: boolean;
+  // The mobile-style layout (actions full-width below the content) is
+  // normally only used below the `sm` viewport breakpoint, since there's
+  // usually room for actions beside the content above it. That's keyed off
+  // the viewport, not this list's own rendered width, so a caller that
+  // embeds TaskList in a narrow column (e.g. the dashboard's task cards,
+  // a fraction of the page even on a wide screen) sets this to force the
+  // stacked layout regardless of viewport.
+  stackActions?: boolean;
 }) {
   if (tasks.length === 0) {
     return (
@@ -123,7 +132,7 @@ export function TaskList({
               );
             })()}
 
-            <div className="min-w-0 flex-1 sm:order-2">
+            <div className={cn("min-w-0 flex-1", !stackActions && "sm:order-2")}>
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/tasks/${task.id}`}
@@ -212,8 +221,14 @@ export function TaskList({
             {/* Full width and wraps below the content on narrow screens
                 (order unset, so it just follows in DOM flow after content);
                 from sm: up there's room for it beside the content on the
-                same row, like before. */}
-            <div className="flex w-full items-center gap-1 pl-8 sm:order-3 sm:w-auto sm:shrink-0 sm:pl-0">
+                same row, like before — unless stackActions forces the
+                narrow layout regardless of viewport. */}
+            <div
+              className={cn(
+                "flex w-full items-center gap-1 pl-8",
+                !stackActions && "sm:order-3 sm:w-auto sm:shrink-0 sm:pl-0",
+              )}
+            >
               {canManage && hasEmailAccount && clientContact?.email && (
                 <SendEmailButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
               )}

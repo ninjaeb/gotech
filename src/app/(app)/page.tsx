@@ -358,6 +358,7 @@ export default async function DashboardPage() {
                 hasEmailAccount={hasEmailAccount}
                 hasWhatsAppAccount={hasWhatsAppAccount}
                 emptyMessage="Nothing assigned to you — nice work!"
+                stackActions
               />
             </CardBody>
           </Card>
@@ -374,6 +375,7 @@ export default async function DashboardPage() {
                 hasEmailAccount={hasEmailAccount}
                 hasWhatsAppAccount={hasWhatsAppAccount}
                 emptyMessage="You're not following any open tasks."
+                stackActions
               />
             </CardBody>
           </Card>
