@@ -15,6 +15,7 @@ import { SendTaskDigestTemplateTestButton } from "@/components/settings/send-tas
 import { SendMentionNotificationTestButton } from "@/components/settings/send-mention-notification-test-button";
 import { SendMentionReplyNotificationTestButton } from "@/components/settings/send-mention-reply-notification-test-button";
 import { SendTaskAssignmentNotificationTestButton } from "@/components/settings/send-task-assignment-notification-test-button";
+import { SendTaskStatusNotificationTestButton } from "@/components/settings/send-task-status-notification-test-button";
 
 // e.g. 0 -> "12:00 AM", 13 -> "1:00 PM" — a stable, locale-independent label
 // for the hour <select>, same reasoning as booking.ts's formatSlotLabel.
@@ -159,6 +160,22 @@ export default async function IntegrationsSettingsPage() {
             template is approved and working, sent to your own number.
           </p>
           <SendTaskAssignmentNotificationTestButton />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp task status notifications</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Sent automatically whenever a task you&apos;re following (but not necessarily assigned to) gets
+            marked complete or reopened, to anyone following who&apos;s also set a phone number (Settings →
+            Team). Assigning someone a task automatically follows it for you too, so you hear about it when
+            its status changes later. No schedule to check here — use this to confirm the Meta template is
+            approved and working, sent to your own number.
+          </p>
+          <SendTaskStatusNotificationTestButton />
         </CardBody>
       </Card>
     </div>

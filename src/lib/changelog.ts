@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.39",
+    date: "2026-08-30",
+    title: "Auto-follow on assignment, and status-change notifications for followers",
+    changes: [
+      "Assigning someone a task now automatically follows that task for you too, so you don't have to remember to add yourself as a follower to stay in the loop",
+      "Following a task now actually does something: marking a followed task complete or reopening it notifies every other follower, in-app and via WhatsApp for anyone with a phone number set — requires a new Meta-approved template (see the README)",
+    ],
+  },
+  {
     version: "1.38",
     date: "2026-08-30",
     title: "WhatsApp notifications for task assignment",
