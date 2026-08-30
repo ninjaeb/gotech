@@ -10,6 +10,7 @@ import {
   WHATSAPP_ACCOUNT_ID,
   MENTION_TEMPLATE_NAME,
   MENTION_REPLY_TEMPLATE_NAME,
+  TASK_ASSIGNMENT_TEMPLATE_NAME,
   testWhatsAppConnection,
   sendWhatsAppTemplateMessage,
 } from "@/lib/whatsapp";
@@ -153,6 +154,45 @@ export async function sendMentionReplyNotificationTest(
       admin.name,
       "This is a test mention notification from GoTech CRM.",
       "This is a test reply.",
+      `${siteOrigin}/settings/integrations`,
+    ]);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Send failed." };
+  }
+  return { success: true };
+}
+
+export type TaskAssignmentNotificationTestState = { error: string } | { success: true } | undefined;
+
+// "Send test" button (Settings → Integrations) for the
+// task_assignment_notification template — same reasoning as the
+// mention_notification test above: task assignment has no scheduled run to
+// manually trigger, so this is the only way to check the template without
+// actually assigning someone a task. Sends to the clicking admin's own
+// number, and surfaces the real error rather than swallowing it.
+export async function sendTaskAssignmentNotificationTest(
+  prevState: TaskAssignmentNotificationTestState,
+  formData: FormData,
+): Promise<TaskAssignmentNotificationTestState> {
+  void prevState;
+  void formData;
+  const admin = await requireAdminAction();
+
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) {
+    return { error: "WhatsApp Business isn't connected." };
+  }
+
+  const { phone } = await db.user.findUniqueOrThrow({ where: { id: admin.id }, select: { phone: true } });
+  if (!phone) {
+    return { error: "Set your own WhatsApp number first, from Settings → Team." };
+  }
+
+  const siteOrigin = await getSiteOrigin();
+  try {
+    await sendWhatsAppTemplateMessage(account, phone, TASK_ASSIGNMENT_TEMPLATE_NAME, "en", [
+      admin.name,
+      "This is a test task assignment notification from GoTech CRM.",
       `${siteOrigin}/settings/integrations`,
     ]);
   } catch (error) {

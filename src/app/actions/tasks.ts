@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
-import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
+import { notifyMentionsViaWhatsApp, notifyTaskAssignmentViaWhatsApp } from "@/lib/whatsapp";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
 // is null on create; on update it's the description before this edit, so
@@ -41,6 +41,23 @@ async function notifyTaskMentions(
     dealId: null,
     projectId: null,
   });
+}
+
+// Notifies whichever assignees are newly on the task this save — on create
+// that's everyone assigned, on update only the ones not already there
+// before (re-saving an unchanged assignee list never re-notifies). Skips
+// the current user, since assigning yourself a task needs no notification.
+async function notifyTaskAssignment(taskId: string, taskTitle: string, newAssigneeIds: string[]) {
+  const currentUser = await getCurrentUser();
+  const recipientIds = newAssigneeIds.filter((id) => id !== currentUser.id);
+  if (recipientIds.length === 0) return;
+
+  const content = `${currentUser.name} assigned you a task: ${taskTitle}`;
+  await db.notification.createMany({
+    data: recipientIds.map((userId) => ({ userId, taskId, content })),
+  });
+
+  await notifyTaskAssignmentViaWhatsApp(recipientIds, currentUser.name, taskTitle, `/tasks/${taskId}`);
 }
 
 const taskSchema = z.object({
@@ -114,6 +131,7 @@ export async function createTask(formData: FormData) {
     },
   });
   await notifyTaskMentions(task.id, task.title, task.description, null);
+  await notifyTaskAssignment(task.id, task.title, assigneeIds);
   revalidateTaskPaths(task);
 }
 
@@ -142,8 +160,17 @@ export async function updateTask(id: string, formData: FormData) {
   const followerIds = parseFollowerIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
-    select: { contactId: true, companyId: true, dealId: true, projectId: true, description: true },
+    select: {
+      contactId: true,
+      companyId: true,
+      dealId: true,
+      projectId: true,
+      description: true,
+      assignees: { select: { userId: true } },
+    },
   });
+  const previousAssigneeIds = new Set(previous.assignees.map((a) => a.userId));
+  const newlyAssignedIds = assigneeIds.filter((userId) => !previousAssigneeIds.has(userId));
   const task = await db.task.update({
     where: { id },
     data: {
@@ -160,6 +187,7 @@ export async function updateTask(id: string, formData: FormData) {
     },
   });
   await notifyTaskMentions(task.id, task.title, task.description, previous.description);
+  await notifyTaskAssignment(task.id, task.title, newlyAssignedIds);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
   redirect("/tasks");

@@ -225,6 +225,28 @@ This is its own proactive send (the mentioner is very unlikely to be within thei
 
 The **Send test** button in the same Settings → Integrations card (next to section 12's) sends a one-off test with placeholder content to your own number, to confirm this template is approved and reachable without waiting for a real reply.
 
+### 14. WhatsApp task assignment notifications (optional)
+
+Whenever a task gets a new assignee (creating a task with assignees, or adding someone to an existing one's assignee list), that person already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who assigned them, the task's title, and a link straight to the task. Sent the moment the task is saved, not on a schedule. Assigning a task to yourself never notifies you.
+
+Like the @mention notification, this is proactive, so it needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `task_assignment_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "You have a new task in GoTech CRM"
+   - Body: `{{1}} assigned you a task in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/tasks/abc123`.
+
+   Submit for review, same as the other templates above.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest and @mention notification (setting one opts a user into all three). If WhatsApp Business isn't connected, the assignee has no phone number set, or the template isn't approved yet, the assignment still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+
+`{{1}}` is the assigning user's name, `{{2}}` the task's title, `{{3}}` a full link to the task, built from your `SITE_URL` env var (same one the other templates use).
+
+Since this only fires when a task actually gets a new assignee, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.37",
+    date: "2026-08-29",
+    title: "WhatsApp notifications for task assignment",
+    changes: [
+      "Assigning someone a task now also sends a WhatsApp message — who assigned it, the task's title, and a link straight to it — to anyone assigned who's set a phone number in Settings → Team (same opt-in as the daily reminder and @mention notifications)",
+      "Requires a Meta-approved message template, same as the other WhatsApp notifications (see the README for the template to submit)",
+    ],
+  },
+  {
     version: "1.36",
     date: "2026-08-29",
     title: "Install GoTech as an app",

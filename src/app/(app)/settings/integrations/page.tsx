@@ -14,6 +14,7 @@ import { SendTaskReminderNowButton } from "@/components/settings/send-task-remin
 import { SendTaskDigestTemplateTestButton } from "@/components/settings/send-task-digest-template-test-button";
 import { SendMentionNotificationTestButton } from "@/components/settings/send-mention-notification-test-button";
 import { SendMentionReplyNotificationTestButton } from "@/components/settings/send-mention-reply-notification-test-button";
+import { SendTaskAssignmentNotificationTestButton } from "@/components/settings/send-task-assignment-notification-test-button";
 
 // e.g. 0 -> "12:00 AM", 13 -> "1:00 PM" — a stable, locale-independent label
 // for the hour <select>, same reasoning as booking.ts's formatSlotLabel.
@@ -144,6 +145,20 @@ export default async function IntegrationsSettingsPage() {
             </p>
             <SendMentionReplyNotificationTestButton />
           </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp task assignment notifications</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Sent automatically whenever a task gets a new assignee, to anyone assigned who&apos;s also set a
+            phone number (Settings → Team). No schedule to check here — use this to confirm the Meta
+            template is approved and working, sent to your own number.
+          </p>
+          <SendTaskAssignmentNotificationTestButton />
         </CardBody>
       </Card>
     </div>
