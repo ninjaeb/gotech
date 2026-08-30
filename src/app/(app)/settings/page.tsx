@@ -8,6 +8,7 @@ import { Label, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { SettingsLinkCard } from "@/components/settings/settings-link-card";
+import { InstallAppCard } from "@/components/settings/install-app-card";
 
 export default async function SettingsPage() {
   const currentUser = await getCurrentUser();
@@ -17,6 +18,8 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Settings" description="CRM-wide preferences" />
+
+      <InstallAppCard />
 
       {canManage && (
         <>

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.37",
+    date: "2026-08-30",
+    title: "An actual \"Install app\" button",
+    changes: [
+      "Settings now has an Install GoTech card with a one-tap install button on Android/desktop, Safari-specific instructions on iOS, and it hides itself once you're already running the installed app",
+      "Fixed a display glitch where the sidebar's bottom-left user menu could get clipped on short/landscape screens like a tablet in landscape orientation",
+    ],
+  },
+  {
     version: "1.36",
     date: "2026-08-29",
     title: "Install GoTech as an app",
