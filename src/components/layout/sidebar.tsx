@@ -53,9 +53,7 @@ export function Sidebar({
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-800 bg-slate-950 sm:flex">
       <div className="flex h-14 items-center gap-2 border-b border-slate-800 px-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
-          G
-        </div>
+        <img src="/icon-192.png" alt="" className="h-7 w-7 shrink-0" />
         <span className="text-sm font-semibold text-slate-100">GoTech CRM</span>
         <div className="ml-auto flex items-center gap-1">
           <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} align="left" />

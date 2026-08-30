@@ -73,9 +73,7 @@ export function MobileNav({
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-xs font-bold text-white">
-          G
-        </div>
+        <img src="/icon-192.png" alt="" className="h-6 w-6 shrink-0" />
         <span className="truncate text-sm font-semibold text-slate-100">GoTech CRM</span>
         <div className="ml-auto flex shrink-0 items-center gap-1">
           <NotificationBell notifications={notifications} unreadCount={unreadNotificationCount} />
@@ -93,9 +91,7 @@ export function MobileNav({
           <div className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
           <div className="relative flex h-full w-72 max-w-[85vw] flex-col bg-slate-950 shadow-xl">
             <div className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-800 px-4">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
-                G
-              </div>
+              <img src="/icon-192.png" alt="" className="h-7 w-7 shrink-0" />
               <span className="text-sm font-semibold text-slate-100">GoTech CRM</span>
               <button
                 type="button"
