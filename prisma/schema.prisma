@@ -128,6 +128,8 @@ model User {
   contactLists             ContactList[]
   sentMentionNotifications     WhatsAppMentionNotification[] @relation("MentionNotificationForwardTo")
   receivedMentionNotifications WhatsAppMentionNotification[] @relation("MentionNotificationRecipient")
+  pendingAssignmentNotifications         PendingTaskAssignmentNotification[] @relation("PendingAssignmentRecipient")
+  assignedPendingAssignmentNotifications PendingTaskAssignmentNotification[] @relation("PendingAssignmentAssigner")
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -225,6 +227,15 @@ model Settings {
   // scripts/send-task-digests-whatsapp.ts, which is meant to run hourly via
   // cron and only actually sends during the hour that matches this.
   taskReminderHour Int @default(8) // 8am
+
+  // Minutes to hold a task assignment notification before actually sending
+  // it (in-app + WhatsApp) — 0 sends immediately. Lets an assigner tell
+  // someone in person/Slack first without a duplicate CRM ping, or simply
+  // avoid interrupting them right away. Applied via
+  // PendingTaskAssignmentNotification below, drained by the same cron job
+  // as the daily digests (see scripts/sync-email.ts) rather than a timer,
+  // since nothing in this app assumes the process stays running.
+  taskAssignmentNotificationDelayMinutes Int @default(0)
 }
 
 enum Industry {
@@ -584,12 +595,13 @@ model Task {
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
-  timeEntries          TimeEntry[]
-  assignees            TaskAssignee[]
-  followers            TaskFollower[]
-  notifications        Notification[]
-  activities           Activity[]
-  mentionNotifications WhatsAppMentionNotification[]
+  timeEntries                    TimeEntry[]
+  assignees                      TaskAssignee[]
+  followers                      TaskFollower[]
+  notifications                  Notification[]
+  activities                     Activity[]
+  mentionNotifications           WhatsAppMentionNotification[]
+  pendingAssignmentNotifications PendingTaskAssignmentNotification[]
 
   @@index([contactId])
   @@index([companyId])
@@ -788,6 +800,40 @@ model WhatsAppMentionNotification {
   @@index([dealId])
   @@index([projectId])
   @@index([taskId])
+}
+
+// A task-assignment notification (in-app + WhatsApp) held until `sendAt`,
+// rather than sent immediately — see Settings.taskAssignmentNotificationDelayMinutes
+// and notifyTaskAssignment in src/app/actions/tasks.ts. Drained by the same
+// cron job as the daily digests (scripts/sync-email.ts), which is why this
+// is a DB row rather than an in-process timer: nothing here assumes the
+// server stays running between when a task gets assigned and when the
+// delay elapses. @@unique on (taskId, userId) means re-assigning someone
+// who already has a pending notification for this task just pushes its
+// sendAt out (upsert) instead of sending twice.
+model PendingTaskAssignmentNotification {
+  id String @id @default(cuid())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  // Whoever got assigned — the notification recipient.
+  user   User   @relation("PendingAssignmentRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // Whoever did the assigning — named in the notification text itself, so
+  // kept as its own relation (for cascade cleanup) rather than just the
+  // denormalized assignerName below.
+  assigner   User   @relation("PendingAssignmentAssigner", fields: [assignerId], references: [id], onDelete: Cascade)
+  assignerId String
+
+  assignerName String
+  taskTitle    String
+  sendAt       DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([taskId, userId])
+  @@index([sendAt])
 }
 
 enum ProductServiceType {

@@ -1,9 +1,10 @@
 import { requireAdmin, getCurrentUser } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getSiteOrigin } from "@/lib/site-url";
-import { getBookingSettings, getTaskReminderHour } from "@/lib/settings";
+import { getBookingSettings, getTaskReminderHour, getTaskAssignmentNotificationDelayMinutes } from "@/lib/settings";
 import { formatUtcOffset } from "@/lib/booking";
-import { updateTaskReminderHour } from "@/app/actions/settings";
+import { TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES, formatDelayLabel } from "@/lib/task-notification-delay";
+import { updateTaskReminderHour, updateTaskAssignmentNotificationDelay } from "@/app/actions/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label, Select } from "@/components/ui/field";
@@ -28,19 +29,21 @@ function formatHourLabel(hour: number) {
 export default async function IntegrationsSettingsPage() {
   await requireAdmin();
   const currentUser = await getCurrentUser();
-  const [siteOrigin, emailAccount, whatsAppAccount, bookingSettings, taskReminderHour] = await Promise.all([
-    getSiteOrigin(),
-    db.emailAccount.findUnique({
-      where: { userId: currentUser.id },
-      select: { email: true, lastSyncedAt: true, lastSyncError: true, fromName: true, htmlSignature: true },
-    }),
-    db.whatsAppAccount.findUnique({
-      where: { id: "singleton" },
-      select: { phoneNumberId: true, displayPhoneNumber: true, webhookVerifyToken: true, lastSyncError: true },
-    }),
-    getBookingSettings(),
-    getTaskReminderHour(),
-  ]);
+  const [siteOrigin, emailAccount, whatsAppAccount, bookingSettings, taskReminderHour, taskAssignmentNotificationDelayMinutes] =
+    await Promise.all([
+      getSiteOrigin(),
+      db.emailAccount.findUnique({
+        where: { userId: currentUser.id },
+        select: { email: true, lastSyncedAt: true, lastSyncError: true, fromName: true, htmlSignature: true },
+      }),
+      db.whatsAppAccount.findUnique({
+        where: { id: "singleton" },
+        select: { phoneNumberId: true, displayPhoneNumber: true, webhookVerifyToken: true, lastSyncError: true },
+      }),
+      getBookingSettings(),
+      getTaskReminderHour(),
+      getTaskAssignmentNotificationDelayMinutes(),
+    ]);
   const whatsAppWebhookUrl = `${siteOrigin}/api/whatsapp/webhook`;
 
   return (
@@ -156,8 +159,33 @@ export default async function IntegrationsSettingsPage() {
         <CardBody>
           <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
             Sent automatically whenever a task gets a new assignee, to anyone assigned who&apos;s also set a
-            phone number (Settings → Team). No schedule to check here — use this to confirm the Meta
-            template is approved and working, sent to your own number.
+            phone number (Settings → Team).
+          </p>
+          <form action={updateTaskAssignmentNotificationDelay} className="mb-4 flex flex-wrap items-end gap-3">
+            <div>
+              <Label htmlFor="delayMinutes">Send after</Label>
+              <Select
+                key={taskAssignmentNotificationDelayMinutes}
+                id="delayMinutes"
+                name="delayMinutes"
+                defaultValue={taskAssignmentNotificationDelayMinutes}
+                className="w-40"
+              >
+                {TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES.map((minutes) => (
+                  <option key={minutes} value={minutes}>
+                    {formatDelayLabel(minutes)}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <Button type="submit">Save</Button>
+          </form>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            A delay gives you time to tell someone about a task in person or Slack first, without a
+            duplicate CRM ping right after — the notification still fires on schedule even if you edit the
+            task again in the meantime, unless you remove them as an assignee before it does. No schedule
+            to check here for the test below — it sends immediately, ignoring the delay above, to confirm
+            the Meta template is approved and working.
           </p>
           <SendTaskAssignmentNotificationTestButton />
         </CardBody>

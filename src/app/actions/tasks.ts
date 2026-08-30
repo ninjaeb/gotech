@@ -7,7 +7,11 @@ import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
-import { notifyMentionsViaWhatsApp, notifyTaskAssignmentViaWhatsApp, notifyTaskStatusViaWhatsApp } from "@/lib/whatsapp";
+import { notifyMentionsViaWhatsApp, notifyTaskStatusViaWhatsApp } from "@/lib/whatsapp";
+import {
+  scheduleOrSendTaskAssignmentNotification,
+  cancelPendingTaskAssignmentNotifications,
+} from "@/lib/task-assignment-notification";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
 // is null on create; on update it's the description before this edit, so
@@ -50,14 +54,7 @@ async function notifyTaskMentions(
 async function notifyTaskAssignment(taskId: string, taskTitle: string, newAssigneeIds: string[]) {
   const currentUser = await getCurrentUser();
   const recipientIds = newAssigneeIds.filter((id) => id !== currentUser.id);
-  if (recipientIds.length === 0) return;
-
-  const content = `${currentUser.name} assigned you a task: ${taskTitle}`;
-  await db.notification.createMany({
-    data: recipientIds.map((userId) => ({ userId, taskId, content })),
-  });
-
-  await notifyTaskAssignmentViaWhatsApp(recipientIds, currentUser.name, taskTitle, `/tasks/${taskId}`);
+  await scheduleOrSendTaskAssignmentNotification(taskId, taskTitle, recipientIds, currentUser.id, currentUser.name);
 }
 
 // Notifies every follower except whoever just made the change, when a
@@ -201,6 +198,7 @@ export async function updateTask(id: string, formData: FormData) {
   });
   const previousAssigneeIds = new Set(previous.assignees.map((a) => a.userId));
   const newlyAssignedIds = assigneeIds.filter((userId) => !previousAssigneeIds.has(userId));
+  const unassignedIds = [...previousAssigneeIds].filter((userId) => !assigneeIds.includes(userId));
   // Same auto-follow as createTask — only when this save actually adds a
   // new assignee, so an unrelated edit never silently re-adds someone who'd
   // deliberately unfollowed.
@@ -223,6 +221,7 @@ export async function updateTask(id: string, formData: FormData) {
   });
   await notifyTaskMentions(task.id, task.title, task.description, previous.description);
   await notifyTaskAssignment(task.id, task.title, newlyAssignedIds);
+  await cancelPendingTaskAssignmentNotifications(task.id, unassignedIds);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
   redirect("/tasks");

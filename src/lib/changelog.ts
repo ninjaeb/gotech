@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.40",
+    date: "2026-08-30",
+    title: "Delay the task assignment notification",
+    changes: [
+      "Settings → Integrations → WhatsApp task assignment notifications: pick a Send after delay (Immediately, 15/30 min, 1-5 hours) instead of always notifying the instant a task is assigned",
+      "Removing someone as an assignee before their delayed notification fires cancels it — they never hear about a task they're no longer on",
+    ],
+  },
+  {
     version: "1.39",
     date: "2026-08-30",
     title: "Auto-follow on assignment, and status-change notifications for followers",
