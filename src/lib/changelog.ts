@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.36",
+    date: "2026-08-29",
+    title: "Install GoTech as an app",
+    changes: [
+      "GoTech is now installable — \"Add to Home Screen\" on iOS, or the browser's own \"Install app\" prompt on Android/desktop — for a full-screen, no-browser-chrome experience with its own icon",
+    ],
+  },
+  {
     version: "1.35",
     date: "2026-08-29",
     title: "Mention-reply WhatsApp forwarding now goes both ways",
