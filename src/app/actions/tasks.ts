@@ -7,7 +7,11 @@ import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
-import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
+import { notifyMentionsViaWhatsApp, notifyTaskStatusViaWhatsApp } from "@/lib/whatsapp";
+import {
+  scheduleOrSendTaskAssignmentNotification,
+  cancelPendingTaskAssignmentNotifications,
+} from "@/lib/task-assignment-notification";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
 // is null on create; on update it's the description before this edit, so
@@ -41,6 +45,40 @@ async function notifyTaskMentions(
     dealId: null,
     projectId: null,
   });
+}
+
+// Notifies whichever assignees are newly on the task this save — on create
+// that's everyone assigned, on update only the ones not already there
+// before (re-saving an unchanged assignee list never re-notifies). Skips
+// the current user, since assigning yourself a task needs no notification.
+async function notifyTaskAssignment(taskId: string, taskTitle: string, newAssigneeIds: string[]) {
+  const currentUser = await getCurrentUser();
+  const recipientIds = newAssigneeIds.filter((id) => id !== currentUser.id);
+  await scheduleOrSendTaskAssignmentNotification(taskId, taskTitle, recipientIds, currentUser.id, currentUser.name);
+}
+
+// Notifies every follower except whoever just made the change, when a
+// task's completion status flips — the whole point of following a task
+// you're not assigned to. Same fire-and-forget pattern as the other two
+// notification helpers above.
+async function notifyTaskStatusChange(
+  taskId: string,
+  taskTitle: string,
+  completed: boolean,
+  followerIds: string[],
+  actorId: string,
+  actorName: string,
+) {
+  const recipientIds = followerIds.filter((id) => id !== actorId);
+  if (recipientIds.length === 0) return;
+
+  const statusText = completed ? "completed" : "reopened";
+  const content = `${actorName} ${statusText} a task you're following: ${taskTitle}`;
+  await db.notification.createMany({
+    data: recipientIds.map((userId) => ({ userId, taskId, content })),
+  });
+
+  await notifyTaskStatusViaWhatsApp(recipientIds, actorName, taskTitle, statusText, `/tasks/${taskId}`);
 }
 
 const taskSchema = z.object({
@@ -96,8 +134,14 @@ export async function createTask(formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const currentUser = await getCurrentUser();
   const assigneeIds = parseAssigneeIds(formData);
-  const followerIds = parseFollowerIds(formData);
+  // Assigning a task to someone auto-follows it for whoever did the
+  // assigning — the same "I want visibility without being on the hook"
+  // relationship following already models, just opted into automatically
+  // rather than requiring a second manual step right after assigning.
+  const followerIds = new Set(parseFollowerIds(formData));
+  if (assigneeIds.length > 0) followerIds.add(currentUser.id);
   const task = await db.task.create({
     data: {
       title: data.title,
@@ -110,10 +154,11 @@ export async function createTask(formData: FormData) {
       dealId: data.dealId || null,
       projectId: data.projectId || null,
       assignees: { create: assigneeIds.map((userId) => ({ userId })) },
-      followers: { create: followerIds.map((userId) => ({ userId })) },
+      followers: { create: [...followerIds].map((userId) => ({ userId })) },
     },
   });
   await notifyTaskMentions(task.id, task.title, task.description, null);
+  await notifyTaskAssignment(task.id, task.title, assigneeIds);
   revalidateTaskPaths(task);
 }
 
@@ -138,12 +183,27 @@ export async function updateTask(id: string, formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const currentUser = await getCurrentUser();
   const assigneeIds = parseAssigneeIds(formData);
-  const followerIds = parseFollowerIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
-    select: { contactId: true, companyId: true, dealId: true, projectId: true, description: true },
+    select: {
+      contactId: true,
+      companyId: true,
+      dealId: true,
+      projectId: true,
+      description: true,
+      assignees: { select: { userId: true } },
+    },
   });
+  const previousAssigneeIds = new Set(previous.assignees.map((a) => a.userId));
+  const newlyAssignedIds = assigneeIds.filter((userId) => !previousAssigneeIds.has(userId));
+  const unassignedIds = [...previousAssigneeIds].filter((userId) => !assigneeIds.includes(userId));
+  // Same auto-follow as createTask — only when this save actually adds a
+  // new assignee, so an unrelated edit never silently re-adds someone who'd
+  // deliberately unfollowed.
+  const followerIds = new Set(parseFollowerIds(formData));
+  if (newlyAssignedIds.length > 0) followerIds.add(currentUser.id);
   const task = await db.task.update({
     where: { id },
     data: {
@@ -156,18 +216,23 @@ export async function updateTask(id: string, formData: FormData) {
       companyId: data.companyId || null,
       dealId: data.dealId || null,
       assignees: { deleteMany: {}, create: assigneeIds.map((userId) => ({ userId })) },
-      followers: { deleteMany: {}, create: followerIds.map((userId) => ({ userId })) },
+      followers: { deleteMany: {}, create: [...followerIds].map((userId) => ({ userId })) },
     },
   });
   await notifyTaskMentions(task.id, task.title, task.description, previous.description);
+  await notifyTaskAssignment(task.id, task.title, newlyAssignedIds);
+  await cancelPendingTaskAssignmentNotifications(task.id, unassignedIds);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
   redirect("/tasks");
 }
 
 export async function toggleTaskComplete(id: string) {
-  await requireAdminAction();
-  const task = await db.task.findUniqueOrThrow({ where: { id } });
+  const currentUser = await requireAdminAction();
+  const task = await db.task.findUniqueOrThrow({
+    where: { id },
+    include: { followers: { select: { userId: true } } },
+  });
   const completed = !task.completed;
 
   await db.task.update({
@@ -188,6 +253,15 @@ export async function toggleTaskComplete(id: string) {
       },
     });
   }
+
+  await notifyTaskStatusChange(
+    task.id,
+    task.title,
+    completed,
+    task.followers.map((f) => f.userId),
+    currentUser.id,
+    currentUser.name,
+  );
 
   revalidateTaskPaths(task);
 }

@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
   bookingSlotMinutes: 30,
   bookingWeeklyHours: JSON.stringify(DEFAULT_WEEKLY_HOURS),
   taskReminderHour: 8,
+  taskAssignmentNotificationDelayMinutes: 0,
 };
 
 export const getSettings = cache(async () => {
@@ -70,5 +71,21 @@ export async function setTaskReminderHour(hour: number) {
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, taskReminderHour: hour },
     update: { taskReminderHour: hour },
+  });
+}
+
+// How long (in minutes) to hold a task assignment notification before
+// actually sending it — 0 sends immediately. See notifyTaskAssignment in
+// src/app/actions/tasks.ts and PendingTaskAssignmentNotification.
+export async function getTaskAssignmentNotificationDelayMinutes() {
+  const settings = await getSettings();
+  return settings.taskAssignmentNotificationDelayMinutes;
+}
+
+export async function setTaskAssignmentNotificationDelayMinutes(minutes: number) {
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, taskAssignmentNotificationDelayMinutes: minutes },
+    update: { taskAssignmentNotificationDelayMinutes: minutes },
   });
 }

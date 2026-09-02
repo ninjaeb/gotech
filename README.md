@@ -225,6 +225,54 @@ This is its own proactive send (the mentioner is very unlikely to be within thei
 
 The **Send test** button in the same Settings → Integrations card (next to section 12's) sends a one-off test with placeholder content to your own number, to confirm this template is approved and reachable without waiting for a real reply.
 
+### 14. WhatsApp task assignment notifications (optional)
+
+Whenever a task gets a new assignee (creating a task with assignees, or adding someone to an existing one's assignee list), that person already gets an in-app notification (the bell icon). If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who assigned them, the task's title, and a link straight to the task. Assigning a task to yourself never notifies you.
+
+By default this sends the moment the task is saved. *Settings → Integrations → WhatsApp task assignment notifications* has a **Send after** option to hold it instead — Immediately, 15 minutes, 30 minutes, 1/2/3/4/5 hours — useful if you'd rather tell someone in person or on Slack first and only want the CRM to follow up if that doesn't happen. The delay is CRM-wide (one setting, not per-user), checked by the same cron job as the daily digests (see *Deploying on cPanel* below) rather than an in-process timer, so a delayed notification still fires even if the app restarts in the meantime. If you remove someone as an assignee before their delayed notification fires, it's cancelled — they were never actually left holding the task, so they never hear about it. Re-assigning someone who already has one pending just pushes its send time out rather than sending twice.
+
+Assigning a task to someone also automatically follows that task for you (see *Task followers* in Features above) — no separate step needed to stay in the loop on it, and see section 15 below for what following actually gets you.
+
+Like the @mention notification, this is proactive, so it needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `task_assignment_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "You have a new task in GoTech CRM"
+   - Body: `{{1}} assigned you a task in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/tasks/abc123`.
+
+   Submit for review, same as the other templates above.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest and @mention notification (setting one opts a user into all three). If WhatsApp Business isn't connected, the assignee has no phone number set, or the template isn't approved yet, the assignment still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+
+`{{1}}` is the assigning user's name, `{{2}}` the task's title, `{{3}}` a full link to the task, built from your `SITE_URL` env var (same one the other templates use).
+
+Since this only fires when a task actually gets a new assignee, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification to your own number instead, to confirm this template is approved and reachable.
+
+### 15. WhatsApp task status notifications (optional)
+
+Whenever a task's completion status changes (marked complete, or reopened), everyone following that task — except whoever just made the change — already gets an in-app notification. If they've also set a phone number in *Settings → Team*, they get a WhatsApp message too — who changed it, the task's title, whether it was completed or reopened, and a link straight to the task. This is what makes following a task (rather than being assigned to it) actually worth something: assigning someone a task auto-follows it for you (see section 14 above), so you find out the moment they mark it done without having to check back.
+
+Like the other proactive notifications, this needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `task_status_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "A task you're following was updated"
+   - Body: `{{1}} {{3}} a task in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{4}}`
+   - Footer (optional, static text only): anything you like
+   - No buttons — same reasoning as the other templates above: the link is the body's own `{{4}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah` / `Follow up with Acme Corp` / `completed` / `https://crm.yourcompany.com/tasks/abc123`.
+
+   Submit for review, same as the other templates above.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the other WhatsApp notifications. If WhatsApp Business isn't connected, a follower has no phone number set, or the template isn't approved yet, the change still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+
+`{{1}}` is the name of whoever changed the status, `{{2}}` the task's title, `{{3}}` either `completed` or `reopened`, `{{4}}` a full link to the task, built from your `SITE_URL` env var.
+
+Since this only fires on a real status change, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification (with placeholder task/status text) to your own number instead, to confirm this template is approved and reachable.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
@@ -258,7 +306,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    ```bash
    cd /home/USERNAME/APPLICATION_ROOT && source /home/USERNAME/nodevenv/APPLICATION_ROOT/*/bin/activate && npm run sync-email
    ```
-   (the exact `source` path is the same one the Node app screen shows for running commands by hand). This one entry covers three things every time it runs: syncing every connected mailbox, the daily email task digest, and the daily WhatsApp task reminder (needs a Meta-approved template first — see *Daily WhatsApp task reminder* above) — both digests check their own rate limit (and, for the WhatsApp one, its configured send hour too) internally, so it's safe to check them this often even though each only actually sends roughly once a day. Without this cron entry, mailboxes only sync when someone clicks *Sync now*, and neither digest ever sends on its own.
+   (the exact `source` path is the same one the Node app screen shows for running commands by hand). This one entry covers four things every time it runs: syncing every connected mailbox, the daily email task digest, the daily WhatsApp task reminder (needs a Meta-approved template first — see *Daily WhatsApp task reminder* above), and sending any delayed task-assignment notifications that have come due (see *WhatsApp task assignment notifications* above) — both digests check their own rate limit (and, for the WhatsApp one, its configured send hour too) internally, and the assignment-notification phase just looks for rows whose delay has actually elapsed, so it's safe to check all of this every 10 minutes even though most of it only actually sends occasionally. Without this cron entry, mailboxes only sync when someone clicks *Sync now*, neither digest ever sends on its own, and a delayed assignment notification never fires (it just sits pending forever).
 
    If anyone uses Sequences too, add a second entry the same way for `npm run process-sequences` — an hourly schedule is plenty, since a step's delay is day-granularity. Without this, enrolled contacts never actually get their emails, even though enrolling still "succeeds."
 
