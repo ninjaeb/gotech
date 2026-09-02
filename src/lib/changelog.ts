@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.38",
+    date: "2026-09-02",
+    title: "Tasks search now reaches companies, contacts, deals",
+    changes: [
+      "The Tasks search box now filters instantly as you type (no more pressing Enter), and matches against company, contact, deal/project, and assignee names too — not just the task's own title and description",
+    ],
+  },
+  {
     version: "1.37",
     date: "2026-08-30",
     title: "An actual \"Install app\" button",
