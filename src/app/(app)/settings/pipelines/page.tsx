@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Pencil, Star, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
-import { setDefaultPipeline, deletePipeline } from "@/app/actions/pipelines";
+import { deletePipeline } from "@/app/actions/pipelines";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { NewPipelineForm } from "@/components/settings/new-pipeline-form";
+import { SetDefaultPipelineButton } from "@/components/settings/set-default-pipeline-button";
 
 export default async function PipelinesPage() {
   const pipelines = await db.pipeline.findMany({
@@ -41,18 +42,7 @@ export default async function PipelinesPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  {!pipeline.isDefault && (
-                    <form action={setDefaultPipeline.bind(null, pipeline.id)}>
-                      <button
-                        type="submit"
-                        title="Set as default"
-                        aria-label="Set as default"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-                      >
-                        <Star className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
-                  )}
+                  {!pipeline.isDefault && <SetDefaultPipelineButton pipelineId={pipeline.id} />}
                   <Link
                     href={`/settings/pipelines/${pipeline.id}`}
                     title="Edit stages"

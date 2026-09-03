@@ -6,6 +6,7 @@ import { FieldGroup, Input, Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import { useActionToast } from "@/components/ui/toast";
 
 type ConnectedWhatsAppAccount = {
   phoneNumberId: string;
@@ -22,6 +23,9 @@ export function WhatsAppAccountForm({
   webhookUrl: string;
 }) {
   const [state, formAction, pending] = useActionState(connectWhatsAppAccount, undefined);
+  useActionToast(state, "WhatsApp account connected.", { toastErrors: false });
+  const [disconnectState, disconnectAction, disconnectPending] = useActionState(disconnectWhatsAppAccount, undefined);
+  useActionToast(disconnectState, "WhatsApp account disconnected.", { toastErrors: false });
 
   if (account) {
     return (
@@ -61,13 +65,14 @@ export function WhatsAppAccountForm({
           </div>
         </div>
 
-        <form action={disconnectWhatsAppAccount}>
+        <form action={disconnectAction}>
           <ConfirmSubmitButton
             confirmMessage="Disconnect WhatsApp Business? Sending and receiving will stop until you reconnect."
             variant="secondary"
             size="sm"
+            disabled={disconnectPending}
           >
-            Disconnect
+            {disconnectPending ? "Disconnecting…" : "Disconnect"}
           </ConfirmSubmitButton>
         </form>
       </div>
@@ -95,7 +100,7 @@ export function WhatsAppAccountForm({
         <Input id="appSecret" name="appSecret" type="password" required />
       </FieldGroup>
 
-      {state?.error && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
+      {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
 
       <Button type="submit" disabled={pending}>
         {pending ? "Testing connection…" : "Connect"}

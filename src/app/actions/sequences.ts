@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { withFlash } from "@/lib/utils";
 
 export type SequenceFormState = { error: string } | undefined;
 
@@ -67,7 +68,7 @@ export async function createSequence(
   });
 
   revalidatePath("/settings/sequences");
-  redirect(`/settings/sequences/${sequence.id}`);
+  redirect(withFlash(`/settings/sequences/${sequence.id}`, "Sequence created."));
 }
 
 // Steps are updated/created in place by id rather than deleted-and-recreated
@@ -112,7 +113,7 @@ export async function updateSequence(
 
   revalidatePath(`/settings/sequences/${id}`);
   revalidatePath("/settings/sequences");
-  redirect(`/settings/sequences/${id}`);
+  redirect(withFlash(`/settings/sequences/${id}`, "Changes saved."));
 }
 
 export async function deleteSequence(id: string, formData: FormData) {
@@ -120,5 +121,5 @@ export async function deleteSequence(id: string, formData: FormData) {
   await requireAdminAction();
   await db.sequence.delete({ where: { id } });
   revalidatePath("/settings/sequences");
-  redirect("/settings/sequences");
+  redirect(withFlash("/settings/sequences", "Sequence deleted."));
 }

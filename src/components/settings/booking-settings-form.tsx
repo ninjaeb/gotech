@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { updateBookingSettings } from "@/app/actions/settings";
 import { formatUtcOffset, type WeeklyHours } from "@/lib/booking";
 import { Button } from "@/components/ui/button";
 import { Label, Select } from "@/components/ui/field";
+import { useActionToast } from "@/components/ui/toast";
 
 const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SLOT_OPTIONS = [15, 30, 45, 60];
@@ -22,13 +23,15 @@ export function BookingSettingsForm({
   const [weeklyHours, setWeeklyHours] = useState<WeeklyHours>(initialWeeklyHours);
   const [utcOffsetMinutes, setUtcOffsetMinutes] = useState(initialUtcOffsetMinutes);
   const [slotMinutes, setSlotMinutes] = useState(initialSlotMinutes);
+  const [state, formAction, pending] = useActionState(updateBookingSettings, undefined);
+  useActionToast(state, "Booking settings saved.", { toastErrors: false });
 
   function updateDay(index: number, patch: Partial<WeeklyHours[number]>) {
     setWeeklyHours((prev) => prev.map((day, i) => (i === index ? { ...day, ...patch } : day)));
   }
 
   return (
-    <form action={updateBookingSettings} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="weeklyHoursJson" value={JSON.stringify(weeklyHours)} />
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -96,7 +99,11 @@ export function BookingSettingsForm({
         ))}
       </div>
 
-      <Button type="submit">Save</Button>
+      {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
+
+      <Button type="submit" disabled={pending}>
+        {pending ? "Saving…" : "Save"}
+      </Button>
     </form>
   );
 }

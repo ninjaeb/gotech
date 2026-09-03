@@ -1,11 +1,31 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { sendTaskRemindersNow } from "@/app/actions/settings";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { useToast } from "@/components/ui/toast";
 
 export function SendTaskReminderNowButton() {
   const [state, formAction, pending] = useActionState(sendTaskRemindersNow, undefined);
+  const toast = useToast();
+  const seenRef = useRef(state);
+
+  // Bespoke multi-recipient result — not the app's usual {error}|{success}
+  // shape — so this gets its own toast summary instead of useActionToast.
+  useEffect(() => {
+    if (state === seenRef.current) return;
+    seenRef.current = state;
+    if (!state) return;
+    if (!state.ok) {
+      toast.error(state.message ?? "Failed to send reminders.");
+    } else if (state.sent.length === 0 && state.skipped.length === 0 && state.failed.length === 0) {
+      toast.success("No one has a phone number set.");
+    } else if (state.failed.length > 0) {
+      toast.error(`Sent to ${state.sent.length}, ${state.failed.length} failed — see details below.`);
+    } else {
+      toast.success(`Sent to ${state.sent.length} ${state.sent.length === 1 ? "person" : "people"}.`);
+    }
+  }, [state, toast]);
 
   return (
     <form action={formAction} className="space-y-2">

@@ -24,7 +24,7 @@ const connectSchema = z.object({
   appSecret: z.string().trim().min(1, "App secret is required"),
 });
 
-export type WhatsAppAccountFormState = { error: string } | undefined;
+export type WhatsAppAccountFormState = { error: string } | { success: true } | undefined;
 
 export async function connectWhatsAppAccount(
   _prevState: WhatsAppAccountFormState,
@@ -75,13 +75,18 @@ export async function connectWhatsAppAccount(
   });
 
   revalidatePath("/settings/integrations");
-  return undefined;
+  return { success: true };
 }
 
-export async function disconnectWhatsAppAccount() {
+export async function disconnectWhatsAppAccount(
+  _prevState: WhatsAppAccountFormState,
+  formData: FormData,
+): Promise<WhatsAppAccountFormState> {
+  void formData;
   await requireAdminAction();
   await db.whatsAppAccount.deleteMany({ where: { id: WHATSAPP_ACCOUNT_ID } });
   revalidatePath("/settings/integrations");
+  return { success: true };
 }
 
 export type MentionNotificationTestState = { error: string } | { success: true } | undefined;

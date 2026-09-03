@@ -6,8 +6,11 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { withFlash } from "@/lib/utils";
 
 export type PipelineFormState = { error: string } | undefined;
+export type PipelineStagesState = { error: string } | { success: true } | undefined;
+export type PipelineActionState = { error: string } | { success: true } | undefined;
 
 const STARTER_STAGES = [
   { name: "New", isWon: false, isLost: false },
@@ -36,19 +39,24 @@ export async function createPipeline(
   });
 
   revalidatePath("/settings/pipelines");
-  redirect(`/settings/pipelines/${pipeline.id}`);
+  redirect(withFlash(`/settings/pipelines/${pipeline.id}`, "Pipeline created."));
 }
 
-export async function renamePipeline(id: string, formData: FormData) {
+export async function renamePipeline(
+  id: string,
+  _prevState: PipelineActionState,
+  formData: FormData,
+): Promise<PipelineActionState> {
   await requireAdminAction();
   const name = String(formData.get("name") || "").trim();
-  if (!name) throw new Error("Pipeline name is required");
+  if (!name) return { error: "Pipeline name is required" };
   await db.pipeline.update({ where: { id }, data: { name } });
   revalidatePath("/settings/pipelines");
   revalidatePath(`/settings/pipelines/${id}`);
+  return { success: true };
 }
 
-export async function setDefaultPipeline(id: string) {
+export async function setDefaultPipeline(id: string): Promise<PipelineActionState> {
   await requireAdminAction();
   await db.$transaction([
     db.pipeline.updateMany({ where: { isDefault: true }, data: { isDefault: false } }),
@@ -57,6 +65,7 @@ export async function setDefaultPipeline(id: string) {
   revalidatePath("/settings/pipelines");
   revalidatePath("/deals");
   revalidatePath("/");
+  return { success: true };
 }
 
 export async function deletePipeline(id: string, formData: FormData) {
@@ -78,7 +87,7 @@ export async function deletePipeline(id: string, formData: FormData) {
 
   await db.pipeline.delete({ where: { id } });
   revalidatePath("/settings/pipelines");
-  redirect("/settings/pipelines");
+  redirect(withFlash("/settings/pipelines", "Pipeline deleted."));
 }
 
 const stageSchema = z.object({
@@ -91,9 +100,9 @@ const stagesSchema = z.array(stageSchema).min(1, "A pipeline needs at least one 
 
 export async function updatePipelineStages(
   pipelineId: string,
-  _prevState: PipelineFormState,
+  _prevState: PipelineStagesState,
   formData: FormData,
-): Promise<PipelineFormState> {
+): Promise<PipelineStagesState> {
   await requireAdminAction();
   let rawStages: unknown;
   try {
@@ -142,5 +151,5 @@ export async function updatePipelineStages(
   revalidatePath("/settings/pipelines");
   revalidatePath("/deals");
   revalidatePath("/");
-  return undefined;
+  return { success: true };
 }

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { PRODUCT_SERVICE_TYPES, BILLING_FREQUENCIES } from "@/lib/labels";
+import { withFlash } from "@/lib/utils";
 import type { ProductServiceType, BillingFrequency } from "@/generated/prisma/client";
 
 const componentSchema = z.object({
@@ -148,11 +149,12 @@ export async function updateServicePackage(
     },
   });
   revalidatePath("/settings/products");
-  redirect("/settings/products");
+  redirect(withFlash("/settings/products", "Changes saved."));
 }
 
-export async function deleteServicePackage(id: string) {
+export async function deleteServicePackage(id: string): Promise<ServicePackageState> {
   await requireAdminAction();
   await db.servicePackage.delete({ where: { id } });
   revalidatePath("/settings/products");
+  return { success: true };
 }

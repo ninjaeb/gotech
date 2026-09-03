@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { withFlash } from "@/lib/utils";
 
 const templateItemSchema = z.object({
   description: z.string().trim().min(1, "Each line item needs a description"),
@@ -74,7 +75,7 @@ export async function createQuoteTemplate(
   });
 
   revalidatePath("/settings/quote-templates");
-  redirect(`/settings/quote-templates/${template.id}`);
+  redirect(withFlash(`/settings/quote-templates/${template.id}`, "Quote template created."));
 }
 
 export async function updateQuoteTemplate(
@@ -104,12 +105,12 @@ export async function updateQuoteTemplate(
 
   revalidatePath("/settings/quote-templates");
   revalidatePath(`/settings/quote-templates/${templateId}`);
-  redirect(`/settings/quote-templates/${templateId}`);
+  redirect(withFlash(`/settings/quote-templates/${templateId}`, "Changes saved."));
 }
 
 export async function deleteQuoteTemplate(id: string) {
   await requireAdminAction();
   await db.quoteTemplate.delete({ where: { id } });
   revalidatePath("/settings/quote-templates");
-  redirect("/settings/quote-templates");
+  redirect(withFlash("/settings/quote-templates", "Quote template deleted."));
 }

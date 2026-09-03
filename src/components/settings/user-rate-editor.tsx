@@ -6,6 +6,7 @@ import { updateUserRate } from "@/app/actions/users";
 import { Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
+import { useToast } from "@/components/ui/toast";
 
 export function UserRateEditor({
   userId,
@@ -18,14 +19,20 @@ export function UserRateEditor({
 }) {
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   if (editing) {
     return (
       <form
         action={(formData) => {
           startTransition(async () => {
-            await updateUserRate(userId, formData);
-            setEditing(false);
+            try {
+              await updateUserRate(userId, formData);
+              setEditing(false);
+              toast.success("Rate saved.");
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Couldn't save rate.");
+            }
           });
         }}
         className="flex items-center gap-1.5"

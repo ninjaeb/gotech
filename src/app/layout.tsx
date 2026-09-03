@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ToastProvider } from "@/components/ui/toast";
+import { FlashToast } from "@/components/ui/flash-toast";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `
@@ -65,7 +67,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="sw-register" strategy="afterInteractive">
           {SW_REGISTER_SCRIPT}
         </Script>
-        {children}
+        <ToastProvider>
+          <FlashToast />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

@@ -1,13 +1,10 @@
 import { notFound } from "next/navigation";
-import { Star } from "lucide-react";
 import { db } from "@/lib/db";
-import { renamePipeline, setDefaultPipeline } from "@/app/actions/pipelines";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input, Label } from "@/components/ui/field";
-import { Button, buttonClasses } from "@/components/ui/button";
 import { PipelineStagesForm } from "@/components/settings/pipeline-stages-form";
-import { cn } from "@/lib/utils";
+import { RenamePipelineForm } from "@/components/settings/rename-pipeline-form";
+import { SetDefaultPipelineButton } from "@/components/settings/set-default-pipeline-button";
 
 export default async function EditPipelinePage({
   params,
@@ -37,20 +34,11 @@ export default async function EditPipelinePage({
           <CardTitle>Name</CardTitle>
         </CardHeader>
         <CardBody>
-          <form action={renamePipeline.bind(null, pipeline.id)} className="flex items-end gap-2">
-            <div className="flex-1">
-              <Label htmlFor="name">Pipeline name</Label>
-              <Input id="name" name="name" defaultValue={pipeline.name} required />
-            </div>
-            <Button type="submit">Save</Button>
-          </form>
+          <RenamePipelineForm pipelineId={pipeline.id} name={pipeline.name} />
           {!pipeline.isDefault && (
-            <form action={setDefaultPipeline.bind(null, pipeline.id)} className="mt-3">
-              <button type="submit" className={cn(buttonClasses("secondary", "sm"))}>
-                <Star className="h-3.5 w-3.5" />
-                Set as default pipeline
-              </button>
-            </form>
+            <div className="mt-3">
+              <SetDefaultPipelineButton pipelineId={pipeline.id} variant="labelled" />
+            </div>
           )}
         </CardBody>
       </Card>

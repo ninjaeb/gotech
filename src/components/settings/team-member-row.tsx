@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/format";
 import { UserRateEditor } from "@/components/settings/user-rate-editor";
 import { UserRoleSelect } from "@/components/settings/user-role-select";
 import { ResetPasswordButton } from "@/components/settings/reset-password-button";
+import { useToast } from "@/components/ui/toast";
 
 export function TeamMemberRow({
   user,
@@ -36,6 +37,27 @@ export function TeamMemberRow({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [deletePending, startDeleteTransition] = useTransition();
+  const toast = useToast();
+
+  // Imperative toast, not useActionState + useActionToast: a successful
+  // delete removes this exact row from the team list on the same
+  // revalidation that carries the result, unmounting this component before
+  // a state-driven effect would ever get to render it.
+  function handleDelete() {
+    startDeleteTransition(async () => {
+      try {
+        const result = await deleteUser(user.id);
+        if (result && "error" in result) {
+          toast.error(result.error);
+        } else {
+          toast.success("Login removed.");
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't remove login.");
+      }
+    });
+  }
 
   if (editing) {
     return (
@@ -49,6 +71,7 @@ export function TeamMemberRow({
               } else {
                 setError(null);
                 setEditing(false);
+                toast.success("Details saved.");
               }
             });
           }}
@@ -139,10 +162,11 @@ export function TeamMemberRow({
             <UserRoleSelect userId={user.id} role={user.role} />
             <ResetPasswordButton userId={user.id} userName={user.name} />
             {canDelete && (
-              <form action={deleteUser.bind(null, user.id)}>
+              <form action={handleDelete}>
                 <ConfirmSubmitButton
                   confirmMessage={`Remove ${user.name}'s login? They won't be able to sign in anymore.`}
                   size="sm"
+                  disabled={deletePending}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </ConfirmSubmitButton>

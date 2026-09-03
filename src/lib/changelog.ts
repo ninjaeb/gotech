@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.42",
+    date: "2026-09-03",
+    title: "Drag to reorder pipeline stages, and success confirmations everywhere",
+    changes: [
+      "Settings → Sales pipeline → Stages: drag a stage by its handle to reorder it, alongside the existing up/down arrows",
+      "Every settings save and action button across the app now confirms with a toast when it's worked — including ones that redirect to a new page, and ones where the row you acted on disappears (like deleting an item or setting a new default pipeline)",
+      "Fixed two spots where a failed save (an invalid billing rate, a role change) went silent instead of showing an error",
+    ],
+  },
+  {
     version: "1.41",
     date: "2026-09-02",
     title: "Tasks search now reaches companies, contacts, deals",

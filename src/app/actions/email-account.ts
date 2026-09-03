@@ -19,7 +19,7 @@ const connectSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export type EmailAccountFormState = { error: string } | undefined;
+export type EmailAccountFormState = { error: string } | { success: true } | undefined;
 
 // imapflow rejects a bad IMAP response (most often a rejected login) with
 // the bare message "Command failed" — the server's actual explanation
@@ -101,7 +101,7 @@ export async function connectEmailAccount(
   });
 
   revalidatePath("/settings/integrations");
-  return undefined;
+  return { success: true };
 }
 
 const senderSettingsSchema = z.object({
@@ -140,19 +140,34 @@ export async function updateEmailSenderSettings(
   return { success: true };
 }
 
-export async function disconnectEmailAccount() {
+export async function disconnectEmailAccount(
+  _prevState: EmailAccountFormState,
+  formData: FormData,
+): Promise<EmailAccountFormState> {
+  void formData;
   const user = await requireAdminAction();
   await db.emailAccount.deleteMany({ where: { userId: user.id } });
   revalidatePath("/settings/integrations");
+  return { success: true };
 }
 
-export async function syncEmailAccountNow() {
+export async function syncEmailAccountNow(
+  _prevState: EmailAccountFormState,
+  formData: FormData,
+): Promise<EmailAccountFormState> {
+  void formData;
   const user = await requireAdminAction();
   const account = await db.emailAccount.findUnique({ where: { userId: user.id } });
-  if (!account) return;
+  if (!account) return { error: "No mailbox connected." };
   // syncEmailAccount already records the failure on the account row before
-  // rethrowing — the UI reads lastSyncError from there, so there's nothing
-  // more useful to do with the exception here than let this run end.
-  await syncEmailAccount(account).catch(() => {});
+  // rethrowing — the UI reads lastSyncError from there, so the toast here
+  // stays quiet on failure (toastErrors: false) rather than duplicating it.
+  try {
+    await syncEmailAccount(account);
+  } catch (error) {
+    revalidatePath("/settings/integrations");
+    return { error: error instanceof Error ? error.message : "Sync failed." };
+  }
   revalidatePath("/settings/integrations");
+  return { success: true };
 }

@@ -3,9 +3,11 @@
 import { useActionState } from "react";
 import { sendTaskAssignmentNotificationTest } from "@/app/actions/whatsapp-account";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { useActionToast } from "@/components/ui/toast";
 
 export function SendTaskAssignmentNotificationTestButton() {
   const [state, formAction, pending] = useActionState(sendTaskAssignmentNotificationTest, undefined);
+  useActionToast(state, "Sent — check your WhatsApp.", { toastErrors: false });
 
   return (
     <form action={formAction} className="space-y-2">
@@ -17,9 +19,6 @@ export function SendTaskAssignmentNotificationTestButton() {
       </ConfirmSubmitButton>
 
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
-      {state && "success" in state && (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">Sent — check your WhatsApp.</p>
-      )}
     </form>
   );
 }

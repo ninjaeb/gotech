@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { updateEmailSenderSettings } from "@/app/actions/email-account";
 import { FieldGroup, Input, Textarea } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { useActionToast } from "@/components/ui/toast";
 
 export function EmailSenderSettingsForm({
   defaultFromName,
@@ -16,6 +17,7 @@ export function EmailSenderSettingsForm({
 }) {
   const [state, formAction, pending] = useActionState(updateEmailSenderSettings, undefined);
   const [signature, setSignature] = useState(defaultSignature);
+  useActionToast(state, "Sender settings saved.", { toastErrors: false });
 
   return (
     <form action={formAction} className="space-y-4 border-t border-slate-100 pt-4 dark:border-neutral-800">
@@ -72,7 +74,6 @@ export function EmailSenderSettingsForm({
       )}
 
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
-      {state && "success" in state && <p className="text-sm text-emerald-600 dark:text-emerald-400">Saved.</p>}
 
       <Button type="submit" size="sm" disabled={pending}>
         {pending ? "Saving…" : "Save"}

@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { db } from "@/lib/db";
-import { deleteServicePackage } from "@/app/actions/service-packages";
 import { requireAdmin } from "@/lib/auth/dal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
-import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ServicePackageForm } from "@/components/settings/service-package-form";
+import { DeleteServicePackageButton } from "@/components/settings/delete-service-package-button";
 import { getCurrency } from "@/lib/settings";
 import { formatCurrency } from "@/lib/format";
 import { marginPercent } from "@/lib/margin";
@@ -82,11 +81,7 @@ export default async function ProductsPage() {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Link>
-                      <form action={deleteServicePackage.bind(null, pkg.id)}>
-                        <ConfirmSubmitButton confirmMessage={`Remove "${pkg.name}" from the catalog?`} size="sm">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </ConfirmSubmitButton>
-                      </form>
+                      <DeleteServicePackageButton id={pkg.id} name={pkg.name} />
                     </div>
                   </li>
                 );

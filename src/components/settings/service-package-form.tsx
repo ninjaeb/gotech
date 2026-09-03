@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { createServicePackage, updateServicePackage } from "@/app/actions/service-packages";
 import { Label, Input, Select, RequiredMark } from "@/components/ui/field";
 import { Button, buttonClasses } from "@/components/ui/button";
+import { useActionToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/format";
 import { marginAmount, marginPercent } from "@/lib/margin";
 import {
@@ -54,6 +55,7 @@ export function ServicePackageForm({
   const formRef = useRef<HTMLFormElement>(null);
   const action = isEdit ? updateServicePackage.bind(null, servicePackage.id) : createServicePackage;
   const [state, formAction, pending] = useActionState(action, undefined);
+  useActionToast(state, "Added to catalog.", { toastErrors: false });
 
   const [unitPrice, setUnitPrice] = useState(servicePackage ? servicePackage.unitPrice.toString() : "0");
   const [unitCost, setUnitCost] = useState(

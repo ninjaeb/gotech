@@ -8,16 +8,19 @@ export function ConfirmSubmitButton({
   variant = "danger",
   size = "sm",
   className,
+  disabled,
 }: {
   confirmMessage: string;
   children: React.ReactNode;
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="submit"
+      disabled={disabled}
       className={buttonClasses(variant, size, className)}
       onClick={(event) => {
         if (!confirm(confirmMessage)) {

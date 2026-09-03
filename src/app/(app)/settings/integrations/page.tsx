@@ -3,28 +3,18 @@ import { db } from "@/lib/db";
 import { getSiteOrigin } from "@/lib/site-url";
 import { getBookingSettings, getTaskReminderHour, getTaskAssignmentNotificationDelayMinutes } from "@/lib/settings";
 import { formatUtcOffset } from "@/lib/booking";
-import { TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES, formatDelayLabel } from "@/lib/task-notification-delay";
-import { updateTaskReminderHour, updateTaskAssignmentNotificationDelay } from "@/app/actions/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label, Select } from "@/components/ui/field";
-import { Button } from "@/components/ui/button";
 import { EmailAccountForm } from "@/components/settings/email-account-form";
 import { WhatsAppAccountForm } from "@/components/settings/whatsapp-account-form";
+import { TaskReminderHourForm } from "@/components/settings/task-reminder-hour-form";
+import { TaskAssignmentDelayForm } from "@/components/settings/task-assignment-delay-form";
 import { SendTaskReminderNowButton } from "@/components/settings/send-task-reminder-now-button";
 import { SendTaskDigestTemplateTestButton } from "@/components/settings/send-task-digest-template-test-button";
 import { SendMentionNotificationTestButton } from "@/components/settings/send-mention-notification-test-button";
 import { SendMentionReplyNotificationTestButton } from "@/components/settings/send-mention-reply-notification-test-button";
 import { SendTaskAssignmentNotificationTestButton } from "@/components/settings/send-task-assignment-notification-test-button";
 import { SendTaskStatusNotificationTestButton } from "@/components/settings/send-task-status-notification-test-button";
-
-// e.g. 0 -> "12:00 AM", 13 -> "1:00 PM" — a stable, locale-independent label
-// for the hour <select>, same reasoning as booking.ts's formatSlotLabel.
-function formatHourLabel(hour: number) {
-  const period = hour < 12 ? "AM" : "PM";
-  const twelveHour = hour % 12 === 0 ? 12 : hour % 12;
-  return `${twelveHour}:00 ${period}`;
-}
 
 export default async function IntegrationsSettingsPage() {
   await requireAdmin();
@@ -90,25 +80,7 @@ export default async function IntegrationsSettingsPage() {
             phone number, and the README for the cron job and Meta template this needs. In the same
             timezone as the booking scheduler ({formatUtcOffset(bookingSettings.utcOffsetMinutes)}).
           </p>
-          <form action={updateTaskReminderHour} className="mb-4 flex flex-wrap items-end gap-3">
-            <div>
-              <Label htmlFor="taskReminderHour">Send at</Label>
-              <Select
-                key={taskReminderHour}
-                id="taskReminderHour"
-                name="taskReminderHour"
-                defaultValue={taskReminderHour}
-                className="w-40"
-              >
-                {Array.from({ length: 24 }, (_, hour) => (
-                  <option key={hour} value={hour}>
-                    {formatHourLabel(hour)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <Button type="submit">Save</Button>
-          </form>
+          <TaskReminderHourForm taskReminderHour={taskReminderHour} />
           <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 dark:border-neutral-800">
             <div>
               <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
@@ -161,25 +133,7 @@ export default async function IntegrationsSettingsPage() {
             Sent automatically whenever a task gets a new assignee, to anyone assigned who&apos;s also set a
             phone number (Settings → Team).
           </p>
-          <form action={updateTaskAssignmentNotificationDelay} className="mb-4 flex flex-wrap items-end gap-3">
-            <div>
-              <Label htmlFor="delayMinutes">Send after</Label>
-              <Select
-                key={taskAssignmentNotificationDelayMinutes}
-                id="delayMinutes"
-                name="delayMinutes"
-                defaultValue={taskAssignmentNotificationDelayMinutes}
-                className="w-40"
-              >
-                {TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES.map((minutes) => (
-                  <option key={minutes} value={minutes}>
-                    {formatDelayLabel(minutes)}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <Button type="submit">Save</Button>
-          </form>
+          <TaskAssignmentDelayForm delayMinutes={taskAssignmentNotificationDelayMinutes} />
           <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
             A delay gives you time to tell someone about a task in person or Slack first, without a
             duplicate CRM ping right after — the notification still fires on schedule even if you edit the

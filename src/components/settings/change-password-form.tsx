@@ -4,10 +4,12 @@ import { useActionState, useEffect, useRef } from "react";
 import { changePassword } from "@/app/actions/users";
 import { Label, Input, RequiredMark } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { useActionToast } from "@/components/ui/toast";
 
 export function ChangePasswordForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, pending] = useActionState(changePassword, undefined);
+  useActionToast(state, "Password updated.", { toastErrors: false });
 
   useEffect(() => {
     if (state && "success" in state) {
@@ -47,9 +49,6 @@ export function ChangePasswordForm() {
 
       {state && "error" in state && (
         <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>
-      )}
-      {state && "success" in state && (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">Password updated.</p>
       )}
 
       <Button type="submit" disabled={pending}>

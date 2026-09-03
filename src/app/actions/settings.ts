@@ -17,16 +17,21 @@ import { runTaskReminders, TEMPLATE_NAME, type TaskReminderRunResult } from "@/l
 import { sendWhatsAppTemplateMessage, WHATSAPP_ACCOUNT_ID } from "@/lib/whatsapp";
 import { getConfiguredSiteOrigin } from "@/lib/site-url";
 
+// Shared by the simple single-field settings forms below — each just
+// saves one value and reports back whether it worked.
+export type SimpleSaveState = { error: string } | { success: true } | undefined;
+
 const currencySchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
 
-export async function updateCurrency(formData: FormData) {
+export async function updateCurrency(_prevState: SimpleSaveState, formData: FormData): Promise<SimpleSaveState> {
   await requireAdminAction();
   const parsed = currencySchema.safeParse(formData.get("currency"));
   if (!parsed.success) {
-    throw new Error("Invalid currency");
+    return { error: "Invalid currency" };
   }
   await setCurrency(parsed.data);
   revalidatePath("/", "layout");
+  return { success: true };
 }
 
 const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, "Invalid time");
@@ -37,13 +42,16 @@ const bookingSettingsSchema = z.object({
   weeklyHours: z.array(daySchema).length(7),
 });
 
-export async function updateBookingSettings(formData: FormData) {
+export async function updateBookingSettings(
+  _prevState: SimpleSaveState,
+  formData: FormData,
+): Promise<SimpleSaveState> {
   await requireAdminAction();
   let weeklyHours: unknown;
   try {
     weeklyHours = JSON.parse(String(formData.get("weeklyHoursJson") || "[]"));
   } catch {
-    throw new Error("Weekly hours could not be read — try again.");
+    return { error: "Weekly hours could not be read — try again." };
   }
 
   const parsed = bookingSettingsSchema.safeParse({
@@ -52,7 +60,7 @@ export async function updateBookingSettings(formData: FormData) {
     weeklyHours,
   });
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Invalid booking settings");
+    return { error: parsed.error.issues[0]?.message ?? "Invalid booking settings" };
   }
 
   await setBookingSettings({
@@ -62,18 +70,23 @@ export async function updateBookingSettings(formData: FormData) {
   });
   revalidatePath("/settings/forms");
   revalidatePath("/book");
+  return { success: true };
 }
 
 const taskReminderHourSchema = z.coerce.number().int().min(0).max(23);
 
-export async function updateTaskReminderHour(formData: FormData) {
+export async function updateTaskReminderHour(
+  _prevState: SimpleSaveState,
+  formData: FormData,
+): Promise<SimpleSaveState> {
   await requireAdminAction();
   const parsed = taskReminderHourSchema.safeParse(formData.get("taskReminderHour"));
   if (!parsed.success) {
-    throw new Error("Invalid hour");
+    return { error: "Invalid hour" };
   }
   await setTaskReminderHour(parsed.data);
   revalidatePath("/settings/integrations");
+  return { success: true };
 }
 
 const taskAssignmentNotificationDelaySchema = z.coerce
@@ -83,14 +96,18 @@ const taskAssignmentNotificationDelaySchema = z.coerce
     message: "Invalid delay",
   });
 
-export async function updateTaskAssignmentNotificationDelay(formData: FormData) {
+export async function updateTaskAssignmentNotificationDelay(
+  _prevState: SimpleSaveState,
+  formData: FormData,
+): Promise<SimpleSaveState> {
   await requireAdminAction();
   const parsed = taskAssignmentNotificationDelaySchema.safeParse(formData.get("delayMinutes"));
   if (!parsed.success) {
-    throw new Error("Invalid delay");
+    return { error: "Invalid delay" };
   }
   await setTaskAssignmentNotificationDelayMinutes(parsed.data);
   revalidatePath("/settings/integrations");
+  return { success: true };
 }
 
 // For the "Send now" button (Settings → Integrations) — troubleshooting a

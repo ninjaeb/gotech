@@ -152,18 +152,21 @@ export async function updateUserRole(userId: string, role: Role) {
   revalidatePath("/settings/team");
 }
 
-export async function deleteUser(userId: string) {
+export type DeleteUserState = { error: string } | { success: true } | undefined;
+
+export async function deleteUser(userId: string): Promise<DeleteUserState> {
   await requireAdminAction();
   const session = await verifySession();
   if (session.userId === userId) {
-    throw new Error("You can't delete your own account while logged in.");
+    return { error: "You can't delete your own account while logged in." };
   }
   const count = await db.user.count();
   if (count <= 1) {
-    throw new Error("Can't delete the last remaining user.");
+    return { error: "Can't delete the last remaining user." };
   }
   await db.user.delete({ where: { id: userId } });
   revalidatePath("/settings/team");
+  return { success: true };
 }
 
 export type ResetPasswordState = { error: string } | { success: true; password: string } | undefined;

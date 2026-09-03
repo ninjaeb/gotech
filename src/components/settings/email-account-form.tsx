@@ -7,6 +7,7 @@ import { FieldGroup, Input } from "@/components/ui/field";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { EmailSenderSettingsForm } from "@/components/settings/email-sender-settings-form";
+import { useActionToast } from "@/components/ui/toast";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,11 @@ export function EmailAccountForm({
   currentUserName: string;
 }) {
   const [state, formAction, pending] = useActionState(connectEmailAccount, undefined);
+  useActionToast(state, "Mailbox connected.", { toastErrors: false });
+  const [syncState, syncAction, syncPending] = useActionState(syncEmailAccountNow, undefined);
+  useActionToast(syncState, "Mailbox synced.", { toastErrors: false });
+  const [disconnectState, disconnectAction, disconnectPending] = useActionState(disconnectEmailAccount, undefined);
+  useActionToast(disconnectState, "Mailbox disconnected.", { toastErrors: false });
 
   if (account) {
     return (
@@ -40,19 +46,20 @@ export function EmailAccountForm({
           )}
         </div>
         <div className="flex gap-2">
-          <form action={syncEmailAccountNow}>
-            <button type="submit" className={cn(buttonClasses("secondary", "sm"))}>
+          <form action={syncAction}>
+            <button type="submit" disabled={syncPending} className={cn(buttonClasses("secondary", "sm"))}>
               <RefreshCw className="h-3.5 w-3.5" />
-              Sync now
+              {syncPending ? "Syncing…" : "Sync now"}
             </button>
           </form>
-          <form action={disconnectEmailAccount}>
+          <form action={disconnectAction}>
             <ConfirmSubmitButton
               confirmMessage="Disconnect this mailbox? Sync will stop until you reconnect."
               variant="secondary"
               size="sm"
+              disabled={disconnectPending}
             >
-              Disconnect
+              {disconnectPending ? "Disconnecting…" : "Disconnect"}
             </ConfirmSubmitButton>
           </form>
         </div>
@@ -128,7 +135,7 @@ export function EmailAccountForm({
         SMTP uses SSL/TLS (uncheck for STARTTLS on port 587)
       </label>
 
-      {state?.error && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
+      {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
 
       <Button type="submit" disabled={pending}>
         {pending ? "Testing connection…" : "Connect"}
