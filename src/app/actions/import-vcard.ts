@@ -1,6 +1,6 @@
 "use server";
 
-import { findOrCreateCompanyByName } from "@/lib/companies";
+import { deriveCompanyDomain, findOrCreateCompanyByName } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
 import { parseVCards } from "@/lib/vcard";
 import { requireAdminAction } from "@/lib/auth/dal";
@@ -32,7 +32,11 @@ export async function importVCard(formData: FormData): Promise<ImportVCardResult
     return { status: "error", message: "That vCard has no name on it — enter the details manually below." };
   }
 
-  const company = await findOrCreateCompanyByName(card.companyName);
+  const company = await findOrCreateCompanyByName(card.companyName, {
+    domain: card.email ? deriveCompanyDomain(card.email) : null,
+    phone: card.companyPhone,
+    address: card.companyAddress,
+  });
 
   return {
     status: "ok",

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { describeAiError, getGeminiClient, isAiConfigured } from "@/lib/ai/client";
-import { findOrCreateCompanyByName } from "@/lib/companies";
+import { deriveCompanyDomain, findOrCreateCompanyByName, normalizeDomain } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
 import { requireAdminAction } from "@/lib/auth/dal";
 
@@ -20,6 +20,17 @@ const CardSchema = z.object({
     .describe(
       "The best single phone number to reach them on, if printed on the card (prefer mobile over office/fax if more than one is present). Empty string otherwise.",
     ),
+  companyPhone: z
+    .string()
+    .describe(
+      "The company's own office/switchboard number, if printed and distinguishable from the person's own mobile number above. Empty string otherwise.",
+    ),
+  companyAddress: z
+    .string()
+    .describe("The company's postal/office address, if printed on the card. Empty string otherwise."),
+  companyWebsite: z
+    .string()
+    .describe("The company's website, if printed on the card (e.g. www.acme.com). Empty string otherwise."),
 });
 
 export type ScanCardResult = { status: "ok"; data: ContactDraft } | { status: "error"; message: string };
@@ -84,7 +95,15 @@ export async function scanBusinessCard(formData: FormData): Promise<ScanCardResu
     };
   }
 
-  const company = await findOrCreateCompanyByName(parsed.companyName);
+  // Prefer the card's own printed website over guessing from the contact's
+  // email domain — a business card sometimes lists a personal-looking
+  // email (e.g. a founder's Gmail) alongside a real company site.
+  const domain = normalizeDomain(parsed.companyWebsite) || (parsed.email ? deriveCompanyDomain(parsed.email) : null);
+  const company = await findOrCreateCompanyByName(parsed.companyName, {
+    domain,
+    phone: parsed.companyPhone,
+    address: parsed.companyAddress,
+  });
 
   return {
     status: "ok",

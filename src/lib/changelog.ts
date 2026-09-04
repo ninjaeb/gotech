@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.45",
+    date: "2026-09-04",
+    title: "Link a deal from a Company's quick task form, and richer company data on import",
+    changes: [
+      "A Company page's quick \"Add task\" form now has a Deal picker (when the company has one or more) so a task can be tied to the right deal without opening the full task form",
+      "Scanning a business card or importing a .vcf now also fills in a new (or existing, if blank) company's website domain, phone, and address — the domain from the card's own printed website or the contact's email, phone/address from the card or the vCard's work-typed fields — never overwriting anything already set",
+    ],
+  },
+  {
     version: "1.44",
     date: "2026-09-04",
     title: "Searchable company, contact, and deal pickers",
