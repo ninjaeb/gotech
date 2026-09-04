@@ -128,7 +128,7 @@ export function AttachmentField({
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-neutral-800 dark:hover:text-slate-300"
+          className="flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-violet-500 hover:bg-violet-50 hover:text-violet-600 dark:text-violet-400 dark:hover:bg-violet-950 dark:hover:text-violet-300"
         >
           <Paperclip className="h-3.5 w-3.5" />
           Attach file

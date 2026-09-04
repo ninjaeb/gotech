@@ -147,7 +147,7 @@ export function SequenceForm({
                   onClick={() => removeRow(row.key)}
                   disabled={rows.length === 1}
                   aria-label="Remove step"
-                  className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-rose-950"
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

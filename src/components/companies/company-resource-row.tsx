@@ -59,7 +59,7 @@ export function CompanyResourceRow({
           type="button"
           onClick={() => setEditing(true)}
           aria-label="Edit resource"
-          className="rounded p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+          className="rounded p-1.5 text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-300"
         >
           <Pencil className="h-4 w-4" />
         </button>
@@ -68,7 +68,7 @@ export function CompanyResourceRow({
             confirmMessage="Remove this resource link?"
             variant="ghost"
             size="sm"
-            className="!px-1.5 text-slate-400 hover:text-rose-600"
+            className="!px-1.5 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
           >
             <Trash2 className="h-4 w-4" />
           </ConfirmSubmitButton>

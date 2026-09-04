@@ -67,7 +67,7 @@ export function UserRateEditor({
     <button
       type="button"
       onClick={() => setEditing(true)}
-      className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+      className="flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300"
       title="Set hourly billing rate"
     >
       {hourlyRate !== null ? `${formatCurrency(hourlyRate, currency)}/hr` : "No rate set"}

@@ -190,7 +190,7 @@ export function PipelineStagesForm({
                 onClick={() => removeRow(row.key)}
                 disabled={rows.length === 1}
                 aria-label="Remove stage"
-                className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-rose-950"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

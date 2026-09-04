@@ -55,6 +55,22 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   OTHER: "Other",
 };
 
+// Deliberately avoids emerald/amber/rose — TASK_PRIORITY_BADGE_CLASSES
+// already owns those, and a type badge always renders directly next to a
+// priority badge on the same row, so reusing one of those three would make
+// two adjacent pills look like duplicates (e.g. a Medium-priority Meeting
+// showing "amber, amber" side by side).
+export const TASK_TYPE_BADGE_CLASSES: Record<TaskType, string> = {
+  CALL: "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950 dark:text-violet-300 dark:ring-violet-500/30",
+  EMAIL: "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  MEETING: "bg-cyan-50 text-cyan-700 ring-cyan-600/20 dark:bg-cyan-950 dark:text-cyan-300 dark:ring-cyan-500/30",
+  FOLLOW_UP:
+    "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950 dark:text-orange-300 dark:ring-orange-500/30",
+  MILESTONE:
+    "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-600/20 dark:bg-fuchsia-950 dark:text-fuchsia-300 dark:ring-fuchsia-500/30",
+  OTHER: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+};
+
 // Declared low-to-high to match the schema enum's ordinal order, so
 // `orderBy: { priority: "desc" }` (HIGH first) lines up with this list.
 export const TASK_PRIORITIES: TaskPriority[] = ["LOW", "MEDIUM", "HIGH"];

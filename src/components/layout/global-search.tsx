@@ -8,12 +8,21 @@ import { globalSearch, type SearchResultItem, type SearchResults } from "@/app/a
 
 const EMPTY_RESULTS: SearchResults = { companies: [], contacts: [], deals: [], tasks: [], projects: [] };
 
-const GROUPS: { key: keyof SearchResults; label: string; icon: LucideIcon; href: (id: string) => string }[] = [
-  { key: "companies", label: "Companies", icon: Building2, href: (id) => `/companies/${id}` },
-  { key: "contacts", label: "Contacts", icon: Users, href: (id) => `/contacts/${id}` },
-  { key: "deals", label: "Deals", icon: KanbanSquare, href: (id) => `/deals/${id}` },
-  { key: "projects", label: "Projects", icon: FolderKanban, href: (id) => `/projects/${id}` },
-  { key: "tasks", label: "Tasks", icon: CheckSquare, href: (id) => `/tasks/${id}/edit` },
+// iconColor matches the sidebar nav's per-section identity color (see
+// sidebar.tsx) so a content type reads as the same color whether you're
+// looking at the nav or a search result.
+const GROUPS: {
+  key: keyof SearchResults;
+  label: string;
+  icon: LucideIcon;
+  href: (id: string) => string;
+  iconColor: string;
+}[] = [
+  { key: "companies", label: "Companies", icon: Building2, href: (id) => `/companies/${id}`, iconColor: "text-sky-500 dark:text-sky-400" },
+  { key: "contacts", label: "Contacts", icon: Users, href: (id) => `/contacts/${id}`, iconColor: "text-cyan-500 dark:text-cyan-400" },
+  { key: "deals", label: "Deals", icon: KanbanSquare, href: (id) => `/deals/${id}`, iconColor: "text-fuchsia-500 dark:text-fuchsia-400" },
+  { key: "projects", label: "Projects", icon: FolderKanban, href: (id) => `/projects/${id}`, iconColor: "text-orange-500 dark:text-orange-400" },
+  { key: "tasks", label: "Tasks", icon: CheckSquare, href: (id) => `/tasks/${id}/edit`, iconColor: "text-rose-500 dark:text-rose-400" },
 ];
 
 export function GlobalSearch() {
@@ -125,7 +134,7 @@ export function GlobalSearch() {
                       onClick={() => go(group.href(item.id))}
                       className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-neutral-800"
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <Icon className={`h-3.5 w-3.5 shrink-0 ${group.iconColor}`} />
                       <span className="min-w-0 flex-1 truncate">{item.label}</span>
                       {item.sublabel && (
                         <span className="shrink-0 truncate text-xs text-slate-400">{item.sublabel}</span>

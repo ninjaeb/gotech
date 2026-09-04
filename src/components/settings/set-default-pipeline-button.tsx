@@ -54,7 +54,7 @@ export function SetDefaultPipelineButton({
         disabled={pending}
         title="Set as default"
         aria-label="Set as default"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-amber-500 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300"
       >
         <Star className="h-3.5 w-3.5" />
       </button>

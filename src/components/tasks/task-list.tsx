@@ -2,7 +2,12 @@ import Link from "next/link";
 import { Clock, Pencil, Trash2, User as UserIcon, Users } from "lucide-react";
 import type { Company, Contact, Deal, Project, Task, User } from "@/generated/prisma/client";
 import { deleteTask, toggleTaskComplete } from "@/app/actions/tasks";
-import { TASK_PRIORITY_BADGE_CLASSES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
+import {
+  TASK_PRIORITY_BADGE_CLASSES,
+  TASK_PRIORITY_LABELS,
+  TASK_TYPE_BADGE_CLASSES,
+  TASK_TYPE_LABELS,
+} from "@/lib/labels";
 import { relativeToToday, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
@@ -143,7 +148,7 @@ export function TaskList({
                 >
                   {task.title}
                 </Link>
-                <Badge>{TASK_TYPE_LABELS[task.type]}</Badge>
+                <Badge className={TASK_TYPE_BADGE_CLASSES[task.type]}>{TASK_TYPE_LABELS[task.type]}</Badge>
                 <Badge className={TASK_PRIORITY_BADGE_CLASSES[task.priority]}>
                   {TASK_PRIORITY_LABELS[task.priority]}
                 </Badge>
@@ -238,7 +243,7 @@ export function TaskList({
               <Link
                 href={`/tasks/${task.id}/time`}
                 aria-label="Log time"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sky-500 transition-colors hover:bg-sky-50 hover:text-sky-600 dark:text-sky-400 dark:hover:bg-sky-950 dark:hover:text-sky-300"
               >
                 <Clock className="h-4 w-4" />
               </Link>
@@ -247,7 +252,7 @@ export function TaskList({
                   <Link
                     href={`/tasks/${task.id}/edit`}
                     aria-label="Edit task"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-300"
                   >
                     <Pencil className="h-4 w-4" />
                   </Link>
@@ -256,7 +261,7 @@ export function TaskList({
                       confirmMessage="Delete this task?"
                       variant="ghost"
                       size="sm"
-                      className="!px-1.5 text-slate-400 hover:text-rose-600"
+                      className="!px-1.5 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
                     >
                       <Trash2 className="h-4 w-4" />
                     </ConfirmSubmitButton>

@@ -228,7 +228,7 @@ export function QuoteForm({
                   type="button"
                   onClick={() => removeItem(item.key)}
                   disabled={items.length === 1}
-                  className="flex h-9 w-9 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-rose-950"
+                  className="flex h-9 w-9 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
                   aria-label="Remove line item"
                 >
                   <Trash2 className="h-4 w-4" />

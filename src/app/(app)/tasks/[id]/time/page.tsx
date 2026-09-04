@@ -106,7 +106,7 @@ export default async function TaskTimePage({
                       confirmMessage="Delete this time entry?"
                       variant="ghost"
                       size="sm"
-                      className="!px-1.5 text-slate-400 hover:text-rose-600"
+                      className="!px-1.5 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
                     >
                       <Trash2 className="h-4 w-4" />
                     </ConfirmSubmitButton>

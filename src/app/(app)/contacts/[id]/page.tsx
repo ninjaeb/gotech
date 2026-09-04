@@ -181,7 +181,7 @@ export default async function ContactDetailPage({
                               href={`/whatsapp/${contact.id}`}
                               title="View WhatsApp conversation"
                               aria-label="View WhatsApp conversation"
-                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
+                              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-emerald-500 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950 dark:hover:text-emerald-300"
                             >
                               <MessagesSquare className="h-4 w-4" />
                             </Link>

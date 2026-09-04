@@ -17,7 +17,12 @@ import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
 import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
-import { TASK_PRIORITY_BADGE_CLASSES, TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
+import {
+  TASK_PRIORITY_BADGE_CLASSES,
+  TASK_PRIORITY_LABELS,
+  TASK_TYPE_BADGE_CLASSES,
+  TASK_TYPE_LABELS,
+} from "@/lib/labels";
 import { formatDate, formatMinutes, fullName } from "@/lib/format";
 
 export default async function TaskDetailPage({
@@ -93,7 +98,7 @@ export default async function TaskDetailPage({
         title={task.title}
         description={
           <span className="inline-flex flex-wrap items-center gap-2">
-            <Badge>{TASK_TYPE_LABELS[task.type]}</Badge>
+            <Badge className={TASK_TYPE_BADGE_CLASSES[task.type]}>{TASK_TYPE_LABELS[task.type]}</Badge>
             <Badge className={TASK_PRIORITY_BADGE_CLASSES[task.priority]}>
               {TASK_PRIORITY_LABELS[task.priority]}
             </Badge>

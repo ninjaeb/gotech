@@ -23,17 +23,21 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import { NotificationBell, type NotificationItem } from "@/components/layout/notification-bell";
 
+// Same NAV_ITEMS + iconColor convention as sidebar.tsx (desktop) — see the
+// comment there for why each color was picked. Kept in sync manually since
+// this file already duplicates sidebar.tsx's nav structure rather than
+// sharing it.
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: true },
-  { href: "/companies", label: "Companies", icon: Building2, adminOnly: true },
-  { href: "/contacts", label: "Contacts", icon: Users, adminOnly: true },
-  { href: "/lists", label: "Lists", icon: ListFilter, adminOnly: true },
-  { href: "/deals", label: "Deals", icon: KanbanSquare, adminOnly: true },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true },
-  { href: "/projects", label: "Projects", icon: FolderKanban, adminOnly: false },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, adminOnly: false },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true },
-  { href: "/settings", label: "Settings", icon: Settings, adminOnly: false },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: true, iconColor: "text-slate-400" },
+  { href: "/companies", label: "Companies", icon: Building2, adminOnly: true, iconColor: "text-sky-400" },
+  { href: "/contacts", label: "Contacts", icon: Users, adminOnly: true, iconColor: "text-cyan-400" },
+  { href: "/lists", label: "Lists", icon: ListFilter, adminOnly: true, iconColor: "text-violet-400" },
+  { href: "/deals", label: "Deals", icon: KanbanSquare, adminOnly: true, iconColor: "text-fuchsia-400" },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true, iconColor: "text-emerald-400" },
+  { href: "/projects", label: "Projects", icon: FolderKanban, adminOnly: false, iconColor: "text-orange-400" },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare, adminOnly: false, iconColor: "text-rose-400" },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true, iconColor: "text-amber-400" },
+  { href: "/settings", label: "Settings", icon: Settings, adminOnly: false, iconColor: "text-slate-400" },
 ];
 
 export function MobileNav({
@@ -123,7 +127,7 @@ export function MobileNav({
                           : "text-slate-400 hover:bg-slate-900 hover:text-slate-100",
                       )}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className={cn("h-4 w-4 shrink-0", active ? "text-indigo-300" : item.iconColor)} />
                       {item.label}
                       {badgeCount > 0 && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-semibold text-white">
