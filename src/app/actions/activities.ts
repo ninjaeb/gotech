@@ -9,6 +9,7 @@ import { findMentionedUserIds } from "@/lib/mentions";
 import { fullName } from "@/lib/format";
 import { notificationHref } from "@/lib/notification-href";
 import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
+import { parseAttachmentFiles } from "@/lib/attachment";
 
 const noteSchema = z.object({
   content: z.string().trim().min(1, "Note cannot be empty"),
@@ -55,7 +56,9 @@ async function describeActivityParent(data: {
   return null;
 }
 
-export async function addActivity(formData: FormData) {
+export type AddActivityState = { error: string } | { success: true } | undefined;
+
+export async function addActivity(_prevState: AddActivityState, formData: FormData): Promise<AddActivityState> {
   const parsed = noteSchema.safeParse({
     content: formData.get("content"),
     type: formData.get("type") || ActivityType.NOTE,
@@ -66,9 +69,16 @@ export async function addActivity(formData: FormData) {
     taskId: formData.get("taskId"),
   });
   if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Invalid activity data");
+    return { error: parsed.error.issues[0]?.message ?? "Invalid activity data" };
   }
   const data = parsed.data;
+
+  let attachments: Awaited<ReturnType<typeof parseAttachmentFiles>>;
+  try {
+    attachments = await parseAttachmentFiles(formData);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Attachment could not be read." };
+  }
 
   const [currentUser, users] = await Promise.all([
     getCurrentUser(),
@@ -84,6 +94,7 @@ export async function addActivity(formData: FormData) {
       dealId: data.dealId || null,
       projectId: data.projectId || null,
       taskId: data.taskId || null,
+      attachments: { create: attachments },
     },
   });
 
@@ -116,4 +127,5 @@ export async function addActivity(formData: FormData) {
   if (data.dealId) revalidatePath(`/deals/${data.dealId}`);
   if (data.projectId) revalidatePath(`/projects/${data.projectId}`);
   if (data.taskId) revalidatePath(`/tasks/${data.taskId}`);
+  return { success: true };
 }

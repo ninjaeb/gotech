@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Linkify } from "@/components/ui/linkify";
+import { AttachmentPreview } from "@/components/activity/attachment-preview";
 import { MailLink, WhatsAppLink } from "@/components/ui/channel-links";
 import { SendEmailButton } from "@/components/contacts/send-email-button";
 import { SendWhatsAppButton } from "@/components/contacts/send-whatsapp-button";
@@ -42,7 +43,12 @@ export default async function TaskDetailPage({
         },
         assignees: { include: { user: { select: { id: true, name: true } } } },
         followers: { include: { user: { select: { id: true, name: true } } } },
-        activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 30,
+          include: { attachments: { select: { id: true, fileName: true, mimeType: true } } },
+        },
+        attachments: { select: { id: true, fileName: true, mimeType: true }, orderBy: { createdAt: "asc" } },
       },
     }),
     db.timeEntry.aggregate({ where: { taskId: id }, _sum: { minutes: true } }),
@@ -142,6 +148,13 @@ export default async function TaskDetailPage({
             <CardBody className="space-y-4">
               {task.description && (
                 <Linkify text={task.description} className="text-sm text-slate-700 dark:text-slate-300" />
+              )}
+              {task.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {task.attachments.map((attachment) => (
+                    <AttachmentPreview key={attachment.id} attachment={attachment} />
+                  ))}
+                </div>
               )}
 
               <div className="grid gap-3 text-sm sm:grid-cols-2">

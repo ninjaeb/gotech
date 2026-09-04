@@ -600,6 +600,7 @@ model Task {
   followers                      TaskFollower[]
   notifications                  Notification[]
   activities                     Activity[]
+  attachments                    Attachment[]
   mentionNotifications           WhatsAppMentionNotification[]
   pendingAssignmentNotifications PendingTaskAssignmentNotification[]
 
@@ -714,6 +715,7 @@ model Activity {
   whatsappMediaData     String?            @db.LongText
 
   notifications Notification[]
+  attachments   Attachment[]
 
   @@index([contactId])
   @@index([companyId])
@@ -721,6 +723,32 @@ model Activity {
   @@index([projectId])
   @@index([taskId])
   @@index([createdAt])
+}
+
+// A file or pasted image attached to an Activity note or a Task's
+// description — same data:-URL-in-the-database approach as
+// Activity.whatsappMediaData above (no durable filesystem to write to on
+// this app's cPanel deploy target), and likewise served through
+// /api/attachments/[id] rather than embedded inline, so a page with many
+// notes never has to re-serialize every attachment's bytes just to render
+// the timeline. Exactly one of activityId/taskId is set per row — same
+// "one of several optional parents" convention as Activity itself.
+model Attachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  mimeType  String
+  size      Int
+  data      String   @db.LongText
+  createdAt DateTime @default(now())
+
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activityId String?
+
+  task   Task?   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String?
+
+  @@index([activityId])
+  @@index([taskId])
 }
 
 // An @mention in an Activity note. content is composed once at creation

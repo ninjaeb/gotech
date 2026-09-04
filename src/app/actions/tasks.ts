@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { ActivityType, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { getCurrentUser, requireAdminAction } from "@/lib/auth/dal";
 import { findMentionedUserIds } from "@/lib/mentions";
+import { parseAttachmentFiles } from "@/lib/attachment";
 import { notifyMentionsViaWhatsApp, notifyTaskStatusViaWhatsApp } from "@/lib/whatsapp";
 import {
   scheduleOrSendTaskAssignmentNotification,
@@ -183,6 +184,7 @@ export async function updateTask(id: string, formData: FormData) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
   }
   const data = parsed.data;
+  const attachments = await parseAttachmentFiles(formData);
   const currentUser = await getCurrentUser();
   const assigneeIds = parseAssigneeIds(formData);
   const previous = await db.task.findUniqueOrThrow({
@@ -217,6 +219,9 @@ export async function updateTask(id: string, formData: FormData) {
       dealId: data.dealId || null,
       assignees: { deleteMany: {}, create: assigneeIds.map((userId) => ({ userId })) },
       followers: { deleteMany: {}, create: [...followerIds].map((userId) => ({ userId })) },
+      // Additive, not a replace — an edit that doesn't touch the description
+      // shouldn't drop attachments a previous save already added.
+      attachments: { create: attachments },
     },
   });
   await notifyTaskMentions(task.id, task.title, task.description, previous.description);

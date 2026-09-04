@@ -10,6 +10,7 @@ import {
 import type { Activity } from "@/generated/prisma/client";
 import { formatDateTime } from "@/lib/format";
 import { ActivityContent } from "@/components/activity/activity-content";
+import { AttachmentPreview, type AttachmentInfo } from "@/components/activity/attachment-preview";
 import { WhatsAppMediaPreview } from "@/components/whatsapp/whatsapp-media";
 import type { UserOption } from "@/lib/mentions";
 
@@ -27,7 +28,7 @@ export function ActivityFeed({
   activities,
   users,
 }: {
-  activities: Activity[];
+  activities: (Activity & { attachments: AttachmentInfo[] })[];
   users: UserOption[];
 }) {
   if (activities.length === 0) {
@@ -63,6 +64,13 @@ export function ActivityFeed({
                       name: activity.whatsappMediaName,
                     }}
                   />
+                </div>
+              )}
+              {activity.attachments.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {activity.attachments.map((attachment) => (
+                    <AttachmentPreview key={attachment.id} attachment={attachment} />
+                  ))}
                 </div>
               )}
               <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500">

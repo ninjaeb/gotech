@@ -65,7 +65,11 @@ export default async function ContactDetailPage({
             _count: { select: { followers: true } },
           },
         },
-        activities: { orderBy: { createdAt: "desc" }, take: 30 },
+        activities: {
+          orderBy: { createdAt: "desc" },
+          take: 30,
+          include: { attachments: { select: { id: true, fileName: true, mimeType: true } } },
+        },
         clientUser: { select: { passwordHash: true, inviteToken: true } },
         sequenceEnrollments: {
           orderBy: { enrolledAt: "desc" },

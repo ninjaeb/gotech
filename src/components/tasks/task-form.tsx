@@ -5,7 +5,8 @@ import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
 import { DatePicker } from "@/components/ui/date-picker";
-import { MentionTextarea } from "@/components/activity/mention-textarea";
+import { AttachmentField } from "@/components/activity/attachment-field";
+import { AttachmentPreview, type AttachmentInfo } from "@/components/activity/attachment-preview";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { formatDateInput, fullName } from "@/lib/format";
 
@@ -27,6 +28,7 @@ export function TaskForm({
   users,
   assigneeIds = [],
   followerIds = [],
+  existingAttachments = [],
   submitLabel = "Save task",
 }: {
   action: (formData: FormData) => void;
@@ -37,6 +39,7 @@ export function TaskForm({
   users: UserOption[];
   assigneeIds?: string[];
   followerIds?: string[];
+  existingAttachments?: AttachmentInfo[];
   submitLabel?: string;
 }) {
   const [companyId, setCompanyId] = useState(task?.companyId ?? "");
@@ -79,7 +82,7 @@ export function TaskForm({
       </FieldGroup>
 
       <FieldGroup label="Description" htmlFor="description">
-        <MentionTextarea
+        <AttachmentField
           id="description"
           name="description"
           rows={3}
@@ -88,6 +91,13 @@ export function TaskForm({
           defaultValue={task?.description ?? ""}
           placeholder="@ to mention someone"
         />
+        {existingAttachments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {existingAttachments.map((attachment) => (
+              <AttachmentPreview key={attachment.id} attachment={attachment} />
+            ))}
+          </div>
+        )}
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-3">

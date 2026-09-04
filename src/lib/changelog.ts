@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.43",
+    date: "2026-09-04",
+    title: "Paste images and attach files to notes and task descriptions",
+    changes: [
+      "The note composer (on Companies, Contacts, Deals, Projects, and Tasks) and a task's Description field now take attachments — paste a screenshot straight from your clipboard, or click Attach file for anything else",
+      "Attachments show inline as an image preview, or a small file card you can open or download, wherever that note or task appears",
+      "5MB per file — a file over that is flagged right away, before you save",
+    ],
+  },
+  {
     version: "1.42",
     date: "2026-09-03",
     title: "Drag to reorder pipeline stages, and success confirmations everywhere",
