@@ -2,7 +2,7 @@ import type { Testimonial } from "@/generated/prisma/client";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { Badge } from "@/components/ui/badge";
 import { DeleteTestimonialButton } from "@/components/testimonials/delete-testimonial-button";
-import { RegenerateDraftButton } from "@/components/testimonials/regenerate-draft-button";
+import { TestimonialDraftEditor } from "@/components/testimonials/testimonial-draft-editor";
 import { StarRatingInput } from "@/components/testimonials/star-rating-input";
 import { formatDate } from "@/lib/format";
 
@@ -48,9 +48,9 @@ export function TestimonialRequestRow({
           )}
         </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="space-y-2">
+          <TestimonialDraftEditor testimonialId={testimonial.id} initialDraft={testimonial.aiDraft ?? ""} />
           <CopyLinkButton text={link} label="Copy link" />
-          <RegenerateDraftButton testimonialId={testimonial.id} />
         </div>
       )}
     </li>

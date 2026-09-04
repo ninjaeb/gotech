@@ -67,9 +67,11 @@ export async function requestTestimonial(contactId: string): Promise<ActionResul
 // Only overwrites aiDraft when a new one actually came back — a failed
 // regenerate (AI down, rate-limited) leaves whatever draft was already
 // there untouched instead of wiping it out. Reports whether it actually
-// found a new draft so the caller can give accurate feedback (e.g. "AI
-// isn't configured") instead of always claiming success.
-export async function regenerateTestimonialDraft(testimonialId: string): Promise<ActionResultWith<{ regenerated: boolean }>> {
+// found a new draft, and the draft text itself, so the caller can update
+// its own textarea in place instead of always claiming success.
+export async function regenerateTestimonialDraft(
+  testimonialId: string,
+): Promise<ActionResultWith<{ regenerated: boolean; draft: string | null }>> {
   try {
     await requireAdminAction();
   } catch {
@@ -80,16 +82,40 @@ export async function regenerateTestimonialDraft(testimonialId: string): Promise
       where: { id: testimonialId },
       select: { contactId: true, status: true },
     });
-    if (testimonial.status !== "PENDING") return { ok: true, regenerated: false };
+    if (testimonial.status !== "PENDING") return { ok: true, regenerated: false, draft: null };
     const aiDraft = await generateTestimonialDraft(testimonial.contactId);
     if (aiDraft) {
       await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
     }
     revalidatePath(`/contacts/${testimonial.contactId}`);
-    return { ok: true, regenerated: aiDraft !== null };
+    return { ok: true, regenerated: aiDraft !== null, draft: aiDraft };
   } catch (error) {
     console.error("regenerateTestimonialDraft failed:", error);
     return { ok: false, error: "Something went wrong regenerating the draft." };
+  }
+}
+
+// Lets staff hand-edit the AI draft before the client ever sees it.
+export async function updateTestimonialDraft(testimonialId: string, content: string): Promise<ActionResult> {
+  try {
+    await requireAdminAction();
+  } catch {
+    return { ok: false, error: "You don't have permission to do this." };
+  }
+  try {
+    const testimonial = await db.testimonial.findUniqueOrThrow({
+      where: { id: testimonialId },
+      select: { contactId: true, status: true },
+    });
+    if (testimonial.status !== "PENDING") {
+      return { ok: false, error: "This testimonial has already been submitted." };
+    }
+    await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft: content } });
+    revalidatePath(`/contacts/${testimonial.contactId}`);
+    return { ok: true };
+  } catch (error) {
+    console.error("updateTestimonialDraft failed:", error);
+    return { ok: false, error: "Something went wrong saving the draft." };
   }
 }
 
@@ -110,6 +136,51 @@ export async function deleteTestimonialRequest(testimonialId: string): Promise<A
     console.error("deleteTestimonialRequest failed:", error);
     return { ok: false, error: "Something went wrong deleting the request." };
   }
+}
+
+const REWRITE_SYSTEM_PROMPT =
+  "You improve a customer's own draft testimonial for a services company. Preserve their meaning, facts, and voice exactly — never invent new claims, numbers, or outcomes that aren't already there. Just make it read more clearly and warmly, first person, roughly the same length.";
+
+const RewriteSchema = z.object({
+  testimonial: z
+    .string()
+    .describe("The improved testimonial, first person, preserving the original meaning and facts exactly."),
+});
+
+// Public, unauthenticated — the client rewriting their own in-progress
+// draft before submitting. Scoped by the same unguessable token as the
+// rest of this page; blocked once SUBMITTED so it can't alter a
+// testimonial that's already final. An empty box falls back to the same
+// context-grounded draft used when the request was first created, so
+// "Rewrite with AI" also works as "write this for me" from a blank start.
+export async function rewriteTestimonialText(
+  token: string,
+  currentText: string,
+): Promise<ActionResultWith<{ draft: string }>> {
+  const testimonial = await db.testimonial.findUnique({
+    where: { token },
+    select: { id: true, status: true, contactId: true },
+  });
+  if (!testimonial) return { ok: false, error: "This link is no longer valid." };
+  if (testimonial.status === "SUBMITTED") {
+    return { ok: false, error: "This testimonial has already been submitted." };
+  }
+  if (!isAiConfigured()) return { ok: false, error: "AI rewriting isn't available right now." };
+
+  const trimmed = currentText.trim();
+  if (!trimmed) {
+    const draft = await generateTestimonialDraft(testimonial.contactId);
+    if (!draft) return { ok: false, error: "Couldn't generate a draft right now — try again in a moment." };
+    return { ok: true, draft };
+  }
+
+  const result = await callGemini(
+    RewriteSchema,
+    REWRITE_SYSTEM_PROMPT,
+    `Here is what the client wrote so far:\n\n${trimmed}\n\nImprove the wording — clearer, warmer, better flow — without changing what they actually said or adding anything new.`,
+  );
+  if (result.status !== "ok") return { ok: false, error: result.message };
+  return { ok: true, draft: result.data.testimonial };
 }
 
 const submitSchema = z.object({

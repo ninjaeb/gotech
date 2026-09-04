@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { isAiConfigured } from "@/lib/ai/client";
 import { TestimonialSubmitForm } from "@/components/testimonials/testimonial-submit-form";
 import { StarRatingInput } from "@/components/testimonials/star-rating-input";
 import { Card, CardBody } from "@/components/ui/card";
@@ -66,6 +67,7 @@ export default async function PublicTestimonialPage({
                   contactName={contactName}
                   authorTitleDefault={authorTitleDefault}
                   initialContent={testimonial.aiDraft ?? ""}
+                  aiAvailable={isAiConfigured()}
                 />
               </>
             )}
