@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup, Textarea } from "@/components/ui/field";
 
 const iconLinkClasses =
-  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200";
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-emerald-500 transition-colors hover:bg-emerald-50 hover:text-emerald-600 dark:text-emerald-400 dark:hover:bg-emerald-950 dark:hover:text-emerald-300";
 
 export function SendWhatsAppButton({
   contactId,

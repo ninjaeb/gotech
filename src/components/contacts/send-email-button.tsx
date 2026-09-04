@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Textarea } from "@/components/ui/field";
 
 const iconLinkClasses =
-  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-neutral-800 dark:hover:text-slate-200";
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sky-500 transition-colors hover:bg-sky-50 hover:text-sky-600 dark:text-sky-400 dark:hover:bg-sky-950 dark:hover:text-sky-300";
 
 export function SendEmailButton({
   contactId,
