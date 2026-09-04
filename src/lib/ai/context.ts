@@ -138,6 +138,45 @@ export async function buildEntityContext(ref: EntityRef): Promise<EntityContext 
   return buildDealContext(ref.dealId);
 }
 
+// What this contact actually bought, for drafting a testimonial that
+// references real services rather than generic praise — the item's own
+// free-text `description` is the source of truth (it's a copy taken at
+// quote-creation time), not the live ServicePackage catalog name, which
+// may have since changed or been deleted.
+export async function buildTestimonialContext(contactId: string): Promise<EntityContext | null> {
+  const contact = await db.contact.findUnique({
+    where: { id: contactId },
+    include: {
+      company: true,
+      deals: {
+        where: { wonAt: { not: null } },
+        orderBy: { wonAt: "desc" },
+        include: {
+          quotes: {
+            where: { status: "ACCEPTED" },
+            include: { items: { orderBy: { sortOrder: "asc" } } },
+          },
+        },
+      },
+    },
+  });
+  if (!contact) return null;
+
+  const name = fullName(contact.firstName, contact.lastName);
+  const lines: string[] = [];
+  lines.push(`Client: ${name}${contact.title ? `, ${contact.title}` : ""}${contact.company ? ` at ${contact.company.name}` : ""}`);
+
+  const descriptions = contact.deals.flatMap((deal) => deal.quotes.flatMap((quote) => quote.items.map((item) => item.description)));
+  if (descriptions.length > 0) {
+    lines.push("", "Services/products delivered to this client:");
+    for (const description of descriptions) lines.push(`- ${description}`);
+  } else {
+    lines.push("", "No specific purchased services are on file for this client — keep the testimonial general.");
+  }
+
+  return { label: name, contextText: lines.join("\n") };
+}
+
 export async function buildPipelineContext(): Promise<string> {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);

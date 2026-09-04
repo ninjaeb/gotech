@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.45",
+    date: "2026-09-04",
+    title: "AI-drafted testimonial requests",
+    changes: [
+      "Request testimonial on a Contact page generates a unique link and an AI-drafted starting testimonial based on what that client actually bought (their won deals' accepted quotes)",
+      "The client opens the link, edits the draft however they like, and submits — no login required",
+      "See submitted testimonials (with an optional star rating) right on the contact's page; regenerate the draft or copy the link again anytime before they submit",
+    ],
+  },
+  {
     version: "1.44",
     date: "2026-09-04",
     title: "Searchable company, contact, and deal pickers",

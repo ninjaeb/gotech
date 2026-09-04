@@ -9,7 +9,7 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // /api/whatsapp/webhook is Meta's server calling in directly (no session
 // cookie at all) — its own signature check (src/lib/whatsapp.ts) is what
 // authenticates it, not this proxy.
-const ALWAYS_PUBLIC_PREFIXES = ["/q/", "/lead", "/book", "/api/whatsapp/webhook"];
+const ALWAYS_PUBLIC_PREFIXES = ["/q/", "/lead", "/book", "/testimonial/", "/api/whatsapp/webhook"];
 
 // The client portal (/portal/*) is a second, independent visitor type with
 // its own cookie and signing key (see src/lib/portal/session.ts) — it's

@@ -348,6 +348,7 @@ model Contact {
   sequenceEnrollments  SequenceEnrollment[]
   mentionNotifications WhatsAppMentionNotification[]
   listMemberships      ContactListMember[]
+  testimonials         Testimonial[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -976,6 +977,37 @@ model QuoteItem {
 
   @@index([quoteId])
   @@index([servicePackageId])
+}
+
+enum TestimonialStatus {
+  PENDING
+  SUBMITTED
+}
+
+// A unique, unauthenticated link (see src/app/testimonial/[token]) sent to a
+// client so they can submit a testimonial. aiDraft is a starting point
+// generated from the contact's won deals' accepted quote items (see
+// buildTestimonialContext in src/lib/ai/context.ts) — theirs to rewrite
+// freely; content/rating/author fields stay null until they actually submit.
+model Testimonial {
+  id     String            @id @default(cuid())
+  token  String            @unique
+  status TestimonialStatus @default(PENDING)
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  aiDraft String? @db.Text
+
+  content     String?  @db.Text
+  rating      Int?
+  authorName  String?
+  authorTitle String?
+
+  createdAt   DateTime  @default(now())
+  submittedAt DateTime?
+
+  @@index([contactId])
 }
 
 // A saved, reusable line-item bundle — pick one when starting a new Quote

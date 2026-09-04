@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessagesSquare, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
+import { MessagesSquare, Pencil, Plus, Smartphone, Sparkles, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
 import { enrollContact, stopEnrollment } from "@/app/actions/sequence-enrollments";
+import { requestTestimonial } from "@/app/actions/testimonials";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import { WhatsAppLink, MailLink } from "@/components/ui/channel-links";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
+import { TestimonialRequestRow } from "@/components/testimonials/testimonial-request-row";
 import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
@@ -39,7 +41,11 @@ import { getSiteOrigin } from "@/lib/site-url";
 import { readSectionLayout } from "@/lib/section-layout";
 
 const DEFAULT_LAYOUT = {
-  main: ["deals"],
+  // Testimonials in main, not sidebar — a submitted quote is often a full
+  // paragraph plus a rating and byline, which reads cramped in the sidebar
+  // column's narrower width (its header wrapped awkwardly against the
+  // "Request testimonial" button there).
+  main: ["deals", "testimonials"],
   sidebar: ["aiAssistant", "tasks", "activity", "sequences", "clientPortal"],
 };
 
@@ -75,6 +81,7 @@ export default async function ContactDetailPage({
           orderBy: { enrolledAt: "desc" },
           include: { sequence: { select: { id: true, name: true } } },
         },
+        testimonials: { orderBy: { createdAt: "desc" } },
       },
     }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
@@ -393,6 +400,33 @@ export default async function ContactDetailPage({
                   <p className="text-slate-500 dark:text-slate-400">
                     Add an email and link a company to invite this contact to the portal.
                   </p>
+                )}
+              </CardBody>
+            </Card>
+          ),
+          testimonials: (
+            <Card>
+              <CardHeader>
+                <CardTitle>Testimonials ({contact.testimonials.length})</CardTitle>
+                <form action={requestTestimonial.bind(null, contact.id)}>
+                  <button type="submit" className={buttonClasses("secondary", "sm")}>
+                    <Sparkles className="h-4 w-4" />
+                    Request testimonial
+                  </button>
+                </form>
+              </CardHeader>
+              <CardBody>
+                {contact.testimonials.length === 0 ? (
+                  <EmptyState
+                    title="No testimonial requests yet."
+                    description="Generates a unique link with an AI-drafted starting point based on what this client bought — they edit it before submitting."
+                  />
+                ) : (
+                  <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                    {contact.testimonials.map((testimonial) => (
+                      <TestimonialRequestRow key={testimonial.id} testimonial={testimonial} siteOrigin={siteOrigin} />
+                    ))}
+                  </ul>
                 )}
               </CardBody>
             </Card>
