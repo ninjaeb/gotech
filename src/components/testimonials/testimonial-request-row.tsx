@@ -1,10 +1,8 @@
-import { RefreshCw, Trash2 } from "lucide-react";
 import type { Testimonial } from "@/generated/prisma/client";
-import { deleteTestimonialRequest, regenerateTestimonialDraft } from "@/app/actions/testimonials";
-import { Badge } from "@/components/ui/badge";
-import { buttonClasses } from "@/components/ui/button";
-import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
+import { Badge } from "@/components/ui/badge";
+import { DeleteTestimonialButton } from "@/components/testimonials/delete-testimonial-button";
+import { RegenerateDraftButton } from "@/components/testimonials/regenerate-draft-button";
 import { StarRatingInput } from "@/components/testimonials/star-rating-input";
 import { formatDate } from "@/lib/format";
 
@@ -33,16 +31,7 @@ export function TestimonialRequestRow({
             {formatDate(submitted && testimonial.submittedAt ? testimonial.submittedAt : testimonial.createdAt)}
           </span>
         </div>
-        <form action={deleteTestimonialRequest.bind(null, testimonial.id)}>
-          <ConfirmSubmitButton
-            confirmMessage="Delete this testimonial request?"
-            variant="ghost"
-            size="sm"
-            className="!px-1.5 text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </ConfirmSubmitButton>
-        </form>
+        <DeleteTestimonialButton testimonialId={testimonial.id} />
       </div>
 
       {submitted ? (
@@ -61,12 +50,7 @@ export function TestimonialRequestRow({
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <CopyLinkButton text={link} label="Copy link" />
-          <form action={regenerateTestimonialDraft.bind(null, testimonial.id)}>
-            <button type="submit" className={buttonClasses("ghost", "sm")}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              Regenerate draft
-            </button>
-          </form>
+          <RegenerateDraftButton testimonialId={testimonial.id} />
         </div>
       )}
     </li>

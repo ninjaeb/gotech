@@ -34,39 +34,82 @@ async function generateTestimonialDraft(contactId: string): Promise<string | nul
   return result.status === "ok" ? result.data.testimonial : null;
 }
 
-export async function requestTestimonial(contactId: string) {
-  await requireAdminAction();
-  const token = randomBytes(24).toString("base64url");
-  const aiDraft = await generateTestimonialDraft(contactId);
-  await db.testimonial.create({ data: { token, contactId, aiDraft } });
-  revalidatePath(`/contacts/${contactId}`);
+export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResultWith<T> = ({ ok: true } & T) | { ok: false; error: string };
+
+// These three actions return a result object instead of throwing, even for
+// unexpected failures (auth check, a DB error). Next.js redacts a thrown
+// error's message in production builds — it reaches the client as an opaque
+// "Minified React error #NNN" — so relying on error.message from a caught
+// throw silently regresses back to "the button doesn't seem to do
+// anything," just with extra steps. A returned value isn't subject to that
+// redaction, so it's the only reliable way to get a real message in front
+// of the user.
+
+export async function requestTestimonial(contactId: string): Promise<ActionResult> {
+  try {
+    await requireAdminAction();
+  } catch {
+    return { ok: false, error: "You don't have permission to request testimonials." };
+  }
+  try {
+    const token = randomBytes(24).toString("base64url");
+    const aiDraft = await generateTestimonialDraft(contactId);
+    await db.testimonial.create({ data: { token, contactId, aiDraft } });
+    revalidatePath(`/contacts/${contactId}`);
+    return { ok: true };
+  } catch (error) {
+    console.error("requestTestimonial failed:", error);
+    return { ok: false, error: "Something went wrong creating the testimonial request." };
+  }
 }
 
 // Only overwrites aiDraft when a new one actually came back — a failed
 // regenerate (AI down, rate-limited) leaves whatever draft was already
-// there untouched instead of wiping it out.
-export async function regenerateTestimonialDraft(testimonialId: string) {
-  await requireAdminAction();
-  const testimonial = await db.testimonial.findUniqueOrThrow({
-    where: { id: testimonialId },
-    select: { contactId: true, status: true },
-  });
-  if (testimonial.status !== "PENDING") return;
-  const aiDraft = await generateTestimonialDraft(testimonial.contactId);
-  if (aiDraft) {
-    await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
+// there untouched instead of wiping it out. Reports whether it actually
+// found a new draft so the caller can give accurate feedback (e.g. "AI
+// isn't configured") instead of always claiming success.
+export async function regenerateTestimonialDraft(testimonialId: string): Promise<ActionResultWith<{ regenerated: boolean }>> {
+  try {
+    await requireAdminAction();
+  } catch {
+    return { ok: false, error: "You don't have permission to do this." };
   }
-  revalidatePath(`/contacts/${testimonial.contactId}`);
+  try {
+    const testimonial = await db.testimonial.findUniqueOrThrow({
+      where: { id: testimonialId },
+      select: { contactId: true, status: true },
+    });
+    if (testimonial.status !== "PENDING") return { ok: true, regenerated: false };
+    const aiDraft = await generateTestimonialDraft(testimonial.contactId);
+    if (aiDraft) {
+      await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
+    }
+    revalidatePath(`/contacts/${testimonial.contactId}`);
+    return { ok: true, regenerated: aiDraft !== null };
+  } catch (error) {
+    console.error("regenerateTestimonialDraft failed:", error);
+    return { ok: false, error: "Something went wrong regenerating the draft." };
+  }
 }
 
-export async function deleteTestimonialRequest(testimonialId: string, formData: FormData) {
-  void formData;
-  await requireAdminAction();
-  const testimonial = await db.testimonial.delete({
-    where: { id: testimonialId },
-    select: { contactId: true },
-  });
-  revalidatePath(`/contacts/${testimonial.contactId}`);
+export async function deleteTestimonialRequest(testimonialId: string): Promise<ActionResult> {
+  try {
+    await requireAdminAction();
+  } catch {
+    return { ok: false, error: "You don't have permission to do this." };
+  }
+  try {
+    const testimonial = await db.testimonial.delete({
+      where: { id: testimonialId },
+      select: { contactId: true },
+    });
+    revalidatePath(`/contacts/${testimonial.contactId}`);
+    return { ok: true };
+  } catch (error) {
+    console.error("deleteTestimonialRequest failed:", error);
+    return { ok: false, error: "Something went wrong deleting the request." };
+  }
 }
 
 const submitSchema = z.object({

@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessagesSquare, Pencil, Plus, Smartphone, Sparkles, Trash2 } from "lucide-react";
+import { MessagesSquare, Pencil, Plus, Smartphone, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
 import { enrollContact, stopEnrollment } from "@/app/actions/sequence-enrollments";
-import { requestTestimonial } from "@/app/actions/testimonials";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +21,7 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { TestimonialRequestRow } from "@/components/testimonials/testimonial-request-row";
+import { TestimonialRequestButton } from "@/components/testimonials/testimonial-request-button";
 import { SectionBoard } from "@/components/layout/section-board";
 import { Linkify } from "@/components/ui/linkify";
 import { ContactAvatarZoom } from "@/components/contacts/contact-avatar-zoom";
@@ -408,12 +408,7 @@ export default async function ContactDetailPage({
             <Card>
               <CardHeader>
                 <CardTitle>Testimonials ({contact.testimonials.length})</CardTitle>
-                <form action={requestTestimonial.bind(null, contact.id)}>
-                  <button type="submit" className={buttonClasses("secondary", "sm")}>
-                    <Sparkles className="h-4 w-4" />
-                    Request testimonial
-                  </button>
-                </form>
+                <TestimonialRequestButton contactId={contact.id} />
               </CardHeader>
               <CardBody>
                 {contact.testimonials.length === 0 ? (
