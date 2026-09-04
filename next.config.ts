@@ -30,6 +30,20 @@ const nextConfig: NextConfig = {
       // import upload too.
       bodySizeLimit: "24mb",
     },
+    // Both the "Collecting page data" and "Generating static pages" build
+    // phases spawn one worker *process* per experimental.cpus (see
+    // getNumberOfWorkers in next/dist/build/index.js), which defaults to
+    // the host's *reported* CPU count (os.cpus().length) — on shared
+    // hosting that's typically the whole physical box's core count, not
+    // what this account's resource limits (CloudLinux LVE, on the cPanel
+    // host this deploys to) actually allow it to use concurrently. Left at
+    // that default, the build tried to spawn a worker per reported core
+    // (31 in production), the OS refused past the account's real
+    // thread/process ceiling ("OS can't spawn worker thread: Resource
+    // temporarily unavailable"), and the build crashed outright. Pinning
+    // this low keeps worker count independent of whatever core count the
+    // host happens to report.
+    cpus: 2,
   },
   ...(root ? { turbopack: { root } } : {}),
 };
