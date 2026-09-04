@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { AttachmentField } from "@/components/activity/attachment-field";
 import { AttachmentPreview, type AttachmentInfo } from "@/components/activity/attachment-preview";
@@ -126,49 +127,46 @@ export function TaskForm({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <FieldGroup label="Company" htmlFor="companyId">
-          <Select
+          <Combobox
             id="companyId"
             name="companyId"
             value={companyId}
-            onChange={(event) => handleCompanyChange(event.target.value)}
-          >
-            <option value="">—</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleCompanyChange}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...companies.map((company) => ({ value: company.id, label: company.name })),
+            ]}
+          />
         </FieldGroup>
         <FieldGroup label="Contact" htmlFor="contactId">
-          <Select
+          <Combobox
             id="contactId"
             name="contactId"
             value={contactId}
-            onChange={(event) => handleContactChange(event.target.value)}
-          >
-            <option value="">—</option>
-            {filteredContacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {fullName(contact.firstName, contact.lastName)}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleContactChange}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...filteredContacts.map((contact) => ({
+                value: contact.id,
+                label: fullName(contact.firstName, contact.lastName),
+              })),
+            ]}
+          />
         </FieldGroup>
         <FieldGroup label="Deal" htmlFor="dealId">
-          <Select
+          <Combobox
             id="dealId"
             name="dealId"
             value={dealId}
-            onChange={(event) => setDealId(event.target.value)}
-          >
-            <option value="">—</option>
-            {filteredDeals.map((deal) => (
-              <option key={deal.id} value={deal.id}>
-                {deal.title}
-              </option>
-            ))}
-          </Select>
+            onValueChange={setDealId}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...filteredDeals.map((deal) => ({ value: deal.id, label: deal.title })),
+            ]}
+          />
         </FieldGroup>
       </div>
 

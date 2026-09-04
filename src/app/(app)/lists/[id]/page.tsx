@@ -4,15 +4,15 @@ import { db } from "@/lib/db";
 import { getListContacts } from "@/lib/contact-list-query";
 import { getActiveSequences } from "@/lib/sequences";
 import { DYNAMIC_LIST_TEMPLATES, readTemplateKey } from "@/lib/contact-lists";
-import { addContactToList, deleteList, removeContactFromList } from "@/app/actions/contact-lists";
+import { deleteList, removeContactFromList } from "@/app/actions/contact-lists";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/field";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ContactAvatar } from "@/components/contacts/contact-avatar";
 import { BulkEnrollForm } from "@/components/lists/bulk-enroll-form";
+import { AddContactToListForm } from "@/components/lists/add-contact-to-list-form";
 import { fullName } from "@/lib/format";
 import { LIFECYCLE_STAGE_BADGE_CLASSES, LIFECYCLE_STAGE_LABELS } from "@/lib/labels";
 import { requireAdmin } from "@/lib/auth/dal";
@@ -85,21 +85,7 @@ export default async function ListDetailPage({ params }: { params: Promise<{ id:
         {list.type === "STATIC" && (
           <Card>
             <CardBody>
-              <form action={addContactToList.bind(null, list.id)} className="flex items-end gap-2">
-                <Select name="contactId" required defaultValue="" className="flex-1">
-                  <option value="" disabled>
-                    {availableContacts.length === 0 ? "Every contact is already in this list" : "Add a contact…"}
-                  </option>
-                  {availableContacts.map((contact) => (
-                    <option key={contact.id} value={contact.id}>
-                      {fullName(contact.firstName, contact.lastName)}
-                    </option>
-                  ))}
-                </Select>
-                <Button type="submit" size="sm" disabled={availableContacts.length === 0}>
-                  Add
-                </Button>
-              </form>
+              <AddContactToListForm listId={list.id} contacts={availableContacts} />
             </CardBody>
           </Card>
         )}
