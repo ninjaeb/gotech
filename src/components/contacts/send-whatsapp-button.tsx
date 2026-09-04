@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Send, Sparkles, X } from "lucide-react";
+import { MessageCirclePlus, Sparkles, X } from "lucide-react";
 import { draftFollowUp } from "@/app/actions/ai-insights";
 import { sendWhatsAppToContact } from "@/app/actions/whatsapp-send";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export function SendWhatsAppButton({
         aria-label="Send WhatsApp message via CRM"
         className={iconLinkClasses}
       >
-        <Send className="h-4 w-4" />
+        <MessageCirclePlus className="h-4 w-4" />
       </button>
 
       {open && (

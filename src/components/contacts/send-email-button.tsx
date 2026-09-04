@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Send, Sparkles, X } from "lucide-react";
+import { MailPlus, Sparkles, X } from "lucide-react";
 import { draftFollowUp } from "@/app/actions/ai-insights";
 import { sendEmailToContact } from "@/app/actions/email-send";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export function SendEmailButton({
         aria-label="Send email via CRM"
         className={iconLinkClasses}
       >
-        <Send className="h-4 w-4" />
+        <MailPlus className="h-4 w-4" />
       </button>
 
       {open && (
