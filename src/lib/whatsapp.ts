@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { getSiteOrigin } from "@/lib/site-url";
 import { notificationHref, type ActivityEntityRefs } from "@/lib/notification-href";
+import { splitFullName } from "@/lib/format";
 import type { WhatsAppAccount, WhatsAppMediaType, WhatsAppMessageStatus } from "@/generated/prisma/client";
 
 const GRAPH_API_VERSION = "v21.0";
@@ -42,6 +43,33 @@ export async function findContactIdByWhatsAppPhone(waId: string): Promise<string
     }
   }
   return suffixMatch;
+}
+
+// Used by the webhook so an inbound message from a number that matches no
+// existing Contact still shows up in the WhatsApp inbox — instead of
+// silently dropping it (the previous behavior), it creates a bare-bones
+// Contact for that number so the message flows through the exact same
+// Contact-keyed pipeline (Activity, the inbox list, unread tracking) as
+// every other conversation, with nothing new to build for it. Uses the
+// WhatsApp profile name Meta includes alongside the message when available
+// (real people almost always have one set), falling back to the phone
+// number itself so the conversation still has a legible label without it.
+export async function findOrCreateContactIdByWhatsAppPhone(waId: string, profileName?: string): Promise<string | null> {
+  const existing = await findContactIdByWhatsAppPhone(waId);
+  if (existing) return existing;
+
+  const digits = normalizePhone(waId);
+  if (!digits) return null;
+  const phone = `+${digits}`;
+
+  const trimmedName = profileName?.trim();
+  const { firstName, lastName } = trimmedName ? splitFullName(trimmedName) : { firstName: "", lastName: "" };
+
+  const created = await db.contact.create({
+    data: { firstName: firstName || phone, lastName: lastName || null, phone },
+    select: { id: true },
+  });
+  return created.id;
 }
 
 // Meta signs each webhook POST body with the App Secret via HMAC-SHA256,

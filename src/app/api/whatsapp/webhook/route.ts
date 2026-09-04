@@ -5,7 +5,7 @@ import { findUnambiguousOpenDeal } from "@/lib/email";
 import {
   WHATSAPP_ACCOUNT_ID,
   WHATSAPP_RECEIVED_PREFIX,
-  findContactIdByWhatsAppPhone,
+  findOrCreateContactIdByWhatsAppPhone,
   findPendingMentionNotification,
   sendMentionReplyViaWhatsApp,
   verifyWebhookSignature,
@@ -58,10 +58,15 @@ type WhatsAppStatusUpdate = {
   timestamp: string;
 };
 
+// The WhatsApp display name for each sender in this batch, alongside
+// `messages` — used to give an auto-created Contact (see the messages loop
+// below) a real name instead of just their phone number.
+type WhatsAppContactInfo = { wa_id: string; profile?: { name?: string } };
+
 type WhatsAppWebhookPayload = {
   entry?: {
     changes?: {
-      value?: { messages?: WhatsAppTextMessage[]; statuses?: WhatsAppStatusUpdate[] };
+      value?: { messages?: WhatsAppTextMessage[]; statuses?: WhatsAppStatusUpdate[]; contacts?: WhatsAppContactInfo[] };
     }[];
   }[];
 };
@@ -220,6 +225,14 @@ export async function POST(request: NextRequest) {
   const messages = (payload.entry ?? []).flatMap((entry) =>
     (entry.changes ?? []).flatMap((change) => change.value?.messages ?? []),
   );
+  const profileNames = new Map<string, string>();
+  for (const entry of payload.entry ?? []) {
+    for (const change of entry.changes ?? []) {
+      for (const contact of change.value?.contacts ?? []) {
+        if (contact.profile?.name) profileNames.set(contact.wa_id, contact.profile.name);
+      }
+    }
+  }
 
   for (const message of messages) {
     if (message.context?.id) {
@@ -230,7 +243,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const contactId = await findContactIdByWhatsAppPhone(message.from);
+    // Every number gets a conversation in the WhatsApp inbox, matched or
+    // created — see findOrCreateContactIdByWhatsAppPhone.
+    const contactId = await findOrCreateContactIdByWhatsAppPhone(message.from, profileNames.get(message.from));
     if (!contactId) continue;
 
     const dealId = await findUnambiguousOpenDeal(contactId);

@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.47",
+    date: "2026-09-04",
+    title: "WhatsApp now receives from every number, not just known contacts",
+    changes: [
+      "An inbound WhatsApp message from a number that doesn't match an existing contact now creates one automatically (named from their WhatsApp profile when available) instead of being silently dropped — every conversation now shows up in the WhatsApp inbox",
+    ],
+  },
+  {
     version: "1.46",
     date: "2026-09-04",
     title: "AI-drafted testimonial requests",
