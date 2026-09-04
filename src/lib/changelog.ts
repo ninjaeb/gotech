@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.44",
+    date: "2026-09-04",
+    title: "Searchable company, contact, and deal pickers",
+    changes: [
+      "Company/Contact/Deal fields on the Deal, Task, and Contact forms (and linking an existing contact to a company, or adding one to a list) are now type-to-search instead of a long scrolling dropdown — handy once you've got hundreds or thousands of companies",
+    ],
+  },
+  {
     version: "1.43",
     date: "2026-09-04",
     title: "Paste images and attach files to notes and task descriptions",
