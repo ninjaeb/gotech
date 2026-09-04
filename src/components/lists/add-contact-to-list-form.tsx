@@ -1,57 +1,50 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { linkExistingContact } from "@/app/actions/contacts";
+import { addContactToList } from "@/app/actions/contact-lists";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { fullName } from "@/lib/format";
 
-type ContactOption = {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  company: { name: string } | null;
-};
+type ContactOption = { id: string; firstName: string; lastName: string | null };
 
-export function LinkContactForm({
-  companyId,
+export function AddContactToListForm({
+  listId,
   contacts,
 }: {
-  companyId: string;
+  listId: string;
   contacts: ContactOption[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [contactId, setContactId] = useState("");
 
-  if (contacts.length === 0) return null;
-
   return (
     <form
       ref={formRef}
       action={(formData) => {
         startTransition(async () => {
-          await linkExistingContact(companyId, formData);
+          await addContactToList(listId, formData);
           formRef.current?.reset();
           setContactId("");
         });
       }}
-      className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-neutral-800"
+      className="flex items-end gap-2"
     >
       <Combobox
         name="contactId"
         value={contactId}
         onValueChange={setContactId}
-        placeholder="Link an existing contact…"
-        className="min-w-[12rem] flex-1"
+        placeholder={contacts.length === 0 ? "Every contact is already in this list" : "Add a contact…"}
+        disabled={contacts.length === 0}
+        className="flex-1"
         options={contacts.map((contact) => ({
           value: contact.id,
           label: fullName(contact.firstName, contact.lastName),
-          sublabel: contact.company?.name,
         }))}
       />
-      <Button type="submit" variant="secondary" size="sm" disabled={pending || !contactId}>
-        {pending ? "Linking…" : "Link"}
+      <Button type="submit" size="sm" disabled={pending || contacts.length === 0 || !contactId}>
+        {pending ? "Adding…" : "Add"}
       </Button>
     </form>
   );

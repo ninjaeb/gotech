@@ -5,6 +5,7 @@ import type { Company, Contact, LeadSource } from "@/generated/prisma/client";
 import type { DealFormState } from "@/app/actions/deals";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { formatDateInput, fullName } from "@/lib/format";
 import { LEAD_SOURCES, LEAD_SOURCE_LABELS } from "@/lib/labels";
@@ -173,34 +174,33 @@ export function DealForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Company" htmlFor="companyId">
-          <Select
+          <Combobox
             id="companyId"
             name="companyId"
             value={companyId}
-            onChange={(event) => handleCompanyChange(event.target.value)}
-          >
-            <option value="">No company</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleCompanyChange}
+            placeholder="No company"
+            options={[
+              { value: "", label: "No company" },
+              ...companies.map((company) => ({ value: company.id, label: company.name })),
+            ]}
+          />
         </FieldGroup>
         <FieldGroup label="Contact" htmlFor="contactId">
-          <Select
+          <Combobox
             id="contactId"
             name="contactId"
             value={contactId}
-            onChange={(event) => handleContactChange(event.target.value)}
-          >
-            <option value="">No contact</option>
-            {filteredContacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {fullName(contact.firstName, contact.lastName)}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleContactChange}
+            placeholder="No contact"
+            options={[
+              { value: "", label: "No contact" },
+              ...filteredContacts.map((contact) => ({
+                value: contact.id,
+                label: fullName(contact.firstName, contact.lastName),
+              })),
+            ]}
+          />
         </FieldGroup>
       </div>
 

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { fullName } from "@/lib/format";
@@ -113,49 +114,46 @@ export function GlobalTaskForm({
           </Select>
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="g-companyId">
-          <Select
+          <Combobox
             id="g-companyId"
             name="companyId"
             value={companyId}
-            onChange={(event) => handleCompanyChange(event.target.value)}
-          >
-            <option value="">—</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleCompanyChange}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...companies.map((company) => ({ value: company.id, label: company.name })),
+            ]}
+          />
         </FieldGroup>
         <FieldGroup label="Contact" htmlFor="g-contactId">
-          <Select
+          <Combobox
             id="g-contactId"
             name="contactId"
             value={contactId}
-            onChange={(event) => handleContactChange(event.target.value)}
-          >
-            <option value="">—</option>
-            {filteredContacts.map((contact) => (
-              <option key={contact.id} value={contact.id}>
-                {fullName(contact.firstName, contact.lastName)}
-              </option>
-            ))}
-          </Select>
+            onValueChange={handleContactChange}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...filteredContacts.map((contact) => ({
+                value: contact.id,
+                label: fullName(contact.firstName, contact.lastName),
+              })),
+            ]}
+          />
         </FieldGroup>
         <FieldGroup label="Deal" htmlFor="g-dealId">
-          <Select
+          <Combobox
             id="g-dealId"
             name="dealId"
             value={dealId}
-            onChange={(event) => setDealId(event.target.value)}
-          >
-            <option value="">—</option>
-            {filteredDeals.map((deal) => (
-              <option key={deal.id} value={deal.id}>
-                {deal.title}
-              </option>
-            ))}
-          </Select>
+            onValueChange={setDealId}
+            placeholder="—"
+            options={[
+              { value: "", label: "—" },
+              ...filteredDeals.map((deal) => ({ value: deal.id, label: deal.title })),
+            ]}
+          />
         </FieldGroup>
       </div>
       <div className="flex justify-end">

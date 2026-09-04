@@ -6,6 +6,7 @@ import type { ContactFormState } from "@/app/actions/contacts";
 import type { ContactDraft } from "@/lib/contact-draft";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select, Textarea } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { compressImage, formatBytes } from "@/lib/image-compression";
 import { LIFECYCLE_STAGES, LIFECYCLE_STAGE_LABELS } from "@/lib/labels";
 import { PHONE_FORMAT_HINT } from "@/lib/phone";
@@ -105,18 +106,16 @@ export function ContactForm({
           />
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="companyId">
-          <Select
+          <Combobox
             id="companyId"
             name="companyId"
             defaultValue={values?.companyId ?? contact?.companyId ?? defaultCompanyId ?? ""}
-          >
-            <option value="">No company</option>
-            {companies.map((company) => (
-              <option key={company.id} value={company.id}>
-                {company.name}
-              </option>
-            ))}
-          </Select>
+            placeholder="No company"
+            options={[
+              { value: "", label: "No company" },
+              ...companies.map((company) => ({ value: company.id, label: company.name })),
+            ]}
+          />
         </FieldGroup>
       </div>
 
