@@ -10,13 +10,22 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.45",
+    version: "1.46",
     date: "2026-09-04",
     title: "AI-drafted testimonial requests",
     changes: [
       "Request testimonial on a Contact page generates a unique link and an AI-drafted starting testimonial based on what that client actually bought (their won deals' accepted quotes)",
       "The client opens the link, edits the draft however they like, and submits — no login required",
       "See submitted testimonials (with an optional star rating) right on the contact's page; regenerate the draft or copy the link again anytime before they submit",
+    ],
+  },
+  {
+    version: "1.45",
+    date: "2026-09-04",
+    title: "Link a deal from a Company's quick task form, and richer company data on import",
+    changes: [
+      "A Company page's quick \"Add task\" form now has a Deal picker (when the company has one or more) so a task can be tied to the right deal without opening the full task form",
+      "Scanning a business card or importing a .vcf now also fills in a new (or existing, if blank) company's website domain, phone, and address — the domain from the card's own printed website or the contact's email, phone/address from the card or the vCard's work-typed fields — never overwriting anything already set",
     ],
   },
   {

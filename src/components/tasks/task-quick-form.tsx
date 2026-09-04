@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { Combobox } from "@/components/ui/combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 
@@ -11,6 +12,12 @@ export function TaskQuickForm({
   contactId,
   companyId,
   dealId,
+  // The deals to offer a picker for — e.g. a Company can have more than one
+  // Deal, so a task added from its page needs to say which one (if any) it
+  // belongs to, unlike `dealId` above, which is for a context where the
+  // deal is already fixed (the Deal page's own quick-add). Ignored if
+  // `dealId` is set, since that already pins the task to one deal.
+  deals = [],
   projectId,
   users,
   defaultAssigneeId,
@@ -18,12 +25,14 @@ export function TaskQuickForm({
   contactId?: string;
   companyId?: string;
   dealId?: string;
+  deals?: { id: string; title: string }[];
   projectId?: string;
   users: { id: string; name: string }[];
   defaultAssigneeId?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [pickedDealId, setPickedDealId] = useState("");
 
   return (
     <form
@@ -32,6 +41,7 @@ export function TaskQuickForm({
         startTransition(async () => {
           await createTask(formData);
           formRef.current?.reset();
+          setPickedDealId("");
         });
       }}
       className="flex flex-wrap items-end gap-2 border-t border-slate-100 pt-3 dark:border-neutral-800"
@@ -81,6 +91,16 @@ export function TaskQuickForm({
             ))}
           </div>
         </div>
+      )}
+      {!dealId && deals.length > 0 && (
+        <Combobox
+          name="dealId"
+          value={pickedDealId}
+          onValueChange={setPickedDealId}
+          placeholder="No deal"
+          className="w-48"
+          options={[{ value: "", label: "No deal" }, ...deals.map((deal) => ({ value: deal.id, label: deal.title }))]}
+        />
       )}
       <DatePicker name="dueDate" placeholder="Due date" className="w-40" />
       <Button type="submit" size="sm" disabled={pending}>

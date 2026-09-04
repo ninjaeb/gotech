@@ -250,7 +250,12 @@ export default async function CompanyDetailPage({
               </CardHeader>
               <CardBody>
                 <TaskList tasks={company.tasks} users={users} emptyMessage="No tasks yet." />
-                <TaskQuickForm companyId={company.id} users={users} defaultAssigneeId={currentUser.id} />
+                <TaskQuickForm
+                  companyId={company.id}
+                  deals={company.deals}
+                  users={users}
+                  defaultAssigneeId={currentUser.id}
+                />
               </CardBody>
             </Card>
           ),
