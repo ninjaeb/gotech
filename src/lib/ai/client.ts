@@ -47,6 +47,34 @@ export const AI_NOT_CONFIGURED: AiResult<never> = {
   message: "AI features aren't configured — set GEMINI_API_KEY to enable them.",
 };
 
+const MAX_OVERLOAD_RETRIES = 2;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Gemini occasionally answers with a 503 "model is currently experiencing
+// high demand" that clears within a couple seconds — worth a couple of
+// quick retries before making the user click "Try again" themselves. Other
+// failures (auth, rate limiting, a bad request) won't be fixed by retrying,
+// so only 5xx gets this treatment.
+async function generateContentWithRetry(
+  client: GoogleGenAI,
+  params: Parameters<GoogleGenAI["models"]["generateContent"]>[0],
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await client.models.generateContent(params);
+    } catch (error) {
+      const isOverloaded = error instanceof ApiError && error.status !== undefined && error.status >= 500;
+      if (!isOverloaded || attempt >= MAX_OVERLOAD_RETRIES) {
+        throw error;
+      }
+      await sleep(500 * 2 ** attempt);
+    }
+  }
+}
+
 // Shared across every "use server" file that calls Gemini for structured
 // JSON output (see ai-insights.ts, testimonials.ts) — kept here rather than
 // in one of them since a "use server" module can only export async
@@ -59,7 +87,7 @@ export async function callGemini<T>(
 ): Promise<AiResult<T>> {
   try {
     const client = getGeminiClient();
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: GEMINI_MODEL,
       contents: userPrompt,
       config: {
