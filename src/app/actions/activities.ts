@@ -12,7 +12,7 @@ import { notifyMentionsViaWhatsApp } from "@/lib/whatsapp";
 import { parseAttachmentFiles } from "@/lib/attachment";
 
 const noteSchema = z.object({
-  content: z.string().trim().min(1, "Note cannot be empty"),
+  content: z.string().trim(),
   type: z.nativeEnum(ActivityType).default(ActivityType.NOTE),
   contactId: z.string().trim().nullish(),
   companyId: z.string().trim().nullish(),
@@ -78,6 +78,12 @@ export async function addActivity(_prevState: AddActivityState, formData: FormDa
     attachments = await parseAttachmentFiles(formData);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Attachment could not be read." };
+  }
+
+  // Text is only required when there's nothing else to post — an
+  // attachment-only note (e.g. a pasted screenshot with no caption) is valid.
+  if (!data.content && attachments.length === 0) {
+    return { error: "Note cannot be empty." };
   }
 
   const [currentUser, users] = await Promise.all([

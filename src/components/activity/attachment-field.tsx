@@ -91,7 +91,14 @@ export function AttachmentField({
       .filter((item) => item.type.startsWith("image/"))
       .map((item) => item.getAsFile())
       .filter((file): file is File => file !== null);
-    if (images.length > 0) addFiles(images);
+    if (images.length > 0) {
+      // Some clipboard sources (e.g. screenshot tools) also put the image's
+      // file path on the clipboard as text/plain. Without this, the browser's
+      // default paste inserts that path into the textarea alongside our
+      // staged image.
+      event.preventDefault();
+      addFiles(images);
+    }
   }
 
   return (
@@ -100,7 +107,8 @@ export function AttachmentField({
         id={id}
         name={name}
         rows={rows}
-        required={required}
+        // An attachment alone is a valid submission — don't force text too.
+        required={required && files.length === 0}
         placeholder={placeholder}
         users={users}
         defaultValue={defaultValue}
