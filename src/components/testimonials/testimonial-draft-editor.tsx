@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { RefreshCw } from "lucide-react";
-import { regenerateTestimonialDraft, updateTestimonialDraft } from "@/app/actions/testimonials";
+import { Sparkles } from "lucide-react";
+import { rewriteAdminDraft, updateTestimonialDraft } from "@/app/actions/testimonials";
 import { buttonClasses } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
@@ -17,10 +17,10 @@ export function TestimonialDraftEditor({
   const [value, setValue] = useState(initialDraft);
   const [savedValue, setSavedValue] = useState(initialDraft);
   const [saving, startSave] = useTransition();
-  const [regenerating, startRegenerate] = useTransition();
+  const [rewriting, startRewrite] = useTransition();
   const toast = useToast();
   const dirty = value !== savedValue;
-  const busy = saving || regenerating;
+  const busy = saving || rewriting;
 
   function handleSave() {
     startSave(async () => {
@@ -34,17 +34,17 @@ export function TestimonialDraftEditor({
     });
   }
 
-  function handleRegenerate() {
-    startRegenerate(async () => {
-      const result = await regenerateTestimonialDraft(testimonialId);
-      if (!result.ok) {
-        toast.error(result.error);
-      } else if (result.regenerated && result.draft) {
+  function handleRewrite() {
+    const hadText = value.trim().length > 0;
+    startRewrite(async () => {
+      const result = await rewriteAdminDraft(testimonialId, value);
+      if (result.ok) {
+        // Only updates the textarea, not the DB — same as a manual edit,
+        // it's still just a draft until "Save draft" is clicked.
         setValue(result.draft);
-        setSavedValue(result.draft);
-        toast.success("Draft regenerated.");
+        toast.success(hadText ? "Draft rewritten." : "Draft generated.");
       } else {
-        toast.error("Couldn't generate a new draft — AI may not be configured.");
+        toast.error(result.error);
       }
     });
   }
@@ -55,13 +55,13 @@ export function TestimonialDraftEditor({
         value={value}
         onChange={(event) => setValue(event.target.value)}
         rows={4}
-        placeholder="No draft yet — click “Regenerate with AI” to have AI write a starting point."
+        placeholder="No draft yet — click “Rewrite with AI” to have AI write a starting point."
         className="text-sm"
       />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={handleRegenerate} disabled={busy} className={buttonClasses("ghost", "sm")}>
-          <RefreshCw className="h-3.5 w-3.5" />
-          {regenerating ? "Regenerating…" : "Regenerate with AI"}
+        <button type="button" onClick={handleRewrite} disabled={busy} className={buttonClasses("ghost", "sm")}>
+          <Sparkles className="h-3.5 w-3.5" />
+          {rewriting ? "Rewriting…" : "Rewrite with AI"}
         </button>
         {dirty && (
           <button type="button" onClick={handleSave} disabled={busy} className={buttonClasses("secondary", "sm")}>

@@ -64,35 +64,65 @@ export async function requestTestimonial(contactId: string): Promise<ActionResul
   }
 }
 
-// Only overwrites aiDraft when a new one actually came back — a failed
-// regenerate (AI down, rate-limited) leaves whatever draft was already
-// there untouched instead of wiping it out. Reports whether it actually
-// found a new draft, and the draft text itself, so the caller can update
-// its own textarea in place instead of always claiming success.
-export async function regenerateTestimonialDraft(
+const REWRITE_SYSTEM_PROMPT =
+  "You improve a customer's own draft testimonial for a services company. Preserve their meaning, facts, and voice exactly — never invent new claims, numbers, or outcomes that aren't already there. Just make it read more clearly and warmly, first person, roughly the same length.";
+
+const RewriteSchema = z.object({
+  testimonial: z
+    .string()
+    .describe("The improved testimonial, first person, preserving the original meaning and facts exactly."),
+});
+
+// Shared by both the staff-side and client-side "rewrite" actions below.
+// Rewrites whatever text is already there rather than discarding it; an
+// empty box falls back to the same context-grounded draft used when the
+// request was first created, so this one action covers both "polish what
+// I have" and "write this for me from scratch."
+async function rewriteOrGenerateDraft(
+  contactId: string,
+  currentText: string,
+): Promise<ActionResultWith<{ draft: string }>> {
+  if (!isAiConfigured()) return { ok: false, error: "AI isn't configured right now." };
+
+  const trimmed = currentText.trim();
+  if (!trimmed) {
+    const draft = await generateTestimonialDraft(contactId);
+    if (!draft) return { ok: false, error: "Couldn't generate a draft right now — try again in a moment." };
+    return { ok: true, draft };
+  }
+
+  const result = await callGemini(
+    RewriteSchema,
+    REWRITE_SYSTEM_PROMPT,
+    `Here is what the client wrote so far:\n\n${trimmed}\n\nImprove the wording — clearer, warmer, better flow — without changing what they actually said or adding anything new.`,
+  );
+  if (result.status !== "ok") return { ok: false, error: result.message };
+  return { ok: true, draft: result.data.testimonial };
+}
+
+// Staff-side rewrite — takes whatever's currently in the admin's textarea
+// (their own edits included) rather than discarding it the way the old
+// "Regenerate" action did. Doesn't touch the DB itself; the caller decides
+// whether to keep the result via updateTestimonialDraft, same as a manual
+// edit would be saved.
+export async function rewriteAdminDraft(
   testimonialId: string,
-): Promise<ActionResultWith<{ regenerated: boolean; draft: string | null }>> {
+  currentText: string,
+): Promise<ActionResultWith<{ draft: string }>> {
   try {
     await requireAdminAction();
   } catch {
     return { ok: false, error: "You don't have permission to do this." };
   }
-  try {
-    const testimonial = await db.testimonial.findUniqueOrThrow({
-      where: { id: testimonialId },
-      select: { contactId: true, status: true },
-    });
-    if (testimonial.status !== "PENDING") return { ok: true, regenerated: false, draft: null };
-    const aiDraft = await generateTestimonialDraft(testimonial.contactId);
-    if (aiDraft) {
-      await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
-    }
-    revalidatePath(`/contacts/${testimonial.contactId}`);
-    return { ok: true, regenerated: aiDraft !== null, draft: aiDraft };
-  } catch (error) {
-    console.error("regenerateTestimonialDraft failed:", error);
-    return { ok: false, error: "Something went wrong regenerating the draft." };
+  const testimonial = await db.testimonial.findUnique({
+    where: { id: testimonialId },
+    select: { contactId: true, status: true },
+  });
+  if (!testimonial) return { ok: false, error: "That testimonial request no longer exists." };
+  if (testimonial.status !== "PENDING") {
+    return { ok: false, error: "This testimonial has already been submitted." };
   }
+  return rewriteOrGenerateDraft(testimonial.contactId, currentText);
 }
 
 // Lets staff hand-edit the AI draft before the client ever sees it.
@@ -138,21 +168,10 @@ export async function deleteTestimonialRequest(testimonialId: string): Promise<A
   }
 }
 
-const REWRITE_SYSTEM_PROMPT =
-  "You improve a customer's own draft testimonial for a services company. Preserve their meaning, facts, and voice exactly — never invent new claims, numbers, or outcomes that aren't already there. Just make it read more clearly and warmly, first person, roughly the same length.";
-
-const RewriteSchema = z.object({
-  testimonial: z
-    .string()
-    .describe("The improved testimonial, first person, preserving the original meaning and facts exactly."),
-});
-
 // Public, unauthenticated — the client rewriting their own in-progress
 // draft before submitting. Scoped by the same unguessable token as the
 // rest of this page; blocked once SUBMITTED so it can't alter a
-// testimonial that's already final. An empty box falls back to the same
-// context-grounded draft used when the request was first created, so
-// "Rewrite with AI" also works as "write this for me" from a blank start.
+// testimonial that's already final.
 export async function rewriteTestimonialText(
   token: string,
   currentText: string,
@@ -165,22 +184,7 @@ export async function rewriteTestimonialText(
   if (testimonial.status === "SUBMITTED") {
     return { ok: false, error: "This testimonial has already been submitted." };
   }
-  if (!isAiConfigured()) return { ok: false, error: "AI rewriting isn't available right now." };
-
-  const trimmed = currentText.trim();
-  if (!trimmed) {
-    const draft = await generateTestimonialDraft(testimonial.contactId);
-    if (!draft) return { ok: false, error: "Couldn't generate a draft right now — try again in a moment." };
-    return { ok: true, draft };
-  }
-
-  const result = await callGemini(
-    RewriteSchema,
-    REWRITE_SYSTEM_PROMPT,
-    `Here is what the client wrote so far:\n\n${trimmed}\n\nImprove the wording — clearer, warmer, better flow — without changing what they actually said or adding anything new.`,
-  );
-  if (result.status !== "ok") return { ok: false, error: result.message };
-  return { ok: true, draft: result.data.testimonial };
+  return rewriteOrGenerateDraft(testimonial.contactId, currentText);
 }
 
 const submitSchema = z.object({
