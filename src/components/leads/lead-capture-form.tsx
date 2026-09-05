@@ -1,12 +1,24 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { submitLead } from "@/app/actions/leads";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Textarea } from "@/components/ui/field";
+import { PHONE_FORMAT_HINT } from "@/lib/phone";
 
 export function LeadCaptureForm() {
   const [state, formAction, pending] = useActionState(submitLead, undefined);
+
+  // Controlled fields, deliberately — React clears every uncontrolled
+  // input back to empty once a Server Action dispatched from this form
+  // resolves, success OR error. Without this, a validation failure (e.g.
+  // a badly-formatted phone number) would wipe out the name/email/message
+  // the visitor already typed, not just flag the one field that's wrong.
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [message, setMessage] = useState("");
 
   if (state?.status === "success") {
     return (
@@ -25,19 +37,56 @@ export function LeadCaptureForm() {
       </div>
 
       <FieldGroup label="Name" htmlFor="name" required>
-        <Input id="name" name="name" required placeholder="Jane Smith" />
+        <Input
+          id="name"
+          name="name"
+          required
+          placeholder="Jane Smith"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
       </FieldGroup>
       <FieldGroup label="Email" htmlFor="email" required>
-        <Input id="email" name="email" type="email" required placeholder="jane@company.com" />
+        <Input
+          id="email"
+          name="email"
+          type="email"
+          required
+          placeholder="jane@company.com"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
       </FieldGroup>
-      <FieldGroup label="Phone" htmlFor="phone">
-        <Input id="phone" name="phone" type="tel" placeholder="Optional — e.g. +60 12 345 6789" />
+      <FieldGroup label="Phone" htmlFor="phone" required>
+        <Input
+          id="phone"
+          name="phone"
+          type="tel"
+          required
+          placeholder="+60 12 345 6789"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+        />
+        <p className="mt-1 text-xs text-slate-400">{PHONE_FORMAT_HINT}</p>
       </FieldGroup>
       <FieldGroup label="Company" htmlFor="companyName">
-        <Input id="companyName" name="companyName" placeholder="Optional" />
+        <Input
+          id="companyName"
+          name="companyName"
+          placeholder="Optional"
+          value={companyName}
+          onChange={(event) => setCompanyName(event.target.value)}
+        />
       </FieldGroup>
       <FieldGroup label="What are you looking to build?" htmlFor="message">
-        <Textarea id="message" name="message" rows={4} placeholder="Tell us a bit about your project…" />
+        <Textarea
+          id="message"
+          name="message"
+          rows={4}
+          placeholder="Tell us a bit about your project…"
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+        />
       </FieldGroup>
 
       {state?.status === "error" && (

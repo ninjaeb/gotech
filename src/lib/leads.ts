@@ -3,12 +3,16 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getDefaultPipeline } from "@/lib/pipelines";
-import { normalizePhone } from "@/lib/phone";
+import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 
 export const leadSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
-  email: z.string().trim().email("Enter a valid email"),
-  phone: z.string().trim().optional(),
+  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .refine(isValidPhoneFormat, { message: PHONE_FORMAT_HINT }),
   companyName: z.string().trim().optional(),
   message: z.string().trim().optional(),
 });
@@ -33,7 +37,7 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
     findOrCreateContactByEmail({
       name: data.name,
       email: data.email,
-      phone: data.phone ? normalizePhone(data.phone) : null,
+      phone: normalizePhone(data.phone),
       companyId,
       lifecycleStage: "LEAD",
     }),

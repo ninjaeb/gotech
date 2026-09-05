@@ -51,6 +51,8 @@
       "[data-gotech-lead-form] .glf-hp{position:absolute;left:-9999px}",
       "[data-gotech-lead-form] .glf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-lead-form] .glf-success{font-size:.95em;margin:0}",
+      "[data-gotech-lead-form] .glf-required{color:#f43f5e}",
+      "[data-gotech-lead-form] .glf-hint{font-size:.8em;opacity:.7;margin:0}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/textarea/button/label always wins over these.
       ":where([data-gotech-lead-form] label){font-size:.9em}",
@@ -80,16 +82,29 @@
     return el;
   }
 
-  function makeField(labelText, controlEl) {
+  function makeField(labelText, controlEl, required, hintText) {
     var wrap = document.createElement("div");
     wrap.className = "glf-field";
     var label = document.createElement("label");
     label.textContent = labelText;
+    if (required) {
+      var mark = document.createElement("span");
+      mark.className = "glf-required";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = " *";
+      label.appendChild(mark);
+    }
     var id = nextId(controlEl.name || "field");
     label.setAttribute("for", id);
     controlEl.id = id;
     wrap.appendChild(label);
     wrap.appendChild(controlEl);
+    if (hintText) {
+      var hint = document.createElement("p");
+      hint.className = "glf-hint";
+      hint.textContent = hintText;
+      wrap.appendChild(hint);
+    }
     return wrap;
   }
 
@@ -116,16 +131,19 @@
 
     var nameInput = makeInput("name", "text", true, "Jane Smith");
     var emailInput = makeInput("email", "email", true, "jane@company.com");
-    var phoneInput = makeInput("phone", "tel", false, "Optional — e.g. +60 12 345 6789");
+    var phoneInput = makeInput("phone", "tel", true, "+60 12 345 6789");
     var companyInput = makeInput("companyName", "text", false, "Optional");
     var messageInput = document.createElement("textarea");
     messageInput.name = "message";
     messageInput.rows = 4;
     messageInput.placeholder = "Tell us a bit about your project…";
 
-    form.appendChild(makeField("Name", nameInput));
-    form.appendChild(makeField("Email", emailInput));
-    form.appendChild(makeField("Phone", phoneInput));
+    form.appendChild(makeField("Name", nameInput, true));
+    form.appendChild(makeField("Email", emailInput, true));
+    // Mirrors PHONE_FORMAT_HINT in src/lib/phone.ts — this file is a
+    // standalone static asset with no access to that module, so the
+    // wording is duplicated by hand; keep the two in sync if it changes.
+    form.appendChild(makeField("Phone", phoneInput, true, "Include the country code with a + sign, e.g. +60 12 345 6789."));
     form.appendChild(makeField("Company", companyInput));
     form.appendChild(makeField("What are you looking to build?", messageInput));
 
