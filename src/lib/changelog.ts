@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.48",
+    date: "2026-09-05",
+    title: "Lead-capture widget that adapts to your site's own style",
+    changes: [
+      "Settings → Forms & Booking now also offers a JS embed for the lead-capture form, alongside the existing iframe snippet — it renders straight into your page instead of an isolated iframe, so it automatically picks up your site's own fonts, colors, and input/button styling",
+      "Submissions from the widget create the same Contact + Deal as the hosted /lead form and iframe — no separate flow to maintain",
+    ],
+  },
+  {
     version: "1.47",
     date: "2026-09-04",
     title: "WhatsApp now receives from every number, not just known contacts",

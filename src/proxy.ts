@@ -8,8 +8,21 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // link, which staff previewing it shouldn't get bounced away from.
 // /api/whatsapp/webhook is Meta's server calling in directly (no session
 // cookie at all) — its own signature check (src/lib/whatsapp.ts) is what
-// authenticates it, not this proxy.
-const ALWAYS_PUBLIC_PREFIXES = ["/q/", "/lead", "/book", "/testimonial/", "/api/whatsapp/webhook"];
+// authenticates it, not this proxy. /embed/ and /api/public/lead are the
+// embeddable lead-form widget (public/embed/lead-form.js) — called from
+// arbitrary third-party marketing sites, so neither the script file nor
+// its API endpoint can require a session; without this, both would
+// redirect to /login instead of serving JS / accepting the cross-origin
+// POST, which a <script> tag or CORS preflight can't follow usefully.
+const ALWAYS_PUBLIC_PREFIXES = [
+  "/q/",
+  "/lead",
+  "/book",
+  "/testimonial/",
+  "/embed/",
+  "/api/whatsapp/webhook",
+  "/api/public/lead",
+];
 
 // The client portal (/portal/*) is a second, independent visitor type with
 // its own cookie and signing key (see src/lib/portal/session.ts) — it's

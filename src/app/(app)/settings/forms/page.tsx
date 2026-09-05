@@ -3,7 +3,7 @@ import { getBookingSettings } from "@/lib/settings";
 import { getSiteOrigin } from "@/lib/site-url";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input, Label } from "@/components/ui/field";
+import { Input, Label, Textarea } from "@/components/ui/field";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
 
@@ -12,6 +12,7 @@ export default async function FormsSettingsPage() {
   const [siteOrigin, bookingSettings] = await Promise.all([getSiteOrigin(), getBookingSettings()]);
   const leadFormUrl = `${siteOrigin}/lead`;
   const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
+  const leadWidgetEmbed = `<div data-gotech-lead-form></div>\n<script src="${siteOrigin}/embed/lead-form.js" async></script>`;
   const bookingUrl = `${siteOrigin}/book`;
 
   return (
@@ -38,10 +39,28 @@ export default async function FormsSettingsPage() {
             </div>
           </div>
           <div>
-            <Label htmlFor="lead-form-embed">Embed on your site</Label>
+            <Label htmlFor="lead-form-embed">Embed on your site (iframe)</Label>
             <div className="flex items-center gap-2">
               <Input id="lead-form-embed" readOnly value={leadFormEmbed} className="font-mono text-xs" />
               <CopyLinkButton text={leadFormEmbed} label="Copy embed code" />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="lead-widget-embed">Embed that adapts to your site&apos;s own style</Label>
+            <p className="mb-1.5 text-xs text-slate-400">
+              Renders directly into your page (not an iframe), so it automatically picks up your site&apos;s
+              fonts, colors, and any input/button styling you already have — instead of looking like a
+              GoTech-branded box dropped on the page.
+            </p>
+            <div className="flex items-start gap-2">
+              <Textarea
+                id="lead-widget-embed"
+                readOnly
+                value={leadWidgetEmbed}
+                rows={3}
+                className="font-mono text-xs"
+              />
+              <CopyLinkButton text={leadWidgetEmbed} label="Copy embed code" />
             </div>
           </div>
         </CardBody>
