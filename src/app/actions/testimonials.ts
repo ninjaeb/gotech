@@ -100,11 +100,43 @@ async function rewriteOrGenerateDraft(
   return { ok: true, draft: result.data.testimonial };
 }
 
+// Only overwrites aiDraft when a new one actually came back — a failed
+// regenerate (AI down, rate-limited) leaves whatever draft was already
+// there untouched instead of wiping it out. Discards whatever's currently
+// in the box and starts fresh from the contact's context, unlike
+// rewriteAdminDraft below which polishes the existing text — both are
+// offered side by side since they're genuinely different actions ("start
+// over" vs. "improve what I have").
+export async function regenerateTestimonialDraft(
+  testimonialId: string,
+): Promise<ActionResultWith<{ regenerated: boolean; draft: string | null }>> {
+  try {
+    await requireAdminAction();
+  } catch {
+    return { ok: false, error: "You don't have permission to do this." };
+  }
+  try {
+    const testimonial = await db.testimonial.findUniqueOrThrow({
+      where: { id: testimonialId },
+      select: { contactId: true, status: true },
+    });
+    if (testimonial.status !== "PENDING") return { ok: true, regenerated: false, draft: null };
+    const aiDraft = await generateTestimonialDraft(testimonial.contactId);
+    if (aiDraft) {
+      await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
+    }
+    revalidatePath(`/contacts/${testimonial.contactId}`);
+    return { ok: true, regenerated: aiDraft !== null, draft: aiDraft };
+  } catch (error) {
+    console.error("regenerateTestimonialDraft failed:", error);
+    return { ok: false, error: "Something went wrong regenerating the draft." };
+  }
+}
+
 // Staff-side rewrite — takes whatever's currently in the admin's textarea
-// (their own edits included) rather than discarding it the way the old
-// "Regenerate" action did. Doesn't touch the DB itself; the caller decides
-// whether to keep the result via updateTestimonialDraft, same as a manual
-// edit would be saved.
+// (their own edits included) rather than discarding it. Doesn't touch the
+// DB itself; the caller decides whether to keep the result via
+// updateTestimonialDraft, same as a manual edit would be saved.
 export async function rewriteAdminDraft(
   testimonialId: string,
   currentText: string,
