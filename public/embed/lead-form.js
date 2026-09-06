@@ -37,11 +37,15 @@
  * Two things you can set directly on your <div data-gotech-lead-form>
  * (as a style attribute, or in your own stylesheet) without touching this
  * script at all:
- *   font-size    overall size of the form — defaults to 14px rather than
- *                inheriting the page's own text size, which could be much
- *                larger depending on where you drop it in.
+ *   font-size    overall size of the form — defaults to the page's own
+ *                text size clamped between 13-16px, so a normal-sized
+ *                host page is adopted as-is but an oversized one (a hero
+ *                section, large-type marketing block) doesn't blow the
+ *                form up. Set this directly for a specific size instead.
  *   --glf-accent color of the submit button and the active language pill
- *                — defaults to GoTech's indigo (#4f46e5).
+ *                — defaults to a neutral near-black (#111827), not
+ *                GoTech's own indigo, since this form is meant to sit on
+ *                other sites with their own brand color.
  * e.g. <div data-gotech-lead-form style="--glf-accent:#16a34a"></div>
  */
 (function () {
@@ -196,18 +200,22 @@
     var style = document.createElement("style");
     style.id = STYLE_ID;
     style.textContent = [
-      // A compact, predictable base size — font:inherit further down would
-      // otherwise pick up whatever ambient font-size happens to cascade to
-      // wherever the container sits on the host page (a hero section, a
-      // large-type marketing block, etc.), which is what made the form
-      // look oversized on some sites. Zero specificity, so a host that
-      // wants it bigger/smaller just sets font-size on its own
+      // clamp(), not a flat px value: 1em is whatever font-size the host
+      // page would otherwise hand down (matching it when that's reasonable
+      // — a normal 13-16px body size adopts as-is), floored/capped so a
+      // spot with a much bigger ambient size (a hero section, a
+      // large-type marketing block) can't blow the form up the way plain
+      // font:inherit did. Zero specificity, so a host that wants a
+      // specific size instead just sets font-size on its own
       // [data-gotech-lead-form] element — no need to touch every field.
-      // --glf-accent is the one color knob: set it the same way (even
-      // inline, e.g. <div data-gotech-lead-form style="--glf-accent:#16a34a">)
-      // to match the submit button and the active language pill to your
-      // site's brand color without overriding either rule directly.
-      ":where([data-gotech-lead-form]){font-size:14px;--glf-accent:#4f46e5}",
+      // --glf-accent is the one color knob: defaults to a neutral near-
+      // black rather than GoTech's own indigo, since this form gets
+      // embedded on other sites with their own brand color — set it the
+      // same way (even inline, e.g.
+      // <div data-gotech-lead-form style="--glf-accent:#16a34a">) to match
+      // the submit button and the active language pill to that brand
+      // instead, without overriding either rule directly.
+      ":where([data-gotech-lead-form]){font-size:clamp(13px,1em,16px);--glf-accent:#111827}",
       // Layout only — spacing/structure, not appearance. Low-impact, kept
       // at normal specificity since it's unlikely any host page has an
       // opinion about how THIS particular form's fields are arranged.
