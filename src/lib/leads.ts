@@ -17,6 +17,7 @@ export type LeadFormErrorCode =
   | "phone_required"
   | "phone_invalid"
   | "pipeline_not_ready"
+  | "rate_limited"
   | "invalid_submission"
   | "generic";
 

@@ -104,6 +104,13 @@
 
   var currentLang = detectLang();
 
+  // Set once when this script first runs, not reset by a later language
+  // switch (render() rebuilds the DOM, but this variable lives outside
+  // it) — the server rejects a submission that arrives too soon after
+  // this, since no human reads the form and types an answer that fast.
+  // See lead-spam-guard.ts for the actual threshold and reasoning.
+  var formRenderedAt = Date.now();
+
   // Mirrors LEAD_FORM_STRINGS in src/lib/lead-form-i18n.ts — this file is a
   // standalone static asset with no access to that module, so all three
   // languages are duplicated by hand; keep the two in sync if either changes.
@@ -420,6 +427,7 @@
 
       var payload = {
         website: hpInput.value,
+        renderedAt: formRenderedAt,
         name: nameInput.value,
         email: emailInput.value,
         phone: phoneInput.value,

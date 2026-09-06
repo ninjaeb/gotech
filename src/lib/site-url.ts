@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 // through more than one hop (e.g. Cloudflare in front of cPanel's own
 // TLS-terminating proxy), each appending its own value — the first entry is
 // the one that reflects what the original client actually requested.
-function firstHopValue(headerValue: string | null): string | null {
+export function firstHopValue(headerValue: string | null): string | null {
   return headerValue?.split(",")[0]?.trim() || null;
 }
 

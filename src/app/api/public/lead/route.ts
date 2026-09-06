@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createLeadFromSubmission, leadSchema, type LeadFormErrorCode } from "@/lib/leads";
+import { isRateLimited, isSuspiciouslyFast } from "@/lib/lead-spam-guard";
+import { firstHopValue } from "@/lib/site-url";
 
 // Public, cross-origin — called by the embeddable widget script
 // (public/embed/lead-form.js) from whatever marketing-site domain it's
 // dropped into, so CORS is wide open on purpose: there's no way to know
-// embedding domains in advance. The honeypot field plus normal input
-// validation are the abuse-resistance here, same as the hosted /lead page.
+// embedding domains in advance. The honeypot field, the fast-fill check,
+// and the IP rate limit are the abuse-resistance here, same as the hosted
+// /lead page — see lead-spam-guard.ts for why each responds as it does.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -34,6 +37,16 @@ export async function POST(request: NextRequest) {
   // success so it doesn't learn to retry.
   if (String(record.website ?? "").trim()) {
     return NextResponse.json({ ok: true }, { headers: CORS_HEADERS });
+  }
+  if (isSuspiciouslyFast(record.renderedAt)) {
+    return NextResponse.json({ ok: true }, { headers: CORS_HEADERS });
+  }
+
+  if (isRateLimited(firstHopValue(request.headers.get("x-forwarded-for")))) {
+    return NextResponse.json(
+      { ok: false, code: "rate_limited" satisfies LeadFormErrorCode },
+      { status: 429, headers: CORS_HEADERS },
+    );
   }
 
   const parsed = leadSchema.safeParse({

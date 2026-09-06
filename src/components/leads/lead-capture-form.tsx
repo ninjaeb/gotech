@@ -40,6 +40,12 @@ export function LeadCaptureForm() {
   const [companyName, setCompanyName] = useState("");
   const [message, setMessage] = useState("");
 
+  // Set once at mount, unaffected by a later language switch (that's a
+  // re-render, not a re-mount) — the server rejects a submission that
+  // arrives less than MIN_FILL_MS after this, since no human reads the
+  // form and types an answer that fast. See lead-spam-guard.ts.
+  const [renderedAt] = useState(() => Date.now());
+
   const languageSwitcher = (
     <div className="mb-4 flex justify-end gap-1">
       {LEAD_FORM_LOCALES.map((option) => (
@@ -84,6 +90,7 @@ export function LeadCaptureForm() {
           <label htmlFor="website">Leave this field blank</label>
           <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
         </div>
+        <input type="hidden" name="renderedAt" value={renderedAt} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldGroup label={t.nameLabel} htmlFor="name" required>
