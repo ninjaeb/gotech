@@ -33,6 +33,16 @@
  * can't outrank that reset, since it's also a plain element-level rule.
  * If that happens, add a couple of lines targeting
  * `[data-gotech-lead-form] input` in the host site's own stylesheet.
+ *
+ * Two things you can set directly on your <div data-gotech-lead-form>
+ * (as a style attribute, or in your own stylesheet) without touching this
+ * script at all:
+ *   font-size    overall size of the form — defaults to 14px rather than
+ *                inheriting the page's own text size, which could be much
+ *                larger depending on where you drop it in.
+ *   --glf-accent color of the submit button and the active language pill
+ *                — defaults to GoTech's indigo (#4f46e5).
+ * e.g. <div data-gotech-lead-form style="--glf-accent:#16a34a"></div>
  */
 (function () {
   "use strict";
@@ -186,6 +196,18 @@
     var style = document.createElement("style");
     style.id = STYLE_ID;
     style.textContent = [
+      // A compact, predictable base size — font:inherit further down would
+      // otherwise pick up whatever ambient font-size happens to cascade to
+      // wherever the container sits on the host page (a hero section, a
+      // large-type marketing block, etc.), which is what made the form
+      // look oversized on some sites. Zero specificity, so a host that
+      // wants it bigger/smaller just sets font-size on its own
+      // [data-gotech-lead-form] element — no need to touch every field.
+      // --glf-accent is the one color knob: set it the same way (even
+      // inline, e.g. <div data-gotech-lead-form style="--glf-accent:#16a34a">)
+      // to match the submit button and the active language pill to your
+      // site's brand color without overriding either rule directly.
+      ":where([data-gotech-lead-form]){font-size:14px;--glf-accent:#4f46e5}",
       // Layout only — spacing/structure, not appearance. Low-impact, kept
       // at normal specificity since it's unlikely any host page has an
       // opinion about how THIS particular form's fields are arranged.
@@ -205,16 +227,23 @@
       // Active-language state is deliberately normal-specificity (not
       // :where()) so it's always visible regardless of host button
       // styling — it's the one opinion this widget needs to hold onto.
-      "[data-gotech-lead-form] .glf-lang-btn-active{background:#4f46e5;border-color:#4f46e5;color:#fff}",
+      // The color itself still comes from --glf-accent, so it's not
+      // locked to GoTech's own indigo on someone else's site.
+      "[data-gotech-lead-form] .glf-lang-btn-active{background:var(--glf-accent);border-color:var(--glf-accent);color:#fff}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/textarea/button/label always wins over these.
       ":where([data-gotech-lead-form] label){font-size:.9em}",
       ":where([data-gotech-lead-form] input,[data-gotech-lead-form] textarea){" +
         "font:inherit;color:inherit;width:100%;box-sizing:border-box;" +
-        "padding:.6em .75em;border:1px solid #ccc;border-radius:4px;background:#fff}",
-      ":where([data-gotech-lead-form] button){" +
-        "font:inherit;padding:.65em 1.4em;border:1px solid currentColor;" +
-        "border-radius:4px;background:transparent;cursor:pointer}",
+        "padding:.5em .75em;border:1px solid #ccc;border-radius:4px;background:#fff}",
+      // Filled with --glf-accent by default (rather than a plain outline)
+      // so an unstyled host page still gets a real-looking, on-brand
+      // button instead of a plain box — still zero-specificity, so a host
+      // that already styles its own buttons overrides this outright.
+      ":where([data-gotech-lead-form] button[type=submit]){" +
+        "font:inherit;padding:.5em 1.1em;border:1px solid var(--glf-accent);" +
+        "border-radius:4px;background:var(--glf-accent);color:#fff;cursor:pointer}",
+      ":where([data-gotech-lead-form] button:not(:disabled):hover){opacity:.85}",
       ":where([data-gotech-lead-form] button:disabled){opacity:.6;cursor:default}",
       ":where([data-gotech-lead-form] .glf-lang-btn){" +
         "font:inherit;font-size:.8em;padding:.3em .6em;border:1px solid #ccc;" +
