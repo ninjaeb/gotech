@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { AI_NOT_CONFIGURED, callGemini, isAiConfigured, type AiResult } from "@/lib/ai/client";
+import { AI_NOT_CONFIGURED, callAi, isAiConfigured, type AiResult } from "@/lib/ai/client";
 import { buildEntityContext, buildPipelineContext, type EntityRef } from "@/lib/ai/context";
 
 export type { AiResult };
@@ -25,7 +25,7 @@ export async function generateInsights(ref: EntityRef): Promise<AiResult<Insight
   if (!isAiConfigured()) return AI_NOT_CONFIGURED;
   const context = await buildEntityContext(ref);
   if (!context) return { status: "error", message: "Couldn't find that record." };
-  return callGemini(
+  return callAi(
     InsightsSchema,
     SYSTEM_PROMPT,
     `Here is a CRM record and its history:\n\n${context.contextText}\n\nSummarize where things stand and recommend one specific next action.`,
@@ -46,7 +46,7 @@ export async function draftFollowUp(ref: EntityRef): Promise<AiResult<FollowUpDr
   if (!isAiConfigured()) return AI_NOT_CONFIGURED;
   const context = await buildEntityContext(ref);
   if (!context) return { status: "error", message: "Couldn't find that record." };
-  return callGemini(
+  return callAi(
     FollowUpSchema,
     SYSTEM_PROMPT,
     `Here is a CRM record and its history:\n\n${context.contextText}\n\nDraft a short, friendly follow-up message to send next, referencing specific context.`,
@@ -70,7 +70,7 @@ export type PipelineInsights = z.infer<typeof PipelineInsightsSchema>;
 export async function generatePipelineInsights(): Promise<AiResult<PipelineInsights>> {
   if (!isAiConfigured()) return AI_NOT_CONFIGURED;
   const contextText = await buildPipelineContext();
-  return callGemini(
+  return callAi(
     PipelineInsightsSchema,
     SYSTEM_PROMPT,
     `Here is the current state of the sales pipeline:\n\n${contextText}\n\nGive a short read on pipeline health and name the single highest-priority thing to do next.`,

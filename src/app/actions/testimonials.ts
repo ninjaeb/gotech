@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
-import { callGemini, isAiConfigured } from "@/lib/ai/client";
+import { callAi, isAiConfigured } from "@/lib/ai/client";
 import { buildTestimonialContext } from "@/lib/ai/context";
 
 const TESTIMONIAL_SYSTEM_PROMPT =
@@ -26,7 +26,7 @@ async function generateTestimonialDraft(contactId: string): Promise<string | nul
   if (!isAiConfigured()) return null;
   const context = await buildTestimonialContext(contactId);
   if (!context) return null;
-  const result = await callGemini(
+  const result = await callAi(
     TestimonialDraftSchema,
     TESTIMONIAL_SYSTEM_PROMPT,
     `Here's what we know about this client and what they received:\n\n${context.contextText}\n\nDraft a short testimonial as if ${context.label} wrote it.`,
@@ -91,7 +91,7 @@ async function rewriteOrGenerateDraft(
     return { ok: true, draft };
   }
 
-  const result = await callGemini(
+  const result = await callAi(
     RewriteSchema,
     REWRITE_SYSTEM_PROMPT,
     `Here is what the client wrote so far:\n\n${trimmed}\n\nImprove the wording — clearer, warmer, better flow — without changing what they actually said or adding anything new.`,

@@ -114,13 +114,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### 6. Enable the AI Assistant (optional)
 
-Get an API key from [Google AI Studio](https://aistudio.google.com/apikey), then add it to `.env`:
+Get an API key from [OpenRouter](https://openrouter.ai/keys), then add it to `.env`:
 
 ```env
-GEMINI_API_KEY="..."
+OPENROUTER_API_KEY="..."
 ```
 
-Restart the dev server. "Generate insights", "Draft follow-up", and "AI Pipeline Diagnosis" buttons will now call Gemini; without a key they show a "not configured" message instead of erroring. No other setup needed — see `src/lib/ai/` and `src/app/actions/ai-insights.ts`.
+Restart the dev server. "Generate insights", "Draft follow-up", "AI Pipeline Diagnosis", and the business-card scanner will now call OpenRouter (defaulting to `openai/gpt-4o-mini` — override with `OPENROUTER_MODEL`, any model at [openrouter.ai/models](https://openrouter.ai/models) that supports image input and JSON mode); without a key they show a "not configured" message instead of erroring. No other setup needed — see `src/lib/ai/` and `src/app/actions/ai-insights.ts`.
 
 ### 7. Enable email sync (optional)
 
@@ -292,7 +292,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `GEMINI_API_KEY` to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `OPENROUTER_API_KEY` (and `OPENROUTER_MODEL`) to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI. Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash
