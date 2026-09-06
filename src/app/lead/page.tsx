@@ -13,13 +13,7 @@ export default function LeadCapturePage() {
         </div>
 
         <Card>
-          <CardBody className="space-y-1">
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-              Let&apos;s build something
-            </h1>
-            <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-              Tell us about your project and we&apos;ll get back to you.
-            </p>
+          <CardBody>
             <LeadCaptureForm />
           </CardBody>
         </Card>

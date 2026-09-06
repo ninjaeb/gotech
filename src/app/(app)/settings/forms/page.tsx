@@ -6,13 +6,21 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label, Textarea } from "@/components/ui/field";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { BookingSettingsForm } from "@/components/settings/booking-settings-form";
+import { LEAD_FORM_LOCALES } from "@/lib/lead-form-i18n";
 
 export default async function FormsSettingsPage() {
   await requireAdmin();
   const [siteOrigin, bookingSettings] = await Promise.all([getSiteOrigin(), getBookingSettings()]);
   const leadFormUrl = `${siteOrigin}/lead`;
   const leadFormEmbed = `<iframe src="${leadFormUrl}" style="width:100%;max-width:28rem;height:44rem;border:0" title="Contact us"></iframe>`;
-  const leadWidgetEmbed = `<div data-gotech-lead-form></div>\n<script src="${siteOrigin}/embed/lead-form.js" async></script>`;
+  // One link per language: a site with separate /en, /zh, /ms pages can drop
+  // the matching link on each so the widget defaults to that page's
+  // language (a visitor can still switch inside the form either way).
+  const leadWidgetEmbeds = LEAD_FORM_LOCALES.map(({ code, label }) => ({
+    code,
+    label,
+    snippet: `<div data-gotech-lead-form></div>\n<script src="${siteOrigin}/embed/lead-form.js?lang=${code}" async></script>`,
+  }));
   const bookingUrl = `${siteOrigin}/book`;
 
   return (
@@ -46,21 +54,32 @@ export default async function FormsSettingsPage() {
             </div>
           </div>
           <div>
-            <Label htmlFor="lead-widget-embed">Embed that adapts to your site&apos;s own style</Label>
+            <Label htmlFor="lead-widget-embed-en">Embed that adapts to your site&apos;s own style</Label>
             <p className="mb-1.5 text-xs text-slate-400">
               Renders directly into your page (not an iframe), so it automatically picks up your site&apos;s
               fonts, colors, and any input/button styling you already have — instead of looking like a
-              GoTech-branded box dropped on the page.
+              GoTech-branded box dropped on the page. The form supports English, Chinese, and Malay with a
+              switcher built in — if your site has a separate page per language, use the matching link
+              below on each so the form starts in that page&apos;s language.
             </p>
-            <div className="flex items-start gap-2">
-              <Textarea
-                id="lead-widget-embed"
-                readOnly
-                value={leadWidgetEmbed}
-                rows={3}
-                className="font-mono text-xs"
-              />
-              <CopyLinkButton text={leadWidgetEmbed} label="Copy embed code" />
+            <div className="space-y-3">
+              {leadWidgetEmbeds.map(({ code, label, snippet }) => (
+                <div key={code}>
+                  <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {label}
+                  </span>
+                  <div className="flex items-start gap-2">
+                    <Textarea
+                      id={`lead-widget-embed-${code}`}
+                      readOnly
+                      value={snippet}
+                      rows={3}
+                      className="font-mono text-xs"
+                    />
+                    <CopyLinkButton text={snippet} label="Copy embed code" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardBody>

@@ -3,22 +3,37 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getDefaultPipeline } from "@/lib/pipelines";
-import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
+import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
+
+// Zod's "message" here is a semantic CODE, not display text — this schema
+// is shared by both the hosted /lead page (English/Chinese/Malay via
+// LeadCaptureForm) and the embeddable widget (its own copy of the same
+// three languages), so neither the server nor this schema hardcodes any
+// one language. Each caller maps a code to its own localized string.
+export type LeadFormErrorCode =
+  | "name_required"
+  | "email_required"
+  | "email_invalid"
+  | "phone_required"
+  | "phone_invalid"
+  | "pipeline_not_ready"
+  | "invalid_submission"
+  | "generic";
 
 export const leadSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+  name: z.string().trim().min(1, "name_required"),
+  email: z.string().trim().min(1, "email_required").email("email_invalid"),
   phone: z
     .string()
     .trim()
-    .min(1, "Phone number is required")
-    .refine(isValidPhoneFormat, { message: PHONE_FORMAT_HINT }),
+    .min(1, "phone_required")
+    .refine(isValidPhoneFormat, { message: "phone_invalid" }),
   companyName: z.string().trim().optional(),
   message: z.string().trim().optional(),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;
-export type CreateLeadResult = { ok: true } | { ok: false; error: string };
+export type CreateLeadResult = { ok: true } | { ok: false; code: LeadFormErrorCode };
 
 // Shared by every entry point that turns a lead-form submission into a
 // Contact + Deal — the hosted /lead page's Server Action (same-origin form
@@ -45,7 +60,7 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
   ]);
   const firstStage = defaultPipeline.stages[0];
   if (!firstStage) {
-    return { ok: false, error: "The pipeline isn't set up yet — try again shortly." };
+    return { ok: false, code: "pipeline_not_ready" };
   }
 
   const deal = await db.deal.create({

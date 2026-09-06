@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createLeadFromSubmission, leadSchema } from "@/lib/leads";
+import { createLeadFromSubmission, leadSchema, type LeadFormErrorCode } from "@/lib/leads";
 
 // Public, cross-origin — called by the embeddable widget script
 // (public/embed/lead-form.js) from whatever marketing-site domain it's
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid request." }, { status: 400, headers: CORS_HEADERS });
+    return NextResponse.json(
+      { ok: false, code: "invalid_submission" satisfies LeadFormErrorCode },
+      { status: 400, headers: CORS_HEADERS },
+    );
   }
 
   const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
@@ -41,15 +44,13 @@ export async function POST(request: NextRequest) {
     message: record.message,
   });
   if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid submission" },
-      { status: 400, headers: CORS_HEADERS },
-    );
+    const code = (parsed.error.issues[0]?.message as LeadFormErrorCode) ?? "invalid_submission";
+    return NextResponse.json({ ok: false, code }, { status: 400, headers: CORS_HEADERS });
   }
 
   const result = await createLeadFromSubmission(parsed.data);
   if (!result.ok) {
-    return NextResponse.json({ ok: false, error: result.error }, { status: 500, headers: CORS_HEADERS });
+    return NextResponse.json({ ok: false, code: result.code }, { status: 500, headers: CORS_HEADERS });
   }
   return NextResponse.json({ ok: true }, { headers: CORS_HEADERS });
 }

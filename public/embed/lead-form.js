@@ -5,6 +5,17 @@
  *   <div data-gotech-lead-form></div>
  *   <script src="https://<your-crm-domain>/embed/lead-form.js" async></script>
  *
+ * Renders in English by default. If your site has separate pages per
+ * language, point each page's script tag at the matching link so the form
+ * matches the page it's dropped on:
+ *   ?lang=en   English (default)
+ *   ?lang=zh   Chinese
+ *   ?lang=ms   Malay
+ * e.g. <script src="https://<your-crm-domain>/embed/lead-form.js?lang=zh" async></script>
+ * A visitor can still switch languages themselves inside the form — that
+ * choice is remembered (localStorage) and wins over the page's own ?lang=
+ * on any later visit, on any page of your site.
+ *
  * Unlike an iframe, this renders bare <input>/<textarea>/<button> elements
  * directly into the host page's own DOM — no isolated document, no
  * separate stylesheet context — so the host site's own CSS (fonts, text
@@ -28,14 +39,146 @@
 
   var CURRENT_SCRIPT = document.currentScript;
 
+  var SCRIPT_URL;
+  try {
+    SCRIPT_URL = new URL(CURRENT_SCRIPT.src);
+  } catch (e) {
+    SCRIPT_URL = null;
+  }
+
   function apiUrl() {
-    try {
-      return new URL(CURRENT_SCRIPT.src).origin + "/api/public/lead";
-    } catch (e) {
-      return "/api/public/lead";
-    }
+    return SCRIPT_URL ? SCRIPT_URL.origin + "/api/public/lead" : "/api/public/lead";
   }
   var API_URL = apiUrl();
+
+  var STORAGE_KEY = "gotechLeadFormLang";
+
+  function isValidLang(value) {
+    return value === "en" || value === "zh" || value === "ms";
+  }
+
+  // The ?lang= on THIS script's own src — how a site owner pins a page's
+  // embed to match that page's language (see the file-level comment above).
+  function scriptLang() {
+    var value = SCRIPT_URL ? SCRIPT_URL.searchParams.get("lang") : null;
+    return isValidLang(value) ? value : null;
+  }
+
+  function storedLang() {
+    try {
+      var value = localStorage.getItem(STORAGE_KEY);
+      return isValidLang(value) ? value : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function storeLang(lang) {
+    try {
+      localStorage.setItem(STORAGE_KEY, lang);
+    } catch (e) {
+      // Ignore — not essential, the switcher still works for this visit.
+    }
+  }
+
+  // A visitor's own explicit choice (if they ever switched) beats the
+  // page's default, same as the hosted /lead form; the script's own
+  // ?lang= is that default whenever nothing's been chosen yet.
+  function detectLang() {
+    return storedLang() || scriptLang() || "en";
+  }
+
+  var currentLang = detectLang();
+
+  // Mirrors LEAD_FORM_STRINGS in src/lib/lead-form-i18n.ts — this file is a
+  // standalone static asset with no access to that module, so all three
+  // languages are duplicated by hand; keep the two in sync if either changes.
+  var TRANSLATIONS = {
+    en: {
+      nameLabel: "Name",
+      namePlaceholder: "Jane Smith",
+      emailLabel: "Email",
+      emailPlaceholder: "jane@company.com",
+      phoneLabel: "Phone",
+      phonePlaceholder: "+60 12 345 6789",
+      phoneHint: "Include the country code with a + sign, e.g. +60 12 345 6789.",
+      companyLabel: "Company",
+      companyPlaceholder: "Optional",
+      messageLabel: "What are you looking to build?",
+      messagePlaceholder: "Tell us a bit about your project…",
+      submit: "Get in touch",
+      submitting: "Sending…",
+      success: "Thanks! We'll be in touch shortly.",
+      errors: {
+        name_required: "Name is required",
+        email_required: "Email is required",
+        email_invalid: "Enter a valid email",
+        phone_required: "Phone number is required",
+        phone_invalid: "Include the country code with a + sign, e.g. +60 12 345 6789.",
+        pipeline_not_ready: "The system isn't set up yet — please try again shortly.",
+        invalid_submission: "Please check the form and try again.",
+        generic: "Something went wrong. Please try again.",
+      },
+    },
+    zh: {
+      nameLabel: "姓名",
+      namePlaceholder: "Jane Smith",
+      emailLabel: "电子邮件",
+      emailPlaceholder: "jane@company.com",
+      phoneLabel: "电话号码",
+      phonePlaceholder: "+60 12 345 6789",
+      phoneHint: "请附上国家代码及 + 号，例如 +60 12 345 6789。",
+      companyLabel: "公司",
+      companyPlaceholder: "选填",
+      messageLabel: "您想打造什么项目？",
+      messagePlaceholder: "简单介绍一下您的项目…",
+      submit: "联系我们",
+      submitting: "发送中…",
+      success: "谢谢！我们会尽快与您联系。",
+      errors: {
+        name_required: "请填写姓名",
+        email_required: "请填写电子邮件",
+        email_invalid: "请输入有效的电子邮件地址",
+        phone_required: "请填写电话号码",
+        phone_invalid: "请附上国家代码及 + 号，例如 +60 12 345 6789。",
+        pipeline_not_ready: "系统尚未设置完成，请稍后再试。",
+        invalid_submission: "请检查表单内容后重试。",
+        generic: "出现错误，请重试。",
+      },
+    },
+    ms: {
+      nameLabel: "Nama",
+      namePlaceholder: "Jane Smith",
+      emailLabel: "E-mel",
+      emailPlaceholder: "jane@company.com",
+      phoneLabel: "Nombor Telefon",
+      phonePlaceholder: "+60 12 345 6789",
+      phoneHint: "Sertakan kod negara dengan tanda +, contohnya +60 12 345 6789.",
+      companyLabel: "Syarikat",
+      companyPlaceholder: "Pilihan",
+      messageLabel: "Apakah projek yang anda ingin bina?",
+      messagePlaceholder: "Ceritakan sedikit tentang projek anda…",
+      submit: "Hubungi Kami",
+      submitting: "Menghantar…",
+      success: "Terima kasih! Kami akan menghubungi anda tidak lama lagi.",
+      errors: {
+        name_required: "Nama diperlukan",
+        email_required: "E-mel diperlukan",
+        email_invalid: "Sila masukkan e-mel yang sah",
+        phone_required: "Nombor telefon diperlukan",
+        phone_invalid: "Sertakan kod negara dengan tanda +, contohnya +60 12 345 6789.",
+        pipeline_not_ready: "Sistem belum bersedia — sila cuba sebentar lagi.",
+        invalid_submission: "Sila semak borang dan cuba lagi.",
+        generic: "Berlaku ralat. Sila cuba lagi.",
+      },
+    },
+  };
+
+  var LANG_OPTIONS = [
+    { code: "en", label: "EN" },
+    { code: "zh", label: "中文" },
+    { code: "ms", label: "BM" },
+  ];
 
   var STYLE_ID = "gotech-lead-form-style";
   function ensureStyles() {
@@ -53,6 +196,11 @@
       "[data-gotech-lead-form] .glf-success{font-size:.95em;margin:0}",
       "[data-gotech-lead-form] .glf-required{color:#f43f5e}",
       "[data-gotech-lead-form] .glf-hint{font-size:.8em;opacity:.7;margin:0}",
+      "[data-gotech-lead-form] .glf-langs{display:flex;justify-content:flex-end;gap:.25em;margin-bottom:.75em;max-width:28rem}",
+      // Active-language state is deliberately normal-specificity (not
+      // :where()) so it's always visible regardless of host button
+      // styling — it's the one opinion this widget needs to hold onto.
+      "[data-gotech-lead-form] .glf-lang-btn-active{background:#4f46e5;border-color:#4f46e5;color:#fff}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/textarea/button/label always wins over these.
       ":where([data-gotech-lead-form] label){font-size:.9em}",
@@ -63,6 +211,9 @@
         "font:inherit;padding:.65em 1.4em;border:1px solid currentColor;" +
         "border-radius:4px;background:transparent;cursor:pointer}",
       ":where([data-gotech-lead-form] button:disabled){opacity:.6;cursor:default}",
+      ":where([data-gotech-lead-form] .glf-lang-btn){" +
+        "font:inherit;font-size:.8em;padding:.3em .6em;border:1px solid #ccc;" +
+        "border-radius:4px;background:#fff;cursor:pointer;color:inherit}",
     ].join("");
     document.head.appendChild(style);
   }
@@ -108,13 +259,58 @@
     return wrap;
   }
 
+  // Captures whatever the visitor already typed before a re-render (a
+  // language switch rebuilds the DOM from scratch) so switching languages
+  // mid-fill-in never wipes their answers — same reasoning as the
+  // controlled-inputs fix in the React LeadCaptureForm.
+  function getValues(container) {
+    var form = container.querySelector("form");
+    function v(name) {
+      if (!form) return "";
+      var el = form.elements.namedItem(name);
+      return el ? el.value : "";
+    }
+    return {
+      name: v("name"),
+      email: v("email"),
+      phone: v("phone"),
+      companyName: v("companyName"),
+      message: v("message"),
+    };
+  }
+
+  function makeLangSwitcher() {
+    var wrap = document.createElement("div");
+    wrap.className = "glf-langs";
+    LANG_OPTIONS.forEach(function (option) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "glf-lang-btn" + (option.code === currentLang ? " glf-lang-btn-active" : "");
+      btn.textContent = option.label;
+      btn.setAttribute("aria-pressed", String(option.code === currentLang));
+      btn.addEventListener("click", function () {
+        if (currentLang === option.code) return;
+        currentLang = option.code;
+        storeLang(option.code);
+        renderAll();
+      });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
   function render(container) {
     ensureStyles();
+    var preserved = getValues(container);
+    var t = TRANSLATIONS[currentLang];
     container.innerHTML = "";
+    container.appendChild(makeLangSwitcher());
 
     var form = document.createElement("form");
 
-    // Honeypot: hidden from real visitors, often filled in by bots.
+    // Honeypot: hidden from real visitors, often filled in by bots. Never
+    // shown to assistive tech either (aria-hidden on the wrapper), so it
+    // doesn't need translating.
     var hp = document.createElement("div");
     hp.className = "glf-hp";
     hp.setAttribute("aria-hidden", "true");
@@ -129,23 +325,25 @@
     hp.appendChild(hpInput);
     form.appendChild(hp);
 
-    var nameInput = makeInput("name", "text", true, "Jane Smith");
-    var emailInput = makeInput("email", "email", true, "jane@company.com");
-    var phoneInput = makeInput("phone", "tel", true, "+60 12 345 6789");
-    var companyInput = makeInput("companyName", "text", false, "Optional");
+    var nameInput = makeInput("name", "text", true, t.namePlaceholder);
+    nameInput.value = preserved.name;
+    var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
+    emailInput.value = preserved.email;
+    var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder);
+    phoneInput.value = preserved.phone;
+    var companyInput = makeInput("companyName", "text", false, t.companyPlaceholder);
+    companyInput.value = preserved.companyName;
     var messageInput = document.createElement("textarea");
     messageInput.name = "message";
     messageInput.rows = 4;
-    messageInput.placeholder = "Tell us a bit about your project…";
+    messageInput.placeholder = t.messagePlaceholder;
+    messageInput.value = preserved.message;
 
-    form.appendChild(makeField("Name", nameInput, true));
-    form.appendChild(makeField("Email", emailInput, true));
-    // Mirrors PHONE_FORMAT_HINT in src/lib/phone.ts — this file is a
-    // standalone static asset with no access to that module, so the
-    // wording is duplicated by hand; keep the two in sync if it changes.
-    form.appendChild(makeField("Phone", phoneInput, true, "Include the country code with a + sign, e.g. +60 12 345 6789."));
-    form.appendChild(makeField("Company", companyInput));
-    form.appendChild(makeField("What are you looking to build?", messageInput));
+    form.appendChild(makeField(t.nameLabel, nameInput, true));
+    form.appendChild(makeField(t.emailLabel, emailInput, true));
+    form.appendChild(makeField(t.phoneLabel, phoneInput, true, t.phoneHint));
+    form.appendChild(makeField(t.companyLabel, companyInput));
+    form.appendChild(makeField(t.messageLabel, messageInput));
 
     var errorEl = document.createElement("p");
     errorEl.className = "glf-error";
@@ -154,14 +352,14 @@
 
     var submitBtn = document.createElement("button");
     submitBtn.type = "submit";
-    submitBtn.textContent = "Get in touch";
+    submitBtn.textContent = t.submit;
     form.appendChild(submitBtn);
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
       errorEl.style.display = "none";
       submitBtn.disabled = true;
-      submitBtn.textContent = "Sending…";
+      submitBtn.textContent = t.submitting;
 
       var payload = {
         website: hpInput.value,
@@ -184,39 +382,44 @@
               return {};
             })
             .then(function (data) {
-              return { ok: res.ok && data && data.ok === true, error: data && data.error };
+              return { ok: res.ok && data && data.ok === true, code: data && data.code };
             });
         })
         .then(function (result) {
           if (result.ok) {
             container.innerHTML = "";
+            container.appendChild(makeLangSwitcher());
             var success = document.createElement("p");
             success.className = "glf-success";
-            success.textContent = "Thanks! We'll be in touch shortly.";
+            success.textContent = t.success;
             container.appendChild(success);
           } else {
-            errorEl.textContent = result.error || "Something went wrong. Please try again.";
+            errorEl.textContent = (result.code && t.errors[result.code]) || t.errors.generic;
             errorEl.style.display = "";
             submitBtn.disabled = false;
-            submitBtn.textContent = "Get in touch";
+            submitBtn.textContent = t.submit;
           }
         })
         .catch(function () {
-          errorEl.textContent = "Something went wrong. Please try again.";
+          errorEl.textContent = t.errors.generic;
           errorEl.style.display = "";
           submitBtn.disabled = false;
-          submitBtn.textContent = "Get in touch";
+          submitBtn.textContent = t.submit;
         });
     });
 
     container.appendChild(form);
   }
 
-  function init() {
+  function renderAll() {
     var containers = document.querySelectorAll("[data-gotech-lead-form]");
     for (var i = 0; i < containers.length; i++) {
       render(containers[i]);
     }
+  }
+
+  function init() {
+    renderAll();
   }
 
   if (document.readyState === "loading") {

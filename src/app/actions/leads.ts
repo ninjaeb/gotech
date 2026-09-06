@@ -1,8 +1,8 @@
 "use server";
 
-import { createLeadFromSubmission, leadSchema } from "@/lib/leads";
+import { createLeadFromSubmission, leadSchema, type LeadFormErrorCode } from "@/lib/leads";
 
-export type LeadFormState = { status: "error"; message: string } | { status: "success" } | undefined;
+export type LeadFormState = { status: "error"; code: LeadFormErrorCode } | { status: "success" } | undefined;
 
 // Public, unauthenticated — submitted from the hosted /lead page, not a
 // logged-in user. `website` is a honeypot: real visitors never see or fill
@@ -24,12 +24,13 @@ export async function submitLead(
     message: formData.get("message"),
   });
   if (!parsed.success) {
-    return { status: "error", message: parsed.error.issues[0]?.message ?? "Invalid submission" };
+    const code = (parsed.error.issues[0]?.message as LeadFormErrorCode) ?? "invalid_submission";
+    return { status: "error", code };
   }
 
   const result = await createLeadFromSubmission(parsed.data);
   if (!result.ok) {
-    return { status: "error", message: result.error };
+    return { status: "error", code: result.code };
   }
   return { status: "success" };
 }
