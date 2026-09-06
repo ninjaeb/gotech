@@ -189,14 +189,19 @@
       // Layout only — spacing/structure, not appearance. Low-impact, kept
       // at normal specificity since it's unlikely any host page has an
       // opinion about how THIS particular form's fields are arranged.
-      "[data-gotech-lead-form] form{display:flex;flex-direction:column;gap:1em;max-width:28rem}",
+      // Deliberately no max-width here: the form fills whatever width the
+      // host page's own [data-gotech-lead-form] container is — a site that
+      // wants a narrower form controls that on the container itself.
+      "[data-gotech-lead-form] form{display:flex;flex-direction:column;gap:1em;width:100%}",
       "[data-gotech-lead-form] .glf-field{display:flex;flex-direction:column;gap:.35em}",
+      "[data-gotech-lead-form] .glf-row{display:grid;grid-template-columns:1fr;gap:1em}",
+      "@media (min-width:640px){[data-gotech-lead-form] .glf-row{grid-template-columns:1fr 1fr}}",
       "[data-gotech-lead-form] .glf-hp{position:absolute;left:-9999px}",
       "[data-gotech-lead-form] .glf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-lead-form] .glf-success{font-size:.95em;margin:0}",
       "[data-gotech-lead-form] .glf-required{color:#f43f5e}",
       "[data-gotech-lead-form] .glf-hint{font-size:.8em;opacity:.7;margin:0}",
-      "[data-gotech-lead-form] .glf-langs{display:flex;justify-content:flex-end;gap:.25em;margin-bottom:.75em;max-width:28rem}",
+      "[data-gotech-lead-form] .glf-langs{display:flex;justify-content:flex-end;gap:.25em;margin-bottom:.75em}",
       // Active-language state is deliberately normal-specificity (not
       // :where()) so it's always visible regardless of host button
       // styling — it's the one opinion this widget needs to hold onto.
@@ -257,6 +262,17 @@
       wrap.appendChild(hint);
     }
     return wrap;
+  }
+
+  // Two fields side by side above 640px (matches Tailwind's `sm:` breakpoint,
+  // so the hosted /lead form and this widget switch to two columns at the
+  // same width) — stacked on narrower screens.
+  function makeRow(fieldA, fieldB) {
+    var row = document.createElement("div");
+    row.className = "glf-row";
+    row.appendChild(fieldA);
+    row.appendChild(fieldB);
+    return row;
   }
 
   // Captures whatever the visitor already typed before a re-render (a
@@ -339,10 +355,14 @@
     messageInput.placeholder = t.messagePlaceholder;
     messageInput.value = preserved.message;
 
-    form.appendChild(makeField(t.nameLabel, nameInput, true));
-    form.appendChild(makeField(t.emailLabel, emailInput, true));
-    form.appendChild(makeField(t.phoneLabel, phoneInput, true, t.phoneHint));
-    form.appendChild(makeField(t.companyLabel, companyInput));
+    form.appendChild(makeRow(
+      makeField(t.nameLabel, nameInput, true),
+      makeField(t.phoneLabel, phoneInput, true, t.phoneHint),
+    ));
+    form.appendChild(makeRow(
+      makeField(t.emailLabel, emailInput, true),
+      makeField(t.companyLabel, companyInput),
+    ));
     form.appendChild(makeField(t.messageLabel, messageInput));
 
     var errorEl = document.createElement("p");

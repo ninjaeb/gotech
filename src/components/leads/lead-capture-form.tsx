@@ -85,48 +85,52 @@ export function LeadCaptureForm() {
           <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
         </div>
 
-        <FieldGroup label={t.nameLabel} htmlFor="name" required>
-          <Input
-            id="name"
-            name="name"
-            required
-            placeholder={t.namePlaceholder}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </FieldGroup>
-        <FieldGroup label={t.emailLabel} htmlFor="email" required>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            required
-            placeholder={t.emailPlaceholder}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </FieldGroup>
-        <FieldGroup label={t.phoneLabel} htmlFor="phone" required>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            placeholder={t.phonePlaceholder}
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-          />
-          <p className="mt-1 text-xs text-slate-400">{t.phoneHint}</p>
-        </FieldGroup>
-        <FieldGroup label={t.companyLabel} htmlFor="companyName">
-          <Input
-            id="companyName"
-            name="companyName"
-            placeholder={t.companyPlaceholder}
-            value={companyName}
-            onChange={(event) => setCompanyName(event.target.value)}
-          />
-        </FieldGroup>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldGroup label={t.nameLabel} htmlFor="name" required>
+            <Input
+              id="name"
+              name="name"
+              required
+              placeholder={t.namePlaceholder}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label={t.phoneLabel} htmlFor="phone" required>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              placeholder={t.phonePlaceholder}
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+            <p className="mt-1 text-xs text-slate-400">{t.phoneHint}</p>
+          </FieldGroup>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldGroup label={t.emailLabel} htmlFor="email" required>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder={t.emailPlaceholder}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label={t.companyLabel} htmlFor="companyName">
+            <Input
+              id="companyName"
+              name="companyName"
+              placeholder={t.companyPlaceholder}
+              value={companyName}
+              onChange={(event) => setCompanyName(event.target.value)}
+            />
+          </FieldGroup>
+        </div>
         <FieldGroup label={t.messageLabel} htmlFor="message">
           <Textarea
             id="message"
