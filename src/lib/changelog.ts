@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.51",
+    date: "2026-09-07",
+    title: "A public newsletter subscribe form",
+    changes: [
+      "Settings → Newsletter: pick which list a public subscribe form (name + email) adds new contacts to — a direct link (/subscribe), an iframe embed, and a JS widget (/embed/newsletter-form.js) that adopts your site's own fonts/colors/input styling are all generated automatically once you do",
+      "Subscribing finds or creates a Contact, marks them a Subscriber, and clears any previous unsubscribe — same as resubscribing to any mailing list",
+    ],
+  },
+  {
     version: "1.50",
     date: "2026-09-07",
     title: "Auto-deploy end-to-end test",

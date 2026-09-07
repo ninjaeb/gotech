@@ -248,6 +248,16 @@ model Settings {
   // as the daily digests (see scripts/sync-email.ts) rather than a timer,
   // since nothing in this app assumes the process stays running.
   taskAssignmentNotificationDelayMinutes Int @default(0)
+
+  // Which ContactList a submission to the public newsletter subscribe form
+  // (src/app/api/public/newsletter-subscribe/route.ts, and the hosted
+  // /subscribe page) adds new contacts to — set from Settings → Newsletter.
+  // Null means the form isn't wired up to anything yet; both submission
+  // paths refuse to do anything until an admin picks one. Deliberately a
+  // STATIC list, not a DYNAMIC (filter-based) one — a subscribe form adds a
+  // real membership row per person, which only a STATIC list stores.
+  newsletterSubscribeList   ContactList? @relation(fields: [newsletterSubscribeListId], references: [id], onDelete: SetNull)
+  newsletterSubscribeListId String?
 }
 
 enum Industry {
@@ -406,6 +416,9 @@ model ContactList {
 
   members     ContactListMember[]
   newsletters Newsletter[]
+  // Always at most one row (Settings is a singleton) — see
+  // Settings.newsletterSubscribeListId above.
+  subscribeFormSettings Settings[]
 
   @@index([ownerId])
 }

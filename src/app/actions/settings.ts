@@ -8,6 +8,7 @@ import {
   setBookingSettings,
   setTaskReminderHour,
   setTaskAssignmentNotificationDelayMinutes,
+  setNewsletterSubscribeListId,
 } from "@/lib/settings";
 import { TASK_ASSIGNMENT_DELAY_OPTIONS_MINUTES } from "@/lib/task-notification-delay";
 import { CURRENCY_CODES } from "@/lib/currency";
@@ -107,6 +108,31 @@ export async function updateTaskAssignmentNotificationDelay(
   }
   await setTaskAssignmentNotificationDelayMinutes(parsed.data);
   revalidatePath("/settings/integrations");
+  return { success: true };
+}
+
+const newsletterSubscribeListSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => value || null);
+
+// Which STATIC ContactList the public newsletter subscribe form (hosted
+// page + embeddable widget) adds new contacts to — see
+// src/lib/newsletter-subscribe.ts. Clearing the selection turns the
+// public form off (it returns a 503/"not configured" error) rather than
+// falling back to some default list.
+export async function updateNewsletterSubscribeList(
+  _prevState: SimpleSaveState,
+  formData: FormData,
+): Promise<SimpleSaveState> {
+  await requireAdminAction();
+  const parsed = newsletterSubscribeListSchema.safeParse(formData.get("listId"));
+  if (!parsed.success) {
+    return { error: "Invalid list" };
+  }
+  await setNewsletterSubscribeListId(parsed.data);
+  revalidatePath("/settings/newsletter");
   return { success: true };
 }
 

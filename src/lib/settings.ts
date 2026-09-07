@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   bookingWeeklyHours: JSON.stringify(DEFAULT_WEEKLY_HOURS),
   taskReminderHour: 8,
   taskAssignmentNotificationDelayMinutes: 0,
+  newsletterSubscribeListId: null as string | null,
 };
 
 export const getSettings = cache(async () => {
@@ -87,5 +88,21 @@ export async function setTaskAssignmentNotificationDelayMinutes(minutes: number)
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, taskAssignmentNotificationDelayMinutes: minutes },
     update: { taskAssignmentNotificationDelayMinutes: minutes },
+  });
+}
+
+// The ContactList the public newsletter subscribe form adds new contacts
+// to — see src/lib/newsletter-subscribe.ts. Null until an admin picks one
+// from Settings → Newsletter.
+export async function getNewsletterSubscribeListId() {
+  const settings = await getSettings();
+  return settings.newsletterSubscribeListId;
+}
+
+export async function setNewsletterSubscribeListId(listId: string | null) {
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, newsletterSubscribeListId: listId },
+    update: { newsletterSubscribeListId: listId },
   });
 }

@@ -10,22 +10,25 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // cookie at all) — its own signature check (src/lib/whatsapp.ts) is what
 // authenticates it, not this proxy; /api/deploy/webhook is GitHub's own
 // server calling in the same way, authenticated by its own signature check
-// (src/lib/webhook-signature.ts) instead. /embed/ and /api/public/lead are
-// the embeddable lead-form widget (public/embed/lead-form.js) — called from
-// arbitrary third-party marketing sites, so neither the script file nor
-// its API endpoint can require a session; without this, both would
-// redirect to /login instead of serving JS / accepting the cross-origin
-// POST, which a <script> tag or CORS preflight can't follow usefully.
+// (src/lib/webhook-signature.ts) instead. /embed/ and /api/public/lead
+// (/subscribe and /api/public/newsletter-subscribe, same reasoning) are
+// the embeddable widgets (public/embed/*.js) — called from arbitrary
+// third-party marketing sites, so neither the script files nor their API
+// endpoints can require a session; without this, both would redirect to
+// /login instead of serving JS / accepting the cross-origin POST, which a
+// <script> tag or CORS preflight can't follow usefully.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
   "/lead",
   "/book",
+  "/subscribe",
   "/testimonial/",
   "/embed/",
   "/unsubscribe/",
   "/api/whatsapp/webhook",
   "/api/deploy/webhook",
   "/api/public/lead",
+  "/api/public/newsletter-subscribe",
   "/api/newsletter-images/",
 ];
 
