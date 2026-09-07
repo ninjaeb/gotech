@@ -2,13 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { findUnambiguousOpenDeal } from "@/lib/email";
+import { verifyWebhookSignature } from "@/lib/webhook-signature";
 import {
   WHATSAPP_ACCOUNT_ID,
   WHATSAPP_RECEIVED_PREFIX,
   findOrCreateContactIdByWhatsAppPhone,
   findPendingMentionNotification,
   sendMentionReplyViaWhatsApp,
-  verifyWebhookSignature,
   downloadWhatsAppMedia,
 } from "@/lib/whatsapp";
 import type { WhatsAppAccount, WhatsAppMediaType } from "@/generated/prisma/client";

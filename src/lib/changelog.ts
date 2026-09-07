@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.49",
+    date: "2026-09-07",
+    title: "Auto-deploy from GitHub",
+    changes: [
+      "A push to the deployed branch can now pull, install, migrate, and restart the app on its own via a GitHub webhook — see the README's \"Auto-deploy from GitHub\" section to set it up (DEPLOY_WEBHOOK_SECRET/DEPLOY_BRANCH)",
+    ],
+  },
+  {
     version: "1.48",
     date: "2026-09-05",
     title: "Lead-capture widget that adapts to your site's own style",

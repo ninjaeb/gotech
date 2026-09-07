@@ -11,6 +11,7 @@
     "create-user": "tsx scripts/create-user.ts",
     "clear-data": "tsx scripts/clear-data.ts",
     "sync-email": "tsx scripts/sync-email.ts",
+    "deploy": "tsx scripts/deploy.ts",
     "process-sequences": "tsx scripts/process-sequences.ts",
     "send-newsletters": "tsx scripts/send-newsletters.ts",
     "send-task-digests": "tsx scripts/send-task-digests.ts",
