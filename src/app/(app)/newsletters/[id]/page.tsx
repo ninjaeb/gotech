@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { cancelNewsletterSchedule, deleteNewsletter, updateNewsletter } from "@/app/actions/newsletters";
 import { getNewsletterAudienceCount, formatScheduledAt } from "@/lib/newsletters";
-import { renderNewsletterBodyHtml } from "@/lib/newsletter-render";
 import { getBookingSettings } from "@/lib/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +49,8 @@ export default async function NewsletterDetailPage({ params }: { params: Promise
               <NewsletterForm
                 action={updateNewsletter.bind(null, id)}
                 lists={lists}
-                newsletter={{ subject: newsletter.subject, bodyMarkdown: newsletter.bodyMarkdown, listId: newsletter.listId }}
+                newsletter={{ subject: newsletter.subject, bodyHtml: newsletter.bodyHtml, listId: newsletter.listId }}
+                newsletterId={id}
                 submitLabel="Save changes"
               />
             </CardBody>
@@ -98,7 +98,7 @@ export default async function NewsletterDetailPage({ params }: { params: Promise
                   "[&_li]:my-1 [&_img]:max-w-full",
                   "[&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_blockquote]:text-slate-500 dark:[&_blockquote]:border-neutral-700 dark:[&_blockquote]:text-slate-400",
                 )}
-                dangerouslySetInnerHTML={{ __html: renderNewsletterBodyHtml(newsletter.bodyMarkdown) }}
+                dangerouslySetInnerHTML={{ __html: newsletter.bodyHtml }}
               />
             </CardBody>
           </Card>

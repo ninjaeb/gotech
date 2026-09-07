@@ -14,14 +14,24 @@ export type NewsletterFormState = { error: string } | undefined;
 
 const composeSchema = z.object({
   subject: z.string().trim().min(1, "Subject is required"),
-  bodyMarkdown: z.string().trim().min(1, "Write something before saving"),
+  // A TipTap editor with nothing typed into it still serializes to
+  // "<p></p>", not "" — a plain min(1) would let that through. Strip tags
+  // and check for real content instead, but still accept an image-only
+  // body (no text, but an <img> tag survives the strip).
+  bodyHtml: z
+    .string()
+    .trim()
+    .min(1, "Write something before saving")
+    .refine((html) => /\S/.test(html.replace(/<[^>]+>/g, "")) || /<img\b/i.test(html), {
+      message: "Write something before saving",
+    }),
   listId: z.string().trim().min(1, "Choose an audience"),
 });
 
 function parseCompose(formData: FormData) {
   return composeSchema.safeParse({
     subject: formData.get("subject"),
-    bodyMarkdown: formData.get("bodyMarkdown"),
+    bodyHtml: formData.get("bodyHtml"),
     listId: formData.get("listId"),
   });
 }

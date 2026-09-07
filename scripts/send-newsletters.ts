@@ -2,7 +2,7 @@ import "dotenv/config";
 import { db } from "../src/lib/db";
 import { getConfiguredSiteOrigin } from "../src/lib/site-url";
 import { getNewsletterSender, sendNewsletterEmail } from "../src/lib/newsletter-sender";
-import { renderNewsletterBodyHtml, wrapNewsletterHtml } from "../src/lib/newsletter-render";
+import { absolutizeImageUrls, htmlToText, wrapNewsletterHtml } from "../src/lib/newsletter-render";
 
 // Run on a schedule (cPanel Cron Job — see README), same pattern as
 // process-sequences.ts. Two differences from that script, both because a
@@ -49,7 +49,7 @@ async function main() {
     where: { status: "PENDING", newsletter: { status: "SENDING" } },
     take: BATCH_SIZE,
     include: {
-      newsletter: { select: { id: true, subject: true, bodyMarkdown: true } },
+      newsletter: { select: { id: true, subject: true, bodyHtml: true } },
       contact: { select: { email: true } },
     },
   });
@@ -73,11 +73,11 @@ async function main() {
       }
       try {
         const unsubscribeUrl = `${siteOrigin}/unsubscribe/${recipient.unsubscribeToken}`;
-        const bodyHtml = renderNewsletterBodyHtml(recipient.newsletter.bodyMarkdown);
+        const bodyHtml = absolutizeImageUrls(recipient.newsletter.bodyHtml, siteOrigin);
         await sendNewsletterEmail(sender, {
           to: email,
           subject: recipient.newsletter.subject,
-          text: recipient.newsletter.bodyMarkdown,
+          text: htmlToText(recipient.newsletter.bodyHtml),
           html: wrapNewsletterHtml({ bodyHtml, unsubscribeUrl }),
         });
         await db.newsletterRecipient.update({

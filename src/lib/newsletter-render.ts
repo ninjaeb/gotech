@@ -1,14 +1,3 @@
-import { marked } from "marked";
-
-// `breaks: true` turns a single newline into <br> — friendlier for staff
-// typing a newsletter in a plain <textarea> without knowing Markdown
-// normally needs a blank line between paragraphs.
-marked.setOptions({ breaks: true, gfm: true });
-
-export function renderNewsletterBodyHtml(markdown: string): string {
-  return marked.parse(markdown, { async: false }) as string;
-}
-
 // A <style> block in <head> renders fine in the large majority of clients
 // (Gmail, Apple Mail, Outlook web/mobile) — not the fully inlined-per-tag
 // HTML a production email-marketing tool would generate, but a reasonable
@@ -31,7 +20,7 @@ export function wrapNewsletterHtml(options: { bodyHtml: string; unsubscribeUrl: 
   .glf-content h3 { font-size: 1.05em; }
   .glf-content ul, .glf-content ol { margin: 0 0 1em; padding-left: 1.4em; }
   .glf-content li { margin: 0.25em 0; }
-  .glf-content img { max-width: 100%; }
+  .glf-content img { max-width: 100%; height: auto; border-radius: 4px; }
   .glf-content blockquote { margin: 0 0 1em; padding-left: 1em; border-left: 3px solid #e2e8f0; color: #475569; }
 </style>
 </head>
@@ -57,4 +46,36 @@ export function wrapNewsletterHtml(options: { bodyHtml: string; unsubscribeUrl: 
   </table>
 </body>
 </html>`;
+}
+
+// The editor stores image src as a relative /api/newsletter-images/<id>
+// path (see newsletter-editor.tsx) — meaningless inside an email client,
+// which has no page to resolve a relative URL against. Only needed at
+// actual send time; the admin's own in-app preview already sits on the
+// right origin, so a relative path resolves there with no rewriting.
+export function absolutizeImageUrls(html: string, origin: string): string {
+  return html.replaceAll('src="/api/newsletter-images/', `src="${origin}/api/newsletter-images/`);
+}
+
+// Plain-text fallback for the email's other body part — derived from the
+// editor's HTML rather than authored separately, same trade-off the
+// Markdown version made before it. Only needs to handle what the editor's
+// own toolbar can actually produce (paragraphs, headings, lists, links,
+// bold/italic, blockquotes, images), not arbitrary HTML.
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<a\s+[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, "$2 ($1)")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|li|h[1-6]|blockquote)>/gi, "\n\n")
+    .replace(/<li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

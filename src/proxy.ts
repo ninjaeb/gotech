@@ -23,6 +23,7 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/unsubscribe/",
   "/api/whatsapp/webhook",
   "/api/public/lead",
+  "/api/newsletter-images/",
 ];
 
 // The client portal (/portal/*) is a second, independent visitor type with

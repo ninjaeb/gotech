@@ -1197,10 +1197,16 @@ enum NewsletterStatus {
 // the audience size is known upfront and a send can pause/resume safely
 // across cron ticks without re-resolving list membership mid-send.
 model Newsletter {
-  id           String           @id @default(cuid())
-  subject      String
-  bodyMarkdown String           @db.Text
-  status       NewsletterStatus @default(DRAFT)
+  id       String           @id @default(cuid())
+  subject  String
+  // HTML straight from the WYSIWYG editor (src/components/newsletters/
+  // newsletter-editor.tsx) — no Markdown round-trip. Image tags reference
+  // NewsletterImage by a relative /api/newsletter-images/<id> path;
+  // absolutizeImageUrls (src/lib/newsletter-render.ts) rewrites that to a
+  // full URL at send time, since a relative path means nothing inside an
+  // email client.
+  bodyHtml String           @db.Text
+  status   NewsletterStatus @default(DRAFT)
 
   // Set when scheduled (including "send now", which schedules for the
   // current moment) — the cron script's due-check. Left null while DRAFT.
@@ -1223,6 +1229,7 @@ model Newsletter {
   createdById String?
 
   recipients NewsletterRecipient[]
+  images     NewsletterImage[]
 
   @@index([status, scheduledAt])
   @@index([listId])
@@ -1254,4 +1261,26 @@ model NewsletterRecipient {
 
   @@unique([newsletterId, contactId])
   @@index([newsletterId, status])
+}
+
+// An image inserted into a newsletter's body via the WYSIWYG editor.
+// Base64-in-DB rather than a filesystem path, same reasoning as
+// Contact.photoUrl and Attachment: this host's cPanel deploy has no
+// filesystem an upload could reliably persist across a redeploy/restart.
+// Unlike Attachment (tied to one Activity/Task), there's no required link
+// back to a Newsletter — an image is uploaded and inserted into the editor
+// before the newsletter it belongs to has necessarily been saved yet, so
+// the FK is best-effort only, set once the newsletter it was inserted into
+// is actually saved. Served publicly (see /api/newsletter-images/[id],
+// unlike /api/attachments/[id]) since an email recipient has no session.
+model NewsletterImage {
+  id        String   @id @default(cuid())
+  mimeType  String
+  data      String   @db.LongText
+  createdAt DateTime @default(now())
+
+  newsletter   Newsletter? @relation(fields: [newsletterId], references: [id], onDelete: SetNull)
+  newsletterId String?
+
+  @@index([newsletterId])
 }
