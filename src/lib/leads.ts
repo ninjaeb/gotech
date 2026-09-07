@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
+import { notifyNewLeadViaWhatsApp } from "@/lib/whatsapp";
 
 // Zod's "message" here is a semantic CODE, not display text — this schema
 // is shared by both the hosted /lead page (English/Chinese/Malay via
@@ -75,15 +76,40 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
     },
   });
 
-  if (data.message) {
-    await db.activity.create({
-      data: {
-        type: "NOTE",
-        content: `Website inquiry from ${data.name} (${data.email}): "${data.message}"`,
-        dealId: deal.id,
-      },
+  // Unconditional (not just when data.message is set) — this is also what a
+  // "new lead" in-app Notification below links back to via activityId, the
+  // same way every other Notification resolves its href (notification-href
+  // .ts). A lead with no free-text message still gets a short note, rather
+  // than leaving nothing at all on the Deal explaining how it originated.
+  const activity = await db.activity.create({
+    data: {
+      type: "NOTE",
+      content: data.message
+        ? `Website inquiry from ${data.name} (${data.email}): "${data.message}"`
+        : `Website inquiry from ${data.name} (${data.email})`,
+      dealId: deal.id,
+    },
+  });
+
+  // "notifyNewLead" is one opt-in covering both the in-app bell and the
+  // WhatsApp ping — unlike @mention/assignment/status, an unclaimed lead has
+  // no natural single recipient, so there's no "everyone this concerns"
+  // list to notify in-app for free the way there is for those; it's exactly
+  // whoever opted in via Settings → Team, on both channels.
+  const recipients = await db.user.findMany({
+    where: { role: "ADMIN", notifyNewLead: true },
+    select: { id: true },
+  });
+  if (recipients.length > 0) {
+    await db.notification.createMany({
+      data: recipients.map((user) => ({
+        userId: user.id,
+        activityId: activity.id,
+        content: `New lead: ${data.name}${companyName ? ` (${companyName})` : ""}`,
+      })),
     });
   }
+  await notifyNewLeadViaWhatsApp(data.name, companyName ?? "", `/deals/${deal.id}`);
 
   revalidatePath("/deals");
   revalidatePath("/contacts");

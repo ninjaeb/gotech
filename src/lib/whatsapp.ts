@@ -624,6 +624,97 @@ export async function notifyTaskAssignmentViaWhatsApp(
 // Must match an approved template in Meta Business Manager exactly — see
 // the README's WhatsApp section for the exact text to submit. A template,
 // not plain text, for the same reason as the other proactive notifications
+// above: whoever's opted in is very unlikely to be within their own 24h
+// WhatsApp reply window at the moment a new customer message arrives.
+export const NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME = "new_whatsapp_message_notification";
+const NEW_WHATSAPP_MESSAGE_TEMPLATE_LANGUAGE = "en";
+
+// Fires once per genuinely new inbound Contact message (never for a
+// mention-reply, which the webhook routes separately — see
+// handleMentionReply there) — to every user who's opted in via Settings →
+// Team's "Notify me of new WhatsApp messages" checkbox and set a phone
+// number. Unlike the other notify*ViaWhatsApp helpers, this one creates no
+// in-app bell Notification alongside it: the WhatsApp inbox nav item
+// already carries its own unread-conversation badge (see
+// isWhatsAppConversationUnread), so a second in-app channel here would just
+// double up on a signal that already exists, at chat-inbox volume. Filtered
+// to ADMIN since /whatsapp itself is admin-only — a DEVELOPER opted in
+// would just get pinged with a link they can't open.
+export async function notifyNewWhatsAppMessageViaWhatsApp(
+  contactName: string,
+  excerpt: string,
+  path: string,
+): Promise<void> {
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { role: "ADMIN", phone: { not: null }, notifyNewWhatsAppMessage: true },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const link = `${await getSiteOrigin()}${path}`;
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(
+        account,
+        user.phone!,
+        NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME,
+        NEW_WHATSAPP_MESSAGE_TEMPLATE_LANGUAGE,
+        [contactName, excerpt, link],
+      ).catch((error) => {
+        console.error(
+          `New WhatsApp message notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
+}
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as the other proactive notifications
+// above: whoever's opted in is very unlikely to be within their own 24h
+// WhatsApp reply window at the moment a new lead comes in.
+export const NEW_LEAD_TEMPLATE_NAME = "new_lead_notification";
+const NEW_LEAD_TEMPLATE_LANGUAGE = "en";
+
+// Fires once per new lead from the public lead-capture form (see
+// createLeadFromSubmission in src/lib/leads.ts) — to every user who's
+// opted in via Settings → Team's "Notify me of new leads" checkbox and set
+// a phone number. Filtered to ADMIN since /deals itself is admin-only.
+export async function notifyNewLeadViaWhatsApp(leadName: string, companyName: string, path: string): Promise<void> {
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const users = await db.user.findMany({
+    where: { role: "ADMIN", phone: { not: null }, notifyNewLead: true },
+    select: { id: true, phone: true },
+  });
+  if (users.length === 0) return;
+
+  const link = `${await getSiteOrigin()}${path}`;
+  await Promise.all(
+    users.map((user) =>
+      sendWhatsAppTemplateMessage(account, user.phone!, NEW_LEAD_TEMPLATE_NAME, NEW_LEAD_TEMPLATE_LANGUAGE, [
+        leadName,
+        companyName || "No company given",
+        link,
+      ]).catch((error) => {
+        console.error(
+          `New lead WhatsApp notification failed for user ${user.id}:`,
+          error instanceof Error ? error.message : error,
+        );
+      }),
+    ),
+  );
+}
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as the other proactive notifications
 // above: whoever changed the task's status is very unlikely to be within a
 // follower's own 24h WhatsApp reply window.
 export const TASK_STATUS_TEMPLATE_NAME = "task_status_notification";

@@ -12,6 +12,8 @@ import {
   MENTION_REPLY_TEMPLATE_NAME,
   TASK_ASSIGNMENT_TEMPLATE_NAME,
   TASK_STATUS_TEMPLATE_NAME,
+  NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME,
+  NEW_LEAD_TEMPLATE_NAME,
   testWhatsAppConnection,
   sendWhatsAppTemplateMessage,
 } from "@/lib/whatsapp";
@@ -239,6 +241,83 @@ export async function sendTaskStatusNotificationTest(
       admin.name,
       "This is a test task from GoTech CRM.",
       "completed",
+      `${siteOrigin}/settings/integrations`,
+    ]);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Send failed." };
+  }
+  return { success: true };
+}
+
+export type NewWhatsAppMessageNotificationTestState = { error: string } | { success: true } | undefined;
+
+// "Send test" button (Settings → Integrations) for the
+// new_whatsapp_message_notification template — a real inbound message has
+// no scheduled run to manually trigger either, so this is the only way to
+// check the template without waiting for a customer to actually message in.
+// Sends to the clicking admin's own number, and surfaces the real error
+// rather than swallowing it, same reasoning as the other test buttons here.
+export async function sendNewWhatsAppMessageNotificationTest(
+  prevState: NewWhatsAppMessageNotificationTestState,
+  formData: FormData,
+): Promise<NewWhatsAppMessageNotificationTestState> {
+  void prevState;
+  void formData;
+  const admin = await requireAdminAction();
+
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) {
+    return { error: "WhatsApp Business isn't connected." };
+  }
+
+  const { phone } = await db.user.findUniqueOrThrow({ where: { id: admin.id }, select: { phone: true } });
+  if (!phone) {
+    return { error: "Set your own WhatsApp number first, from Settings → Team." };
+  }
+
+  const siteOrigin = await getSiteOrigin();
+  try {
+    await sendWhatsAppTemplateMessage(account, phone, NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME, "en", [
+      "Test Contact",
+      "This is a test WhatsApp message from GoTech CRM.",
+      `${siteOrigin}/settings/integrations`,
+    ]);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Send failed." };
+  }
+  return { success: true };
+}
+
+export type NewLeadNotificationTestState = { error: string } | { success: true } | undefined;
+
+// "Send test" button (Settings → Integrations) for the new_lead_notification
+// template — same reasoning as the other test buttons here: no scheduled
+// run to manually trigger, so this is the only way to check the template
+// without a real lead form submission. Sends to the clicking admin's own
+// number, and surfaces the real error rather than swallowing it.
+export async function sendNewLeadNotificationTest(
+  prevState: NewLeadNotificationTestState,
+  formData: FormData,
+): Promise<NewLeadNotificationTestState> {
+  void prevState;
+  void formData;
+  const admin = await requireAdminAction();
+
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) {
+    return { error: "WhatsApp Business isn't connected." };
+  }
+
+  const { phone } = await db.user.findUniqueOrThrow({ where: { id: admin.id }, select: { phone: true } });
+  if (!phone) {
+    return { error: "Set your own WhatsApp number first, from Settings → Team." };
+  }
+
+  const siteOrigin = await getSiteOrigin();
+  try {
+    await sendWhatsAppTemplateMessage(account, phone, NEW_LEAD_TEMPLATE_NAME, "en", [
+      "Test Lead",
+      "Acme Corp",
       `${siteOrigin}/settings/integrations`,
     ]);
   } catch (error) {

@@ -74,12 +74,16 @@ const userDetailsSchema = z.object({
     .trim()
     .optional()
     .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
+  notifyNewWhatsAppMessage: z.boolean(),
+  notifyNewLead: z.boolean(),
 });
 
 export type UserDetailsState = { error: string } | { success: true } | undefined;
 
-// Lets an admin edit a teammate's name/email/title, and set or change
-// their WhatsApp task-reminder number on their behalf, from Settings → Team.
+// Lets an admin edit a teammate's name/email/title, set or change their
+// WhatsApp task-reminder number, and toggle their two broadcast-style
+// WhatsApp opt-ins (new message / new lead) on their behalf, from
+// Settings → Team.
 export async function updateUserDetails(
   userId: string,
   _prevState: UserDetailsState,
@@ -92,6 +96,8 @@ export async function updateUserDetails(
     email: formData.get("email"),
     title: formData.get("title"),
     phone: formData.get("phone"),
+    notifyNewWhatsAppMessage: formData.get("notifyNewWhatsAppMessage") === "on",
+    notifyNewLead: formData.get("notifyNewLead") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -109,6 +115,8 @@ export async function updateUserDetails(
       email: parsed.data.email,
       title: parsed.data.title || null,
       phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null,
+      notifyNewWhatsAppMessage: parsed.data.notifyNewWhatsAppMessage,
+      notifyNewLead: parsed.data.notifyNewLead,
     },
   });
 

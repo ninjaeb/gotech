@@ -15,6 +15,8 @@ import { SendMentionNotificationTestButton } from "@/components/settings/send-me
 import { SendMentionReplyNotificationTestButton } from "@/components/settings/send-mention-reply-notification-test-button";
 import { SendTaskAssignmentNotificationTestButton } from "@/components/settings/send-task-assignment-notification-test-button";
 import { SendTaskStatusNotificationTestButton } from "@/components/settings/send-task-status-notification-test-button";
+import { SendNewWhatsAppMessageNotificationTestButton } from "@/components/settings/send-new-whatsapp-message-notification-test-button";
+import { SendNewLeadNotificationTestButton } from "@/components/settings/send-new-lead-notification-test-button";
 
 export default async function IntegrationsSettingsPage() {
   await requireAdmin();
@@ -158,6 +160,36 @@ export default async function IntegrationsSettingsPage() {
             approved and working, sent to your own number.
           </p>
           <SendTaskStatusNotificationTestButton />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp new-message notifications</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Sent automatically whenever a new WhatsApp message arrives from a contact, to anyone who&apos;s
+            checked &quot;Notify me of new WhatsApp messages&quot; and set a phone number (Settings → Team).
+            No schedule to check here — use this to confirm the Meta template is approved and working, sent
+            to your own number.
+          </p>
+          <SendNewWhatsAppMessageNotificationTestButton />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp new-lead notifications</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Sent automatically whenever the public lead form creates a new lead, to anyone who&apos;s checked
+            &quot;Notify me of new leads&quot; and set a phone number (Settings → Team) — they also get the
+            usual in-app bell notification. No schedule to check here — use this to confirm the Meta template
+            is approved and working, sent to your own number.
+          </p>
+          <SendNewLeadNotificationTestButton />
         </CardBody>
       </Card>
     </div>

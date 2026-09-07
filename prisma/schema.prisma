@@ -112,6 +112,17 @@ model User {
   phone                        String?
   lastTaskDigestWhatsAppSentAt DateTime?
 
+  // Two more opt-in WhatsApp pings, kept as their own booleans rather than
+  // folded into the phone-presence gate above: the four notifications above
+  // are each about something specifically involving this one user (you were
+  // mentioned, assigned, etc.), while a new inbound WhatsApp message or a
+  // new lead has no single "assignee" to narrow the ping to — every admin
+  // could plausibly want one, and, for a busy shared inbox especially, just
+  // as plausibly not. Set by an admin from Settings → Team, same as phone;
+  // both no-op without a phone number set too.
+  notifyNewWhatsAppMessage Boolean @default(false)
+  notifyNewLead            Boolean @default(false)
+
   // JSON: { [pageType]: { main: string[], sidebar: string[] } } — which
   // sections this user has dragged where on the Deal/Company/Contact detail
   // pages. A personal display preference, so it lives on User rather than

@@ -39,6 +39,8 @@ export default async function TeamSettingsPage() {
                   role: user.role,
                   hourlyRate: user.hourlyRate === null ? null : Number(user.hourlyRate),
                   createdAt: user.createdAt,
+                  notifyNewWhatsAppMessage: user.notifyNewWhatsAppMessage,
+                  notifyNewLead: user.notifyNewLead,
                 }}
                 isSelf={user.id === currentUser.id}
                 canDelete={users.length > 1}

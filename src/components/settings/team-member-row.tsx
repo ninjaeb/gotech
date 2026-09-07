@@ -29,6 +29,8 @@ export function TeamMemberRow({
     role: Role;
     hourlyRate: number | null;
     createdAt: Date;
+    notifyNewWhatsAppMessage: boolean;
+    notifyNewLead: boolean;
   };
   isSelf: boolean;
   canDelete: boolean;
@@ -104,6 +106,28 @@ export function TeamMemberRow({
                 blank to opt out of both.
               </p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                name="notifyNewWhatsAppMessage"
+                defaultChecked={user.notifyNewWhatsAppMessage}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+              />
+              Notify me of new WhatsApp messages
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                name="notifyNewLead"
+                defaultChecked={user.notifyNewLead}
+                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+              />
+              Notify me of new leads
+            </label>
+            <p className="text-xs text-slate-400">Both only take effect once a WhatsApp number is set above.</p>
           </div>
 
           {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}

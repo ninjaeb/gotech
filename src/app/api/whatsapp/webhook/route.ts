@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { findUnambiguousOpenDeal } from "@/lib/email";
 import { verifyWebhookSignature } from "@/lib/webhook-signature";
+import { fullName } from "@/lib/format";
 import {
   WHATSAPP_ACCOUNT_ID,
   WHATSAPP_RECEIVED_PREFIX,
@@ -10,6 +11,8 @@ import {
   findPendingMentionNotification,
   sendMentionReplyViaWhatsApp,
   downloadWhatsAppMedia,
+  notifyNewWhatsAppMessageViaWhatsApp,
+  mentionExcerpt,
 } from "@/lib/whatsapp";
 import type { WhatsAppAccount, WhatsAppMediaType } from "@/generated/prisma/client";
 
@@ -250,11 +253,13 @@ export async function POST(request: NextRequest) {
 
     const dealId = await findUnambiguousOpenDeal(contactId);
     const inboundMedia = await buildInboundMediaContent(account, message);
+    const messageContent = inboundMedia?.content ?? describeMessage(message);
+    let isNewMessage = false;
     try {
       await db.activity.create({
         data: {
           type: "WHATSAPP",
-          content: `${WHATSAPP_RECEIVED_PREFIX}${inboundMedia?.content ?? describeMessage(message)}`,
+          content: `${WHATSAPP_RECEIVED_PREFIX}${messageContent}`,
           contactId,
           dealId,
           externalId: `whatsapp:${message.id}`,
@@ -269,10 +274,26 @@ export async function POST(request: NextRequest) {
             : {}),
         },
       });
+      isNewMessage = true;
     } catch (error) {
       // P2002 = unique constraint violation on externalId — already logged
-      // (Meta can redeliver the same webhook event).
+      // (Meta can redeliver the same webhook event) — isNewMessage stays
+      // false, so a redelivery never notifies a second time either.
       if (!(error instanceof Object && "code" in error && error.code === "P2002")) throw error;
+    }
+
+    if (isNewMessage) {
+      const contact = await db.contact.findUnique({
+        where: { id: contactId },
+        select: { firstName: true, lastName: true },
+      });
+      if (contact) {
+        await notifyNewWhatsAppMessageViaWhatsApp(
+          fullName(contact.firstName, contact.lastName),
+          mentionExcerpt(messageContent),
+          `/whatsapp/${contactId}`,
+        );
+      }
     }
   }
 

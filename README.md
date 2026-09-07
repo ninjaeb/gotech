@@ -274,6 +274,50 @@ Like the other proactive notifications, this needs its own approved template:
 
 Since this only fires on a real status change, there's no cron job to manually trigger — the **Send test** button in the same Settings → Integrations card sends a one-off test notification (with placeholder task/status text) to your own number instead, to confirm this template is approved and reachable.
 
+### 16. WhatsApp new-message notifications (optional)
+
+Whenever a new WhatsApp message arrives from a contact (not Meta's own delivery/read receipts, and not a swipe-reply to a mention notification — see section 13 above for that separate chain), anyone who's checked "Notify me of new WhatsApp messages" on their own row in *Settings → Team* and set a phone number gets a WhatsApp ping about it — who it's from, an excerpt, and a link straight to that conversation. Unlike the notifications above, this one creates no separate in-app bell notification — the WhatsApp nav item's own unread-conversation badge already covers that, and doubling it up at chat-inbox volume would just be noisy. Admin-only (the `/whatsapp` inbox itself is), so a Developer login can't opt in.
+
+Like the other proactive notifications, this needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `new_whatsapp_message_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "New WhatsApp message in GoTech CRM"
+   - Body: `{{1}} sent a new WhatsApp message: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Is the proposal ready yet?` / `https://crm.yourcompany.com/whatsapp/abc123`.
+
+   Submit for review, same as the other templates above.
+2. **Turn it on per person** — each admin who wants this checks "Notify me of new WhatsApp messages" on their own row in *Settings → Team* (an admin sets it for anyone, same as the phone number itself) and needs a phone number set too; leaving either off means that person is silently skipped. If WhatsApp Business isn't connected, or the template isn't approved yet, the message is still logged in the CRM as normal — the WhatsApp ping is just silently skipped.
+
+`{{1}}` is the contact's name (or their phone number, for a brand-new conversation with no name on file yet), `{{2}}` an excerpt of the message (long text is truncated; a photo/document/video shows as a placeholder like "Sent an image"), `{{3}}` a full link to that conversation, built from your `SITE_URL` env var.
+
+Since a real message has no scheduled run to manually trigger, the **Send test** button in the same Settings → Integrations card sends a one-off test with placeholder content to your own number instead, to confirm this template is approved and reachable.
+
+### 17. WhatsApp new-lead notifications (optional)
+
+Whenever the public lead-capture form (see *Public lead-capture form* in Features above) creates a new lead, anyone who's checked "Notify me of new leads" on their own row in *Settings → Team* gets an in-app bell notification, and — if they've also set a phone number — a WhatsApp ping too, with the lead's name, company, and a link straight to the new deal. Unlike the notifications above, there's no natural single person a new, unclaimed lead belongs to, so this is its own explicit opt-in rather than reusing the phone-number-presence pattern the others share. Admin-only (the `/deals` pipeline itself is), so a Developer login can't opt in.
+
+Like the other proactive notifications, this needs its own approved template:
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `new_lead_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "New lead in GoTech CRM"
+   - Body: `New website lead: {{1}} ({{2}})` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - No buttons — same reasoning as the other templates above: the link is the body's own `{{3}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/deals/abc123`.
+
+   Submit for review, same as the other templates above.
+2. **Turn it on per person** — each admin who wants this checks "Notify me of new leads" on their own row in *Settings → Team* (an admin sets it for anyone). A phone number is only needed for the WhatsApp half — the in-app bell notification goes out either way. If WhatsApp Business isn't connected, the person has no phone number set, or the template isn't approved yet, the lead is still logged (and the in-app notification still sent) as normal — only the WhatsApp ping is silently skipped.
+
+`{{1}}` is the lead's name, `{{2}}` their company (or "No company given" if the form was submitted without one), `{{3}}` a full link to the new deal, built from your `SITE_URL` env var.
+
+Since a real lead has no scheduled run to manually trigger, the **Send test** button in the same Settings → Integrations card sends a one-off test with placeholder content to your own number instead, to confirm this template is approved and reachable.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
