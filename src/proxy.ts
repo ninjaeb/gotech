@@ -20,6 +20,7 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/book",
   "/testimonial/",
   "/embed/",
+  "/unsubscribe/",
   "/api/whatsapp/webhook",
   "/api/public/lead",
 ];

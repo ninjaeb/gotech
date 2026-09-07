@@ -118,18 +118,19 @@ model User {
   // on the entities being viewed.
   sectionLayout String? @db.Text
 
-  emailAccount             EmailAccount?
-  deals                    Deal[]
-  timeEntries              TimeEntry[]
-  sequenceEnrollments      SequenceEnrollment[]
-  assignedTasks            TaskAssignee[]
-  followingTasks           TaskFollower[]
-  notifications            Notification[]
-  contactLists             ContactList[]
-  sentMentionNotifications     WhatsAppMentionNotification[] @relation("MentionNotificationForwardTo")
-  receivedMentionNotifications WhatsAppMentionNotification[] @relation("MentionNotificationRecipient")
+  emailAccount                           EmailAccount?
+  deals                                  Deal[]
+  timeEntries                            TimeEntry[]
+  sequenceEnrollments                    SequenceEnrollment[]
+  assignedTasks                          TaskAssignee[]
+  followingTasks                         TaskFollower[]
+  notifications                          Notification[]
+  contactLists                           ContactList[]
+  sentMentionNotifications               WhatsAppMentionNotification[]       @relation("MentionNotificationForwardTo")
+  receivedMentionNotifications           WhatsAppMentionNotification[]       @relation("MentionNotificationRecipient")
   pendingAssignmentNotifications         PendingTaskAssignmentNotification[] @relation("PendingAssignmentRecipient")
   assignedPendingAssignmentNotifications PendingTaskAssignmentNotification[] @relation("PendingAssignmentAssigner")
+  newsletters                            Newsletter[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -337,6 +338,16 @@ model Contact {
   // this (see isWhatsAppConversationUnread in src/lib/whatsapp.ts).
   whatsappLastReadAt DateTime?
 
+  // Set by the public one-click unsubscribe link every newsletter send
+  // includes (see src/app/unsubscribe/[token]/page.tsx) — never set any
+  // other way, and nothing in the UI clears it automatically, so re-opting
+  // in is a deliberate admin action. Checked when a Newsletter's recipients
+  // are materialized (src/lib/newsletters.ts); has no effect on 1:1 email
+  // or sequences, which aren't bulk/marketing send and aren't what this
+  // flag is about.
+  emailOptOut   Boolean   @default(false)
+  emailOptOutAt DateTime?
+
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 
@@ -349,6 +360,7 @@ model Contact {
   mentionNotifications WhatsAppMentionNotification[]
   listMemberships      ContactListMember[]
   testimonials         Testimonial[]
+  newsletterRecipients NewsletterRecipient[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -381,7 +393,8 @@ model ContactList {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
-  members ContactListMember[]
+  members     ContactListMember[]
+  newsletters Newsletter[]
 
   @@index([ownerId])
 }
@@ -999,7 +1012,7 @@ model Testimonial {
 
   aiDraft String? @db.Text
 
-  content     String?  @db.Text
+  content     String? @db.Text
   rating      Int?
   authorName  String?
   authorTitle String?
@@ -1144,4 +1157,101 @@ model SequenceEnrollment {
   @@unique([sequenceId, contactId])
   @@index([contactId])
   @@index([status, nextStepDueAt])
+}
+
+// Single shared outbound mailbox for bulk newsletter sends — unlike
+// EmailAccount (one row per user's own personal inbox, meant for 1:1 sales
+// mail), this is one org-wide sending identity, same singleton-row shape as
+// WhatsAppAccount. Deliberately separate from EmailAccount rather than
+// reusing one admin's connected mailbox: mixing marketing-volume sends onto
+// a personal inbox risks that mailbox's own deliverability/reputation, and
+// a newsletter has no reason to need IMAP (nothing reads a reply back
+// through this).
+model NewsletterSender {
+  id        String @id @default("singleton")
+  fromName  String
+  fromEmail String
+
+  smtpHost          String
+  smtpPort          Int
+  smtpSecure        Boolean
+  username          String
+  // AES-256-GCM ("iv:authTag:ciphertext", base64) via src/lib/email-crypto.ts
+  // — the same helper EmailAccount and WhatsAppAccount already use.
+  encryptedPassword String  @db.Text
+
+  updatedAt DateTime @updatedAt
+}
+
+enum NewsletterStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+}
+
+// A single broadcast email + one send moment to a whole audience — distinct
+// from Sequence, which is a per-contact drip primitive (one independently-
+// scheduled SequenceEnrollment row per contact). Recipients are snapshotted
+// into NewsletterRecipient rows once (at schedule time, not send time) so
+// the audience size is known upfront and a send can pause/resume safely
+// across cron ticks without re-resolving list membership mid-send.
+model Newsletter {
+  id           String           @id @default(cuid())
+  subject      String
+  bodyMarkdown String           @db.Text
+  status       NewsletterStatus @default(DRAFT)
+
+  // Set when scheduled (including "send now", which schedules for the
+  // current moment) — the cron script's due-check. Left null while DRAFT.
+  scheduledAt DateTime?
+  // Set once every recipient has been attempted (sent or failed) — not the
+  // same instant as scheduledAt, since actually working through a large
+  // audience takes multiple cron ticks.
+  sentAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Nullable + SetNull rather than a required cascade: deleting the list
+  // later shouldn't erase a newsletter's own send history, since
+  // NewsletterRecipient already captured who was actually sent to.
+  list   ContactList? @relation(fields: [listId], references: [id], onDelete: SetNull)
+  listId String?
+
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+
+  recipients NewsletterRecipient[]
+
+  @@index([status, scheduledAt])
+  @@index([listId])
+}
+
+enum NewsletterRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// One row per contact a Newsletter was (or will be) sent to — the durable,
+// resumable send queue the cron script works through, and the source of
+// each recipient's own one-click unsubscribeToken (so a contact stays
+// identifiable from the link alone, without a login).
+model NewsletterRecipient {
+  id     String                    @id @default(cuid())
+  status NewsletterRecipientStatus @default(PENDING)
+  sentAt DateTime?
+  error  String?                   @db.Text
+
+  unsubscribeToken String @unique @default(cuid())
+
+  newsletter   Newsletter @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
+  newsletterId String
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  @@unique([newsletterId, contactId])
+  @@index([newsletterId, status])
 }

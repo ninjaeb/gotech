@@ -9,7 +9,8 @@ export type DynamicListTemplateKey =
   | "leads_not_contacted"
   | "customers_without_active_deal"
   | "unclassified"
-  | "no_company";
+  | "no_company"
+  | "all_with_email";
 
 // v1 dynamic lists aren't a generic query builder — just this handful of
 // hand-picked templates, each a plain Prisma where clause. filterDefinition
@@ -46,6 +47,11 @@ export const DYNAMIC_LIST_TEMPLATES: Record<
     label: "Contacts without a company",
     description: "Not linked to any company.",
     where: () => ({ companyId: null }),
+  },
+  all_with_email: {
+    label: "All contacts with an email",
+    description: "Every contact that has an email address on file — the usual newsletter audience.",
+    where: () => ({ email: { not: null } }),
   },
 };
 

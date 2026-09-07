@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { deleteContact } from "@/app/actions/contacts";
 import { inviteToPortal, revokePortalAccess } from "@/app/actions/client-portal";
 import { enrollContact, stopEnrollment } from "@/app/actions/sequence-enrollments";
+import { setContactEmailOptOut } from "@/app/actions/newsletter-unsubscribe";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -203,6 +204,25 @@ export default async function ContactDetailPage({
                   label="Stage"
                   value={<LifecycleStageSelect contactId={contact.id} value={contact.lifecycleStage} />}
                 />
+                {contact.email && (
+                  <DetailRow
+                    label="Newsletters"
+                    value={
+                      <form action={setContactEmailOptOut.bind(null, contact.id, !contact.emailOptOut)}>
+                        <button
+                          type="submit"
+                          className={
+                            contact.emailOptOut
+                              ? "text-rose-600 hover:underline dark:text-rose-400"
+                              : "text-slate-700 hover:underline dark:text-slate-300"
+                          }
+                        >
+                          {contact.emailOptOut ? "Unsubscribed — resubscribe" : "Subscribed"}
+                        </button>
+                      </form>
+                    }
+                  />
+                )}
               </div>
               {contact.notes && (
                 <div className="mt-3 text-sm">
