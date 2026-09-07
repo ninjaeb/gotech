@@ -317,7 +317,17 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 No native binaries to worry about: Prisma 7's driver-adapter architecture (`@prisma/adapter-mariadb`, already configured in `src/lib/db.ts`) talks to MySQL through a pure JS/WASM query engine instead of a platform-specific compiled binary, which tends to be the main source of pain on shared hosting.
 
-To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, then restart the app — `server.js` rebuilds from the new source on every start, so there's no `.next` folder to manually clear.
+To redeploy after future changes: push to the branch cPanel's Git Version Control tracks, click *Deploy HEAD Commit* again, re-run *NPM Install* if dependencies changed, run `npx prisma migrate deploy` if the schema changed, then restart the app — `server.js` rebuilds from the new source on every start, so there's no `.next` folder to manually clear. Or skip all of that by hand — see *Auto-deploy from GitHub* below.
+
+### Auto-deploy from GitHub (optional)
+
+A push to one branch does everything the manual redeploy steps above do — pull, install (only if `package-lock.json` changed), migrate, restart — without touching cPanel. This only works when the Application root *is* the Git checkout directory itself (the simpler setup the Troubleshooting section below already assumes, not the separate-`DEPLOYPATH`-copy one) — the deploy script runs `git reset --hard` directly on the Application root.
+
+1. **Set `DEPLOY_WEBHOOK_SECRET` and `DEPLOY_BRANCH`** as environment variables in the Node app screen (same place as `DATABASE_URL` etc. in step 4 above): a random secret (`openssl rand -base64 32`) and the exact branch name this environment deploys (e.g. `main`). Both are required together — auto-deploy stays off, returning `503` on the webhook, until they're set.
+2. **Register the webhook.** On GitHub: repo → *Settings → Webhooks → Add webhook* — Payload URL `https://yourdomain.com/api/deploy/webhook`, Content type `application/json`, Secret: the same value as `DEPLOY_WEBHOOK_SECRET`, and just the `push` event. Save, then restart the app so it picks up the new env vars.
+3. **Push to `DEPLOY_BRANCH`.** GitHub calls the webhook, which spawns the deploy in the background and responds immediately (so GitHub's own webhook delivery doesn't time out waiting on `npm install`/migrations) — a push to any other branch, or any other event GitHub might send (like its initial `ping` when you save the webhook), is acknowledged and ignored without deploying anything.
+
+Everything the deploy does is appended to `deploy.log` in the Application root (already covered by `.gitignore`) — check there first if a push doesn't seem to have taken effect. Since this runs `npx prisma migrate deploy` unattended on every push that changes the schema, a migration goes live the moment its commit reaches `DEPLOY_BRANCH` — the same way this repo's own workflow already pushes straight to a shared branch with no review gate, just now automatic instead of a manual step you'd otherwise run right after.
 
 ### Troubleshooting
 
@@ -353,6 +363,7 @@ scripts/
   remove-contacts-with-invalid-phone.ts  CLI to delete contacts whose phone isn't in "+countrycode..." format and have no linked history (npm run remove-contacts-with-invalid-phone)
   remove-contacts-without-company.ts  CLI to delete contacts with no linked company and no linked history (npm run remove-contacts-without-company)
   remove-companies-without-contacts.ts  CLI to delete companies with no linked contact and no linked history (npm run remove-companies-without-contacts)
+  deploy.ts               Pull/install/migrate/restart (npm run deploy) — run by the GitHub push webhook, see "Auto-deploy from GitHub"
 server.js               Custom Node entrypoint for cPanel/Passenger hosting
 proxy.ts (src/)          Optimistic auth redirect, runs on every route
 .cpanel.yml              Git Version Control deploy tasks (cPanel)
@@ -382,7 +393,8 @@ src/
     currency.ts             Curated list of ISO 4217 currencies for the Settings dropdown
     google-contacts-import.ts   CSV parsing/column-mapping for contact import
     email.ts                IMAP sync + SMTP send for connected mailboxes
-    whatsapp.ts              Cloud API send + webhook signature verification + phone matching
+    whatsapp.ts              Cloud API send + phone matching
+    webhook-signature.ts     Shared HMAC-SHA256 verifier for the WhatsApp and GitHub-deploy webhooks
     phone.ts                 Stored-phone standard: normalize to "+<digits>", validate loose E.164 shape, phoneMatchKey() for +/no-+ duplicate matching
     email-format.ts          Shared email-format validator (import + cleanup scripts)
     names.ts                 toTitleCase() — auto-capitalization for contact names
@@ -392,6 +404,7 @@ src/
     format.ts, labels.ts, utils.ts
   components/layout/notification-poller.tsx   Background polling + native desktop Notification firing
   app/api/whatsapp/webhook/route.ts   Public: Meta's inbound-message webhook (GET verify, POST receive)
+  app/api/deploy/webhook/route.ts     Public: GitHub's push webhook, triggers npm run deploy (see "Auto-deploy from GitHub")
   app/api/contacts/[id]/vcard/route.ts   Downloads a Contact as a .vcf ("Save to phone")
   app/api/notifications/poll/route.ts    Polled by NotificationPoller for desktop-alert-worthy new notifications
 ```
@@ -412,6 +425,7 @@ src/
 | `npm run send-newsletters` | Send a paced batch of any due/in-progress newsletters once (what the cron job runs) |
 | `npm run send-task-digests` | Manually check/send the daily email task digest once, outside the cron job |
 | `npm run send-task-digests-whatsapp` | Manually check/send the daily WhatsApp task reminder once, outside the cron job |
+| `npm run deploy` | Pull/install/migrate/restart once, by hand — what the GitHub push webhook runs (see *Auto-deploy from GitHub*) |
 | `npx prisma studio` | Browse/edit data in a GUI |
 | `npx prisma migrate dev --name <name>` | Create and apply a new migration |
 | `npx prisma db seed` | (Re-)seed sample data; also creates the first login if none exist |

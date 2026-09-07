@@ -57,6 +57,7 @@ next-env.d.ts
 /tmp/
 /stderr.log
 /stdout.log
+/deploy.log
 
 # Locally-hosted contact photos (see scripts/download-xchievers-photos.mjs)
 # — instance data written at runtime, not application code. Same "only

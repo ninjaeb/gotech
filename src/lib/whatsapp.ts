@@ -1,4 +1,3 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { decryptSecret } from "@/lib/email-crypto";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -70,26 +69,6 @@ export async function findOrCreateContactIdByWhatsAppPhone(waId: string, profile
     select: { id: true },
   });
   return created.id;
-}
-
-// Meta signs each webhook POST body with the App Secret via HMAC-SHA256,
-// sent as "sha256=<hex>" in the X-Hub-Signature-256 header — verifying this
-// against the RAW body (before any JSON parsing) is the only thing standing
-// between this public, unauthenticated endpoint and anyone who finds the URL.
-export function verifyWebhookSignature(rawBody: string, signatureHeader: string | null, appSecret: string): boolean {
-  if (!signatureHeader?.startsWith("sha256=")) return false;
-  const expected = createHmac("sha256", appSecret).update(rawBody, "utf8").digest("hex");
-  const provided = signatureHeader.slice("sha256=".length);
-  let expectedBuf: Buffer;
-  let providedBuf: Buffer;
-  try {
-    expectedBuf = Buffer.from(expected, "hex");
-    providedBuf = Buffer.from(provided, "hex");
-  } catch {
-    return false;
-  }
-  if (expectedBuf.length !== providedBuf.length) return false;
-  return timingSafeEqual(expectedBuf, providedBuf);
 }
 
 export type WhatsAppConnectionConfig = {
