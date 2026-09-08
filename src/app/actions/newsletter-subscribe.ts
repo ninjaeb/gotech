@@ -38,6 +38,7 @@ export async function submitNewsletterSubscribe(
     name: formData.get("name"),
     email: formData.get("email"),
     phone: formData.get("phone"),
+    channel: formData.get("channel"),
   });
   if (!parsed.success) {
     const code = (parsed.error.issues[0]?.message as NewsletterSubscribeErrorCode) ?? "invalid_submission";

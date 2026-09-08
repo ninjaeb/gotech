@@ -45,10 +45,11 @@ export default async function NewsletterSettingsPage() {
         </CardHeader>
         <CardBody className="space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            A public form for your marketing site. Each submission finds or creates a Contact and adds
-            them to the list below — compose a newsletter to that list (*Newsletters*) to actually reach
-            them. Resubmitting also clears a previous unsubscribe, the same as any mailing list&apos;s
-            resubscribe.
+            A public form for your marketing site. Visitors choose email, WhatsApp, or both, and each
+            submission finds or creates a Contact and adds them to the list below — compose a newsletter
+            to that list (*Newsletters*) to reach the email subscribers, or a WhatsApp broadcast (once set
+            up) to reach the WhatsApp ones. Resubmitting also clears a previous unsubscribe on the chosen
+            channel, the same as any mailing list&apos;s resubscribe.
           </p>
 
           <NewsletterSubscribeListForm currentListId={subscribeListId} lists={staticLists} />

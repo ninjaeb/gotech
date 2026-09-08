@@ -10,9 +10,9 @@
  * document, so the host site's own CSS (fonts, text color, any existing
  * input/button styling) applies to it exactly like any other form on the
  * page. See that file's own comments for the full reasoning; this one
- * skips its language switcher (a one-field "just my email" form doesn't
- * carry the same translation weight the lead form's does) and keeps only
- * what a subscribe box actually needs.
+ * skips its language switcher and keeps only what a subscribe box
+ * actually needs — name/email/phone plus a channel choice (email,
+ * WhatsApp, or both).
  *
  * Two things you can set directly on your <div data-gotech-newsletter-form>
  * (as a style attribute, or in your own stylesheet) without touching this
@@ -40,12 +40,20 @@
   var API_URL = SCRIPT_URL ? SCRIPT_URL.origin + "/api/public/newsletter-subscribe" : "/api/public/newsletter-subscribe";
 
   var STRINGS = {
+    intro: "Practical tips and guides to help grow your business — delivered however you prefer.",
     nameLabel: "Name",
     namePlaceholder: "Jane Smith",
     emailLabel: "Email",
     emailPlaceholder: "jane@company.com",
     phoneLabel: "Phone",
     phonePlaceholder: "+1 555 123 4567",
+    channelLabel: "Get updates via",
+    channelOptions: [
+      { value: "EMAIL", label: "Email" },
+      { value: "WHATSAPP", label: "WhatsApp" },
+      { value: "BOTH", label: "Both" },
+    ],
+    noSpam: "No spam, ever — unsubscribe from email or WhatsApp updates at any time.",
     submit: "Subscribe",
     submitting: "Subscribing…",
     success: "You're subscribed — thanks for signing up!",
@@ -53,6 +61,8 @@
       name_required: "Name is required",
       email_required: "Email is required",
       email_invalid: "Enter a valid email",
+      phone_required: "Phone number is required",
+      channel_invalid: "Choose how you'd like to get updates",
       rate_limited: "Too many attempts — please try again later.",
       not_configured: "Subscriptions aren't set up yet — please try again shortly.",
       invalid_submission: "Please check the form and try again.",
@@ -75,6 +85,16 @@
       "[data-gotech-newsletter-form] .gnf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-success{font-size:.95em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-required{color:#f43f5e}",
+      "[data-gotech-newsletter-form] .gnf-intro{margin:0 0 .25em;opacity:.75}",
+      "[data-gotech-newsletter-form] .gnf-nospam{margin:0;font-size:.85em;opacity:.6}",
+      "[data-gotech-newsletter-form] .gnf-channels{display:grid;grid-template-columns:repeat(3,1fr);gap:.5em}",
+      "[data-gotech-newsletter-form] .gnf-channel{position:relative}",
+      "[data-gotech-newsletter-form] .gnf-channel input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}",
+      ":where([data-gotech-newsletter-form] .gnf-channel span){" +
+        "display:flex;align-items:center;justify-content:center;text-align:center;" +
+        "border:1px solid #ccc;border-radius:4px;padding:.5em .4em;cursor:pointer}",
+      "[data-gotech-newsletter-form] .gnf-channel input:checked + span{" +
+        "border-color:var(--gnf-accent);color:var(--gnf-accent);font-weight:600}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/button/label always wins over these.
       ":where([data-gotech-newsletter-form] label){font-size:.9em}",
@@ -132,6 +152,11 @@
 
     var form = document.createElement("form");
 
+    var intro = document.createElement("p");
+    intro.className = "gnf-intro";
+    intro.textContent = t.intro;
+    form.appendChild(intro);
+
     // Honeypot: hidden from real visitors, often filled in by bots. Never
     // shown to assistive tech either (aria-hidden on the wrapper).
     var hp = document.createElement("div");
@@ -155,11 +180,50 @@
 
     var nameInput = makeInput("name", "text", true, t.namePlaceholder);
     var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
-    var phoneInput = makeInput("phone", "tel", false, t.phonePlaceholder);
+    var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder);
 
     form.appendChild(makeField(t.nameLabel, nameInput, true));
     form.appendChild(makeField(t.emailLabel, emailInput, true));
-    form.appendChild(makeField(t.phoneLabel, phoneInput));
+    form.appendChild(makeField(t.phoneLabel, phoneInput, true));
+
+    var channelWrap = document.createElement("div");
+    channelWrap.className = "gnf-field";
+    var channelLabel = document.createElement("label");
+    channelLabel.textContent = t.channelLabel;
+    var channelMark = document.createElement("span");
+    channelMark.className = "gnf-required";
+    channelMark.setAttribute("aria-hidden", "true");
+    channelMark.textContent = " *";
+    channelLabel.appendChild(channelMark);
+    channelWrap.appendChild(channelLabel);
+
+    var channelGroup = document.createElement("div");
+    channelGroup.className = "gnf-channels";
+    var channelInputs = [];
+    for (var c = 0; c < t.channelOptions.length; c++) {
+      var opt = t.channelOptions[c];
+      var optWrap = document.createElement("label");
+      optWrap.className = "gnf-channel";
+      var optInput = document.createElement("input");
+      optInput.type = "radio";
+      optInput.name = "channel";
+      optInput.value = opt.value;
+      optInput.required = true;
+      if (opt.value === "EMAIL") optInput.checked = true;
+      var optText = document.createElement("span");
+      optText.textContent = opt.label;
+      optWrap.appendChild(optInput);
+      optWrap.appendChild(optText);
+      channelGroup.appendChild(optWrap);
+      channelInputs.push(optInput);
+    }
+    channelWrap.appendChild(channelGroup);
+    form.appendChild(channelWrap);
+
+    var noSpam = document.createElement("p");
+    noSpam.className = "gnf-nospam";
+    noSpam.textContent = t.noSpam;
+    form.appendChild(noSpam);
 
     var errorEl = document.createElement("p");
     errorEl.className = "gnf-error";
@@ -177,12 +241,18 @@
       submitBtn.disabled = true;
       submitBtn.textContent = t.submitting;
 
+      var selectedChannel = "";
+      for (var ci = 0; ci < channelInputs.length; ci++) {
+        if (channelInputs[ci].checked) selectedChannel = channelInputs[ci].value;
+      }
+
       var payload = {
         website: hpInput.value,
         renderedAt: renderedAt,
         name: nameInput.value,
         email: emailInput.value,
         phone: phoneInput.value,
+        channel: selectedChannel,
       };
 
       fetch(API_URL, {

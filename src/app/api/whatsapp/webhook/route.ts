@@ -251,6 +251,18 @@ export async function POST(request: NextRequest) {
     const contactId = await findOrCreateContactIdByWhatsAppPhone(message.from, profileNames.get(message.from));
     if (!contactId) continue;
 
+    // "STOP"/"UNSUBSCRIBE" is the opt-out instruction any WhatsApp marketing
+    // template we send is required to carry (see Contact.whatsappMarketingOptIn)
+    // — mirrors the one-click email unsubscribe link the same way. Still falls
+    // through to log the message itself below, same as any other reply.
+    const textBody = message.type === "text" ? message.text?.body?.trim().toUpperCase() : undefined;
+    if (textBody === "STOP" || textBody === "UNSUBSCRIBE") {
+      await db.contact.update({
+        where: { id: contactId },
+        data: { whatsappMarketingOptIn: false, whatsappMarketingOptInAt: null },
+      });
+    }
+
     const dealId = await findUnambiguousOpenDeal(contactId);
     const inboundMedia = await buildInboundMediaContent(account, message);
     const messageContent = inboundMedia?.content ?? describeMessage(message);

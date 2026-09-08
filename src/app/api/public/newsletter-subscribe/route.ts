@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     name: record.name,
     email: record.email,
     phone: record.phone,
+    channel: record.channel,
   });
   if (!parsed.success) {
     const code = (parsed.error.issues[0]?.message as NewsletterSubscribeErrorCode) ?? "invalid_submission";

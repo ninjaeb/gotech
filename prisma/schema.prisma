@@ -369,6 +369,18 @@ model Contact {
   emailOptOut   Boolean   @default(false)
   emailOptOutAt DateTime?
 
+  // Explicit marketing consent for the WhatsApp channel — captured by the
+  // public newsletter subscribe form's channel choice (see
+  // src/lib/newsletter-subscribe.ts), independent of emailOptOut above
+  // since a contact can opt into either channel on its own. Distinct from
+  // whatsappLastReadAt (staff conversation state, not consent) and from
+  // WhatsAppAccount (the shared business number itself). Cleared by a
+  // "STOP"/"UNSUBSCRIBE" reply on that channel (see the inbound webhook,
+  // src/app/api/whatsapp/webhook/route.ts) the same way emailOptOut is
+  // cleared by the one-click email unsubscribe link.
+  whatsappMarketingOptIn   Boolean   @default(false)
+  whatsappMarketingOptInAt DateTime?
+
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 
