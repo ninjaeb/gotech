@@ -44,9 +44,13 @@ enum ActivityType {
   TASK_COMPLETED
 }
 
+// PARTNER is an external referrer, not staff: they only ever see the
+// partner portal (/partner — their referral link, the leads it brought in,
+// and their commissions), never the CRM itself. See src/lib/referrals.ts.
 enum Role {
   ADMIN
   DEVELOPER
+  PARTNER
 }
 
 // Meta's per-message delivery lifecycle, reported via the webhook's
@@ -129,8 +133,22 @@ model User {
   // on the entities being viewed.
   sectionLayout String? @db.Text
 
+  // Referral program — both only meaningful for role PARTNER (see
+  // src/lib/referrals.ts). referralCode is the slug in that partner's
+  // share link (/r/<code>), generated once when the account becomes a
+  // partner and never changed, since it's already out in the wild on
+  // whatever they've shared. referralCommissionRate (a percent) overrides
+  // Settings.referralCommissionRate for this one partner; null means "use
+  // the default".
+  referralCode           String?  @unique
+  referralCommissionRate Decimal? @db.Decimal(5, 2)
+
   emailAccount                           EmailAccount?
   deals                                  Deal[]
+  referredDeals                          Deal[]                              @relation("DealReferredBy")
+  referralClicks                         ReferralClick[]
+  referralCommissions                    ReferralCommission[]
+  referralWithdrawals                    ReferralWithdrawal[]
   timeEntries                            TimeEntry[]
   sequenceEnrollments                    SequenceEnrollment[]
   assignedTasks                          TaskAssignee[]
@@ -259,6 +277,15 @@ model Settings {
   // real membership row per person, which only a STATIC list stores.
   newsletterSubscribeList   ContactList? @relation(fields: [newsletterSubscribeListId], references: [id], onDelete: SetNull)
   newsletterSubscribeListId String?
+
+  // Referral program defaults (Settings → Referrals). The rate is a percent
+  // of a referred deal's value, applied the moment that deal is won unless
+  // the partner has their own User.referralCommissionRate. The landing URL
+  // is where a partner's /r/<code> link sends visitors — the marketing page
+  // that embeds the lead-capture widget, which reads the ?ref= this app
+  // appends and passes it back with the submission.
+  referralCommissionRate Decimal @default(10) @db.Decimal(5, 2)
+  referralLandingUrl     String  @default("https://gotka.com/landing/new-business/")
 }
 
 enum Industry {
@@ -566,18 +593,27 @@ model Deal {
   owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   ownerId String?
 
+  // The PARTNER whose referral link this lead came in through (see
+  // src/lib/referrals.ts) — set once by the public lead form when its
+  // submission carried a valid ?ref= code, never by hand. Drives the
+  // partner portal's lead list and the commission awarded on win.
+  referredBy   User?   @relation("DealReferredBy", fields: [referredById], references: [id], onDelete: SetNull)
+  referredById String?
+
   tasks                Task[]
   activities           Activity[]
   quotes               Quote[]
   resources            DealResource[]
   project              Project?
   mentionNotifications WhatsAppMentionNotification[]
+  referralCommission   ReferralCommission?
 
   @@index([companyId])
   @@index([contactId])
   @@index([pipelineId])
   @@index([pipelineStageId])
   @@index([ownerId])
+  @@index([referredById])
 }
 
 // An external link related to a deal — a proposal doc, a presentation deck,
@@ -1387,4 +1423,105 @@ model NewsletterImage {
   newsletterId String?
 
   @@index([newsletterId])
+}
+
+// ---------------------------------------------------------------------------
+// Referral program — see src/lib/referrals.ts for the flow these back.
+// A PARTNER (Role) shares /r/<referralCode>; each hit is a ReferralClick and
+// a 302 to Settings.referralLandingUrl with ?ref=<code>. The lead-capture
+// widget on that page passes the code back with the submission, which sets
+// Deal.referredById. When such a deal is won, a ReferralCommission is
+// created (PENDING); an admin approves it (APPROVED — now part of the
+// partner's withdrawable balance), the partner bundles approved commissions
+// into a ReferralWithdrawal request, and an admin marks that PAID once the
+// money's actually gone out (which marks the linked commissions PAID too).
+// ---------------------------------------------------------------------------
+
+// One row per visit through a partner's link — the "traffic" half of the
+// partner portal's stats. ipHash is a one-way hash (never the raw address)
+// so "unique visitors" can be approximated without storing PII.
+model ReferralClick {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  ipHash    String?
+  userAgent String?
+  referer   String?
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  @@index([partnerId, createdAt])
+}
+
+enum ReferralCommissionStatus {
+  PENDING
+  APPROVED
+  PAID
+  VOID
+}
+
+// Money a partner is owed for one referred deal that was won. rate/
+// dealValue/amount are snapshotted at the moment of winning — a later
+// change to the default rate or the partner's override doesn't retroactively
+// re-price commissions already earned. VOID is the admin's "this one doesn't
+// count" (deal re-opened, refunded, self-referral...) — a PENDING commission
+// is also voided automatically if its deal leaves the won stage before an
+// admin ever approved it.
+//
+// deal is nullable + SetNull (with dealTitle snapshotted) rather than a
+// required cascade, same reasoning as Newsletter.list: deleting a deal
+// later shouldn't erase the money trail, especially once it's been paid.
+model ReferralCommission {
+  id         String                   @id @default(cuid())
+  status     ReferralCommissionStatus @default(PENDING)
+  rate       Decimal                  @db.Decimal(5, 2)
+  dealValue  Decimal                  @db.Decimal(12, 2)
+  amount     Decimal                  @db.Decimal(12, 2)
+  dealTitle  String
+  createdAt  DateTime                 @default(now())
+  approvedAt DateTime?
+  paidAt     DateTime?
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  dealId String? @unique
+
+  // Set once this commission is bundled into a withdrawal request; cleared
+  // again if that request is rejected, putting the money back in the
+  // partner's available balance.
+  withdrawal   ReferralWithdrawal? @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+  withdrawalId String?
+
+  @@index([partnerId, status])
+  @@index([withdrawalId])
+}
+
+enum ReferralWithdrawalStatus {
+  REQUESTED
+  PAID
+  REJECTED
+}
+
+// A partner's request to be paid out their APPROVED balance. amount is the
+// sum of the linked commissions at request time. paymentDetails is
+// free-text from the partner (bank account, e-wallet, etc.) since this app
+// doesn't move money itself — an admin pays out by hand and then marks
+// this PAID, optionally noting the reference.
+model ReferralWithdrawal {
+  id             String                   @id @default(cuid())
+  status         ReferralWithdrawalStatus @default(REQUESTED)
+  amount         Decimal                  @db.Decimal(12, 2)
+  paymentDetails String                   @db.Text
+  adminNote      String?                  @db.Text
+  requestedAt    DateTime                 @default(now())
+  resolvedAt     DateTime?
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  commissions ReferralCommission[]
+
+  @@index([partnerId, status])
 }

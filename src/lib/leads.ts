@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
+import { findPartnerByReferralCode } from "@/lib/referrals";
 import { notifyNewLeadViaWhatsApp } from "@/lib/whatsapp";
 
 // Zod's "message" here is a semantic CODE, not display text — this schema
@@ -32,6 +33,10 @@ export const leadSchema = z.object({
     .refine(isValidPhoneFormat, { message: "phone_invalid" }),
   companyName: z.string().trim().optional(),
   message: z.string().trim().optional(),
+  // A partner's referral code (see src/lib/referrals.ts), carried by the
+  // ?ref= the /r/<code> link appends to the landing page. Never a
+  // validation failure — an unknown code just means no attribution.
+  ref: z.string().trim().max(64).optional(),
 });
 
 export type LeadInput = z.infer<typeof leadSchema>;
@@ -50,7 +55,7 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
     companyId = company?.id ?? (await db.company.create({ data: { name: companyName }, select: { id: true } })).id;
   }
 
-  const [contact, defaultPipeline] = await Promise.all([
+  const [contact, defaultPipeline, partner] = await Promise.all([
     findOrCreateContactByEmail({
       name: data.name,
       email: data.email,
@@ -59,12 +64,17 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
       lifecycleStage: "LEAD",
     }),
     getDefaultPipeline(),
+    findPartnerByReferralCode(data.ref),
   ]);
   const firstStage = defaultPipeline.stages[0];
   if (!firstStage) {
     return { ok: false, code: "pipeline_not_ready" };
   }
 
+  // A referred lead is sourced as REFERRAL rather than WEBSITE even though
+  // it physically came through the website form — "who brought this in" is
+  // the more useful fact, and it's what lets the existing source filter
+  // separate partner-driven deals from organic ones.
   const deal = await db.deal.create({
     data: {
       title: `${companyName || data.name} — Website inquiry`,
@@ -72,7 +82,8 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
       pipelineStageId: firstStage.id,
       companyId: contact.companyId ?? companyId,
       contactId: contact.id,
-      source: "WEBSITE",
+      source: partner ? "REFERRAL" : "WEBSITE",
+      referredById: partner?.id ?? null,
     },
   });
 
@@ -84,9 +95,11 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
   const activity = await db.activity.create({
     data: {
       type: "NOTE",
-      content: data.message
-        ? `Website inquiry from ${data.name} (${data.email}): "${data.message}"`
-        : `Website inquiry from ${data.name} (${data.email})`,
+      content:
+        (data.message
+          ? `Website inquiry from ${data.name} (${data.email}): "${data.message}"`
+          : `Website inquiry from ${data.name} (${data.email})`) +
+        (partner ? ` — referred by partner ${partner.name}` : ""),
       dealId: deal.id,
     },
   });

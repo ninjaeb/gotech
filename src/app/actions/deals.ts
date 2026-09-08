@@ -8,6 +8,7 @@ import { ActivityType, type LeadSource } from "@/generated/prisma/client";
 import { stageGateError } from "@/lib/deal-hygiene";
 import { ensureProjectForWonDeal } from "@/app/actions/projects";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { syncReferralCommissionForDeal } from "@/lib/referrals";
 
 const dealSchema = z.object({
   title: z.string().trim().min(1, "Deal title is required"),
@@ -161,6 +162,9 @@ export async function updateDeal(
     await ensureProjectForWonDeal({ id, title: data.title });
     await markContactAsCustomer(data.contactId);
   }
+  // Every edit, not just a stage change: a won deal's value is often filled
+  // in after the fact, and a still-pending commission re-prices from it.
+  await syncReferralCommissionForDeal(id, targetStage.isWon);
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
   revalidateDealPaths(id, data.companyId, data.contactId);
@@ -201,6 +205,7 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
     await ensureProjectForWonDeal({ id, title: previous.title });
     await markContactAsCustomer(previous.contactId);
   }
+  await syncReferralCommissionForDeal(id, targetStage.isWon);
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
 }

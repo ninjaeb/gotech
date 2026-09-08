@@ -16,6 +16,11 @@
  * choice is remembered (localStorage) and wins over the page's own ?lang=
  * on any later visit, on any page of your site.
  *
+ * Referral attribution needs nothing from you: if the visitor arrived via a
+ * partner's referral link, the page URL carries ?ref=<code>, which this
+ * script picks up (and remembers for 30 days) and sends along with the
+ * submission so the CRM credits that partner.
+ *
  * Unlike an iframe, this renders bare <input>/<textarea>/<button> elements
  * directly into the host page's own DOM — no isolated document, no
  * separate stylesheet context — so the host site's own CSS (fonts, text
@@ -64,6 +69,47 @@
     return SCRIPT_URL ? SCRIPT_URL.origin + "/api/public/lead" : "/api/public/lead";
   }
   var API_URL = apiUrl();
+
+  // Referral attribution: a partner's /r/<code> link (see src/lib/
+  // referrals.ts in the CRM) lands the visitor here with ?ref=<code>.
+  // Remembered in localStorage for 30 days so the attribution survives the
+  // visitor browsing a few other pages of the site, or coming back
+  // tomorrow, before actually filling the form in — last click wins. The
+  // shape check mirrors the CRM's REFERRAL_CODE_PATTERN so nothing odd from
+  // the URL is ever stored or sent along.
+  var REF_STORAGE_KEY = "gotechReferralCode";
+  var REF_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+  var REF_PATTERN = /^[a-z0-9-]{3,40}$/;
+
+  function detectReferralCode() {
+    var fromUrl = null;
+    try {
+      fromUrl = new URL(window.location.href).searchParams.get("ref");
+    } catch (e) {
+      fromUrl = null;
+    }
+    if (fromUrl) {
+      fromUrl = fromUrl.trim().toLowerCase();
+      if (REF_PATTERN.test(fromUrl)) {
+        try {
+          localStorage.setItem(REF_STORAGE_KEY, JSON.stringify({ code: fromUrl, at: Date.now() }));
+        } catch (e) {
+          // Not essential — this visit is still attributed below.
+        }
+        return fromUrl;
+      }
+    }
+    try {
+      var stored = JSON.parse(localStorage.getItem(REF_STORAGE_KEY) || "null");
+      if (stored && typeof stored.code === "string" && REF_PATTERN.test(stored.code) && Date.now() - stored.at < REF_TTL_MS) {
+        return stored.code;
+      }
+    } catch (e) {
+      // Ignore — a corrupt entry just means no attribution.
+    }
+    return "";
+  }
+  var REFERRAL_CODE = detectReferralCode();
 
   var STORAGE_KEY = "gotechLeadFormLang";
 
@@ -433,6 +479,7 @@
         phone: phoneInput.value,
         companyName: companyInput.value,
         message: messageInput.value,
+        ref: REFERRAL_CODE,
       };
 
       fetch(API_URL, {

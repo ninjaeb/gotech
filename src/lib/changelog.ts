@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.53",
+    date: "2026-09-08",
+    title: "Partner referral program",
+    changes: [
+      "A new Partner login role for external referrers, with their own portal (/partner) — their referral link, click and lead counts, each lead's progress, commissions earned, and withdrawal requests — and no access to the CRM itself",
+      "Referral links (/r/<code>) count every click and send visitors on to the landing page; the lead-capture widget passes the code back, so the resulting deal is marked Referred by that partner with source Referral",
+      "A commission (deal value × rate) is created when a referred deal is won, for an admin to approve; Settings → Referrals sets the default rate and landing page, with a per-partner rate override on the new Referrals page",
+      "Referrals page (admin): every partner's clicks, leads, won deals and balance, plus approving commissions and marking withdrawal requests paid",
+    ],
+  },
+  {
     version: "1.52",
     date: "2026-09-08",
     title: "WhatsApp updates: subscribe channel choice and broadcasts",

@@ -28,12 +28,44 @@ export const getCurrentUser = cache(async () => {
 // Developers only get Projects, Tasks, and a trimmed-down Settings — this is
 // where a developer landing on a blocked page gets sent instead.
 export const DEVELOPER_HOME = "/tasks";
+// Partners (external referrers) only ever get the partner portal — see
+// src/lib/referrals.ts. The (app) layout bounces them here too, so no CRM
+// page is reachable for that role even without its own explicit gate.
+export const PARTNER_HOME = "/partner";
+
+// Where a given role belongs when it lands somewhere it shouldn't (or right
+// after logging in).
+export function homeForRole(role: "ADMIN" | "DEVELOPER" | "PARTNER") {
+  if (role === "PARTNER") return PARTNER_HOME;
+  if (role === "DEVELOPER") return DEVELOPER_HOME;
+  return "/";
+}
 
 // For Server Components: redirects non-admins away rather than rendering.
 export async function requireAdmin() {
   const user = await getCurrentUser();
   if (user.role !== "ADMIN") {
-    redirect(DEVELOPER_HOME);
+    redirect(homeForRole(user.role));
+  }
+  return user;
+}
+
+// For the partner portal's Server Components — the mirror image of
+// requireAdmin: staff of either role get sent back to their own home.
+export async function requirePartner() {
+  const user = await getCurrentUser();
+  if (user.role !== "PARTNER") {
+    redirect(homeForRole(user.role));
+  }
+  return user;
+}
+
+// For the partner portal's Server Actions (same throw-not-redirect
+// convention as requireAdminAction).
+export async function requirePartnerAction() {
+  const user = await getCurrentUser();
+  if (user.role !== "PARTNER") {
+    throw new Error("Partners only.");
   }
   return user;
 }

@@ -7,6 +7,19 @@ export function formatCurrency(value: number | string, currency: string = "USD")
   }).format(num);
 }
 
+// formatCurrency rounds to whole units, which is right for deal values and
+// stats but not for money actually owed to someone — a commission of
+// 123.45 has to show as 123.45, not 123.
+export function formatCurrencyExact(value: number | string, currency: string = "USD") {
+  const num = typeof value === "string" ? Number(value) : value;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;

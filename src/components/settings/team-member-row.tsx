@@ -31,6 +31,7 @@ export function TeamMemberRow({
     createdAt: Date;
     notifyNewWhatsAppMessage: boolean;
     notifyNewLead: boolean;
+    referralCode: string | null;
   };
   isSelf: boolean;
   canDelete: boolean;
@@ -165,6 +166,7 @@ export function TeamMemberRow({
           {user.email}
           {user.title && ` · ${user.title}`} · joined {formatDate(user.createdAt)}
           {user.phone && ` · WhatsApp notifications on`}
+          {user.role === "PARTNER" && user.referralCode && ` · referral link /r/${user.referralCode}`}
         </p>
       </div>
       <div className="flex items-center gap-3">

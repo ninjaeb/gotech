@@ -7,6 +7,7 @@ import {
   Building2,
   CheckSquare,
   FolderKanban,
+  Handshake,
   KanbanSquare,
   LayoutDashboard,
   ListFilter,
@@ -39,6 +40,7 @@ const NAV_ITEMS = [
   { href: "/projects", label: "Projects", icon: FolderKanban, adminOnly: false, iconColor: "text-orange-400" },
   { href: "/tasks", label: "Tasks", icon: CheckSquare, adminOnly: false, iconColor: "text-rose-400" },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true, iconColor: "text-amber-400" },
+  { href: "/referrals", label: "Referrals", icon: Handshake, adminOnly: true, iconColor: "text-teal-400" },
   { href: "/settings", label: "Settings", icon: Settings, adminOnly: false, iconColor: "text-slate-400" },
 ];
 

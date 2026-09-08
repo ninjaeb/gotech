@@ -14,7 +14,7 @@ import {
   subscribeLeadFormLocale,
 } from "@/lib/lead-form-i18n";
 
-export function LeadCaptureForm() {
+export function LeadCaptureForm({ referralCode }: { referralCode?: string }) {
   const [state, formAction, pending] = useActionState(submitLead, undefined);
 
   // localStorage isn't available during the server render, so the server
@@ -91,6 +91,7 @@ export function LeadCaptureForm() {
           <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
         </div>
         <input type="hidden" name="renderedAt" value={renderedAt} />
+        {referralCode && <input type="hidden" name="ref" value={referralCode} />}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldGroup label={t.nameLabel} htmlFor="name" required>

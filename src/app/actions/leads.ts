@@ -34,6 +34,7 @@ export async function submitLead(
     phone: formData.get("phone"),
     companyName: formData.get("companyName"),
     message: formData.get("message"),
+    ref: formData.get("ref") || undefined,
   });
   if (!parsed.success) {
     const code = (parsed.error.issues[0]?.message as LeadFormErrorCode) ?? "invalid_submission";

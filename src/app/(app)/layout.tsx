@@ -3,7 +3,8 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { NotificationPoller } from "@/components/layout/notification-poller";
 import type { NotificationItem } from "@/components/layout/notification-bell";
-import { getCurrentUser } from "@/lib/auth/dal";
+import { redirect } from "next/navigation";
+import { getCurrentUser, PARTNER_HOME } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { notificationHref } from "@/lib/notification-href";
 import { isWhatsAppConversationUnread } from "@/lib/whatsapp";
@@ -27,6 +28,9 @@ async function countUnreadWhatsAppConversations(isAdmin: boolean): Promise<numbe
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  // One gate for the whole CRM: a partner has their own portal
+  // (src/app/partner) and nothing under this layout is theirs to see.
+  if (user.role === "PARTNER") redirect(PARTNER_HOME);
 
   const endOfToday = new Date();
   endOfToday.setHours(0, 0, 0, 0);

@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
     phone: record.phone,
     companyName: record.companyName,
     message: record.message,
+    ref: typeof record.ref === "string" && record.ref ? record.ref : undefined,
   });
   if (!parsed.success) {
     const code = (parsed.error.issues[0]?.message as LeadFormErrorCode) ?? "invalid_submission";

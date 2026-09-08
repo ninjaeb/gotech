@@ -13,6 +13,8 @@ const DEFAULT_SETTINGS = {
   taskReminderHour: 8,
   taskAssignmentNotificationDelayMinutes: 0,
   newsletterSubscribeListId: null as string | null,
+  referralCommissionRate: 10,
+  referralLandingUrl: "https://gotka.com/landing/new-business/",
 };
 
 export const getSettings = cache(async () => {
@@ -104,5 +106,24 @@ export async function setNewsletterSubscribeListId(listId: string | null) {
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, newsletterSubscribeListId: listId },
     update: { newsletterSubscribeListId: listId },
+  });
+}
+
+// Referral program defaults (Settings → Referrals) — see
+// src/lib/referrals.ts. commissionRate is a percent of a won deal's value.
+export async function getReferralSettings() {
+  const settings = await getSettings();
+  return {
+    commissionRate: Number(settings.referralCommissionRate),
+    landingUrl: settings.referralLandingUrl,
+  };
+}
+
+export async function setReferralSettings(data: { commissionRate: number; landingUrl: string }) {
+  const values = { referralCommissionRate: data.commissionRate, referralLandingUrl: data.landingUrl };
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, ...values },
+    update: values,
   });
 }

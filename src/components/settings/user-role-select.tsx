@@ -30,6 +30,7 @@ export function UserRoleSelect({ userId, role }: { userId: string; role: Role })
     >
       <option value="DEVELOPER">Developer</option>
       <option value="ADMIN">Admin</option>
+      <option value="PARTNER">Partner</option>
     </Select>
   );
 }

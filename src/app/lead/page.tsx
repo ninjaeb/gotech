@@ -1,7 +1,11 @@
 import { LeadCaptureForm } from "@/components/leads/lead-capture-form";
 import { Card, CardBody } from "@/components/ui/card";
 
-export default function LeadCapturePage() {
+// ?ref=<partner code> attributes the lead to a partner (src/lib/referrals
+// .ts) — the embed widget reads it off the host page itself, but an iframe
+// or a direct link to this page has to carry it in this page's own URL.
+export default async function LeadCapturePage({ searchParams }: { searchParams: Promise<{ ref?: string }> }) {
+  const { ref } = await searchParams;
   return (
     <div className="min-h-full bg-slate-50 px-4 py-12 dark:bg-neutral-950">
       <div className="mx-auto w-full max-w-md">
@@ -14,7 +18,7 @@ export default function LeadCapturePage() {
 
         <Card>
           <CardBody>
-            <LeadCaptureForm />
+            <LeadCaptureForm referralCode={typeof ref === "string" ? ref : undefined} />
           </CardBody>
         </Card>
       </div>

@@ -41,6 +41,7 @@ export default async function TeamSettingsPage() {
                   createdAt: user.createdAt,
                   notifyNewWhatsAppMessage: user.notifyNewWhatsAppMessage,
                   notifyNewLead: user.notifyNewLead,
+                  referralCode: user.referralCode,
                 }}
                 isSelf={user.id === currentUser.id}
                 canDelete={users.length > 1}

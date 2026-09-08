@@ -16,9 +16,12 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // third-party marketing sites, so neither the script files nor their API
 // endpoints can require a session; without this, both would redirect to
 // /login instead of serving JS / accepting the cross-origin POST, which a
-// <script> tag or CORS preflight can't follow usefully.
+// <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
+// referral link (src/app/r/[code]/route.ts) — followed by strangers, who
+// then land on the marketing site, never here.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
+  "/r/",
   "/lead",
   "/book",
   "/subscribe",

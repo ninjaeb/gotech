@@ -48,6 +48,7 @@ export function CreateUserForm() {
           <Select id="new-user-role" name="role" defaultValue="DEVELOPER" required>
             <option value="DEVELOPER">Developer — Projects &amp; Tasks only</option>
             <option value="ADMIN">Admin — full access</option>
+            <option value="PARTNER">Partner — referral portal only</option>
           </Select>
         </div>
         <div>

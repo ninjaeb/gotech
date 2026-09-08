@@ -45,6 +45,8 @@ export default async function DealDetailPage({
         company: true,
         contact: true,
         owner: { select: { id: true, name: true } },
+        referredBy: { select: { id: true, name: true } },
+        referralCommission: { select: { amount: true, status: true } },
         pipelineStage: true,
         pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
         tasks: {
@@ -142,6 +144,17 @@ export default async function DealDetailPage({
                 value={deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : null}
               />
               <DetailRow label="Source" value={deal.source ? LEAD_SOURCE_LABELS[deal.source] : null} />
+              {deal.referredBy && (
+                <DetailRow
+                  label="Referred by"
+                  value={
+                    deal.referralCommission
+                      ? `${deal.referredBy.name} · ${formatCurrency(deal.referralCommission.amount.toString(), currency)} commission (${deal.referralCommission.status.toLowerCase()})`
+                      : `${deal.referredBy.name} (partner)`
+                  }
+                  href="/referrals"
+                />
+              )}
               {deal.project && (
                 <DetailRow
                   label="Project"

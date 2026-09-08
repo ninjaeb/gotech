@@ -45,6 +45,11 @@ export default async function SettingsPage() {
             description="The public lead-capture form and meeting scheduler."
           />
           <SettingsLinkCard
+            href="/settings/referrals"
+            title="Referrals"
+            description="Partner commission rate and the landing page referral links send visitors to."
+          />
+          <SettingsLinkCard
             href="/settings/integrations"
             title="Integrations"
             description="Connect email and the shared WhatsApp Business number."
