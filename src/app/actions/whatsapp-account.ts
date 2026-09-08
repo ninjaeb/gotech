@@ -124,7 +124,7 @@ export async function sendMentionNotificationTest(
   try {
     await sendWhatsAppTemplateMessage(account, phone, MENTION_TEMPLATE_NAME, "en", [
       admin.name,
-      "This is a test mention notification from GoTech CRM.",
+      "This is a test mention notification from Gotka CRM.",
       `${siteOrigin}/settings/integrations`,
     ]);
   } catch (error) {
@@ -160,7 +160,7 @@ export async function sendMentionReplyNotificationTest(
   try {
     await sendWhatsAppTemplateMessage(account, phone, MENTION_REPLY_TEMPLATE_NAME, "en", [
       admin.name,
-      "This is a test mention notification from GoTech CRM.",
+      "This is a test mention notification from Gotka CRM.",
       "This is a test reply.",
       `${siteOrigin}/settings/integrations`,
     ]);
@@ -200,7 +200,7 @@ export async function sendTaskAssignmentNotificationTest(
   try {
     await sendWhatsAppTemplateMessage(account, phone, TASK_ASSIGNMENT_TEMPLATE_NAME, "en", [
       admin.name,
-      "This is a test task assignment notification from GoTech CRM.",
+      "This is a test task assignment notification from Gotka CRM.",
       `${siteOrigin}/settings/integrations`,
     ]);
   } catch (error) {
@@ -239,7 +239,7 @@ export async function sendTaskStatusNotificationTest(
   try {
     await sendWhatsAppTemplateMessage(account, phone, TASK_STATUS_TEMPLATE_NAME, "en", [
       admin.name,
-      "This is a test task from GoTech CRM.",
+      "This is a test task from Gotka CRM.",
       "completed",
       `${siteOrigin}/settings/integrations`,
     ]);
@@ -279,7 +279,7 @@ export async function sendNewWhatsAppMessageNotificationTest(
   try {
     await sendWhatsAppTemplateMessage(account, phone, NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME, "en", [
       "Test Contact",
-      "This is a test WhatsApp message from GoTech CRM.",
+      "This is a test WhatsApp message from Gotka CRM.",
       `${siteOrigin}/settings/integrations`,
     ]);
   } catch (error) {

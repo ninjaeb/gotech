@@ -55,7 +55,7 @@ function fireDesktopNotifications(items: PolledNotification[], router: ReturnTyp
   // A burst of individual OS notifications is more annoying than useful —
   // group anything beyond a few into one summary instead.
   if (items.length > 3) {
-    const notification = new Notification("GoTech CRM", {
+    const notification = new Notification("Gotka CRM", {
       body: `You have ${items.length} new notifications.`,
     });
     notification.onclick = () => {
@@ -67,7 +67,7 @@ function fireDesktopNotifications(items: PolledNotification[], router: ReturnTyp
   }
 
   for (const item of items) {
-    const notification = new Notification("GoTech CRM", { body: item.content, tag: item.id });
+    const notification = new Notification("Gotka CRM", { body: item.content, tag: item.id });
     notification.onclick = () => {
       window.focus();
       if (item.href) router.push(item.href);

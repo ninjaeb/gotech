@@ -1,5 +1,5 @@
 /*
- * GoTech CRM — embeddable newsletter subscribe widget.
+ * Gotka CRM — embeddable newsletter subscribe widget.
  *
  * Drop this on any page:
  *   <div data-gotech-newsletter-form></div>
@@ -20,7 +20,7 @@
  *   font-size    overall size of the form — defaults to the page's own
  *                text size clamped between 13-16px.
  *   --gnf-accent color of the submit button — defaults to a neutral
- *                near-black (#111827), not GoTech's own indigo, since this
+ *                near-black (#111827), not Gotka's own indigo, since this
  *                form is meant to sit on other sites with their own brand
  *                color.
  * e.g. <div data-gotech-newsletter-form style="--gnf-accent:#16a34a"></div>

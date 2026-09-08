@@ -34,7 +34,7 @@ export function EmailSenderSettingsForm({
           <Input id="fromName" name="fromName" defaultValue={defaultFromName} placeholder={currentUserName} />
         </FieldGroup>
         <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-          Shown to recipients instead of your bare address, e.g. &quot;{currentUserName} &lt;you@gotech.com&gt;&quot;.
+          Shown to recipients instead of your bare address, e.g. &quot;{currentUserName} &lt;you@gotka.com&gt;&quot;.
           Leave blank to send as just the address.
         </p>
       </div>
@@ -47,7 +47,7 @@ export function EmailSenderSettingsForm({
             rows={6}
             value={signature}
             onChange={(event) => setSignature(event.target.value)}
-            placeholder={"<p>Jane Doe<br>Sales, GoTech</p>"}
+            placeholder={"<p>Jane Doe<br>Sales, Gotka</p>"}
             className="font-mono text-xs"
           />
         </FieldGroup>

@@ -17,7 +17,7 @@ export default function LoginPage() {
             G
           </div>
           <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-            GoTech CRM
+            Gotka CRM
           </h1>
         </div>
 

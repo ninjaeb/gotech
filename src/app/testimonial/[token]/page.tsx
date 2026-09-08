@@ -30,7 +30,7 @@ export default async function PublicTestimonialPage({
           <div className="flex h-9 w-9 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
             G
           </div>
-          <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">GoTech</span>
+          <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Gotka</span>
         </div>
 
         <Card>

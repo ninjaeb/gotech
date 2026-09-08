@@ -39,11 +39,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GoTech CRM",
+  title: "Gotka CRM",
   description: "Manage companies, contacts, deals, and tasks in one place.",
   appleWebApp: {
     capable: true,
-    title: "GoTech CRM",
+    title: "Gotka CRM",
     statusBarStyle: "black-translucent",
   },
 };

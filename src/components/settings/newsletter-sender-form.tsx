@@ -56,7 +56,7 @@ export function NewsletterSenderForm({ sender }: { sender: Sender | null }) {
 
         <div className="grid gap-3 sm:grid-cols-2">
           <FieldGroup label="From name" htmlFor="fromName" required>
-            <Input id="fromName" name="fromName" required defaultValue={sender?.fromName} placeholder="GoTech" />
+            <Input id="fromName" name="fromName" required defaultValue={sender?.fromName} placeholder="Gotka" />
           </FieldGroup>
           <FieldGroup label="From email" htmlFor="fromEmail" required>
             <Input
@@ -65,13 +65,13 @@ export function NewsletterSenderForm({ sender }: { sender: Sender | null }) {
               type="email"
               required
               defaultValue={sender?.fromEmail}
-              placeholder="newsletter@gotech.com"
+              placeholder="newsletter@gotka.com"
             />
           </FieldGroup>
         </div>
 
         <FieldGroup label="Username (usually the same as the from email)" htmlFor="username" required>
-          <Input id="username" name="username" required defaultValue={sender?.username} placeholder="newsletter@gotech.com" />
+          <Input id="username" name="username" required defaultValue={sender?.username} placeholder="newsletter@gotka.com" />
         </FieldGroup>
         <FieldGroup label="Password" htmlFor="password" required>
           <Input id="password" name="password" type="password" required placeholder={sender ? "••••••••" : undefined} />

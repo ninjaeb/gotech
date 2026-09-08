@@ -60,17 +60,17 @@ export function InstallAppCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Install GoTech</CardTitle>
+        <CardTitle>Install Gotka</CardTitle>
       </CardHeader>
       <CardBody>
         {env.installed ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {"GoTech is installed on this device — you're already using the app."}
+            {"Gotka is installed on this device — you're already using the app."}
           </p>
         ) : installEvent ? (
           <div className="space-y-3">
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Install GoTech for a full-screen experience with its own icon — no address bar, opens straight from
+              Install Gotka for a full-screen experience with its own icon — no address bar, opens straight from
               your home screen or desktop.
             </p>
             <Button type="button" onClick={handleInstall}>

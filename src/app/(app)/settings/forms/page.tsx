@@ -36,7 +36,7 @@ export default async function FormsSettingsPage() {
         </CardHeader>
         <CardBody className="space-y-4">
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            A public form for GoTech&apos;s marketing site. Each submission creates a Contact (and Company,
+            A public form for Gotka&apos;s marketing site. Each submission creates a Contact (and Company,
             if named) plus a new Deal in Lead stage — no manual re-entry.
           </p>
           <div>
@@ -58,7 +58,7 @@ export default async function FormsSettingsPage() {
             <p className="mb-1.5 text-xs text-slate-400">
               Renders directly into your page (not an iframe), so it automatically picks up your site&apos;s
               fonts, colors, and any input/button styling you already have — instead of looking like a
-              GoTech-branded box dropped on the page. The form supports English, Chinese, and Malay with a
+              Gotka-branded box dropped on the page. The form supports English, Chinese, and Malay with a
               switcher built in — if your site has a separate page per language, use the matching link
               below on each so the form starts in that page&apos;s language.
             </p>

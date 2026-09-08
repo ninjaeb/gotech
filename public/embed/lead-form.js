@@ -1,5 +1,5 @@
 /*
- * GoTech CRM — embeddable lead-capture widget.
+ * Gotka CRM — embeddable lead-capture widget.
  *
  * Drop this on any page:
  *   <div data-gotech-lead-form></div>
@@ -49,7 +49,7 @@
  *                form up. Set this directly for a specific size instead.
  *   --glf-accent color of the submit button and the active language pill
  *                — defaults to a neutral near-black (#111827), not
- *                GoTech's own indigo, since this form is meant to sit on
+ *                Gotka's own indigo, since this form is meant to sit on
  *                other sites with their own brand color.
  * e.g. <div data-gotech-lead-form style="--glf-accent:#16a34a"></div>
  */
@@ -262,7 +262,7 @@
       // specific size instead just sets font-size on its own
       // [data-gotech-lead-form] element — no need to touch every field.
       // --glf-accent is the one color knob: defaults to a neutral near-
-      // black rather than GoTech's own indigo, since this form gets
+      // black rather than Gotka's own indigo, since this form gets
       // embedded on other sites with their own brand color — set it the
       // same way (even inline, e.g.
       // <div data-gotech-lead-form style="--glf-accent:#16a34a">) to match
@@ -289,7 +289,7 @@
       // :where()) so it's always visible regardless of host button
       // styling — it's the one opinion this widget needs to hold onto.
       // The color itself still comes from --glf-accent, so it's not
-      // locked to GoTech's own indigo on someone else's site.
+      // locked to Gotka's own indigo on someone else's site.
       "[data-gotech-lead-form] .glf-lang-btn-active{background:var(--glf-accent);border-color:var(--glf-accent);color:#fff}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/textarea/button/label always wins over these.

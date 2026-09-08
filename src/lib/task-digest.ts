@@ -48,7 +48,7 @@ export function buildDigestText(tasks: DigestTask[], startOfToday: Date): string
     "",
     ...sections,
     "",
-    "This is your daily task digest from GoTech CRM.",
+    "This is your daily task digest from Gotka CRM.",
   ].join("\n");
 }
 

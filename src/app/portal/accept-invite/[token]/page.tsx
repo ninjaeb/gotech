@@ -36,7 +36,7 @@ export default async function AcceptInvitePage({
               <AcceptInviteForm token={token} />
             ) : (
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                This invite link is invalid or has expired. Ask your contact at GoTech for a new one.
+                This invite link is invalid or has expired. Ask your contact at Gotka for a new one.
               </p>
             )}
           </CardBody>

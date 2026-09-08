@@ -33,7 +33,7 @@ export function getOpenRouterClient() {
       // rankings — never read by this app, safe to omit if SITE_URL isn't set.
       defaultHeaders: {
         "HTTP-Referer": getConfiguredSiteOrigin() ?? undefined,
-        "X-Title": "GoTech CRM",
+        "X-Title": "Gotka CRM",
       },
     });
   }

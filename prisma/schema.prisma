@@ -1,4 +1,4 @@
-// Prisma schema for the GoTech CRM
+// Prisma schema for the Gotka CRM
 // Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -184,7 +184,7 @@ model EmailAccount {
   // Both purely cosmetic, editable independently of the credentials above
   // (see updateEmailSenderSettings) — no reconnect needed to change either.
   // fromName, when set, becomes the display name on the From header
-  // ("Jane Doe" <jane@gotech.com>) instead of a bare address; htmlSignature
+  // ("Jane Doe" <jane@gotka.com>) instead of a bare address; htmlSignature
   // is raw HTML appended below the body of every email this account sends
   // (see sendEmailViaAccount) whenever it's non-empty.
   fromName      String?
@@ -969,7 +969,7 @@ enum BillingFrequency {
   YEARLY
 }
 
-// Reusable catalog of things GoTech sells, so quotes are built from
+// Reusable catalog of things Gotka sells, so quotes are built from
 // consistent line items instead of free-typed descriptions/prices every time.
 model ServicePackage {
   id               String             @id @default(cuid())
@@ -977,7 +977,7 @@ model ServicePackage {
   type             ProductServiceType @default(SERVICE)
   description      String?            @db.Text
   unitPrice        Decimal            @default(0) @db.Decimal(12, 2)
-  // What it costs GoTech to deliver this, for margin visibility — optional
+  // What it costs Gotka to deliver this, for margin visibility — optional
   // since most catalog items historically never tracked cost; margin is
   // derived from this + unitPrice wherever shown, never stored, so the two
   // can't drift out of sync.

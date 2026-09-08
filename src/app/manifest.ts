@@ -12,8 +12,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "GoTech CRM",
-    short_name: "GoTech CRM",
+    name: "Gotka CRM",
+    short_name: "Gotka CRM",
     description: "Manage companies, contacts, deals, and tasks in one place.",
     start_url: "/",
     scope: "/",

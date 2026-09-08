@@ -90,10 +90,10 @@ export function EmailAccountForm({
       </p>
 
       <FieldGroup label="Your email address" htmlFor="email" required>
-        <Input id="email" name="email" type="email" required placeholder="you@gotech.com" />
+        <Input id="email" name="email" type="email" required placeholder="you@gotka.com" />
       </FieldGroup>
       <FieldGroup label="Username (usually the same as your email)" htmlFor="username" required>
-        <Input id="username" name="username" required placeholder="you@gotech.com" />
+        <Input id="username" name="username" required placeholder="you@gotka.com" />
       </FieldGroup>
       <FieldGroup label="Password / App Password" htmlFor="password" required>
         <Input id="password" name="password" type="password" required />

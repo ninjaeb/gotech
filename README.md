@@ -1,11 +1,11 @@
-# GoTech CRM
+# Gotka CRM
 
 A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on MySQL.
 
 ## Features
 
 - **Login** — individual named accounts (email + password); everyone who signs in shares the same CRM data. A light/dark theme toggle lives in the sidebar
-- **Installable (PWA)** — on a phone, "Add to Home Screen" (iOS Safari) or the browser's own "Install app" prompt (Android/desktop Chrome) puts GoTech on the home screen/app list with its own icon, launching full-screen without browser chrome. Nothing to configure — the manifest, icons, and a minimal service worker (registered for install-eligibility only, no offline caching, so you always see live data) ship with the app. *Settings* also has an explicit "Install GoTech" card — a one-tap **Install app** button where the browser supports it, Safari-specific instructions on iOS, and it hides itself once you're already running the installed app
+- **Installable (PWA)** — on a phone, "Add to Home Screen" (iOS Safari) or the browser's own "Install app" prompt (Android/desktop Chrome) puts Gotka on the home screen/app list with its own icon, launching full-screen without browser chrome. Nothing to configure — the manifest, icons, and a minimal service worker (registered for install-eligibility only, no offline caching, so you always see live data) ship with the app. *Settings* also has an explicit "Install Gotka" card — a one-tap **Install app** button where the browser supports it, Safari-specific instructions on iOS, and it hides itself once you're already running the installed app
 - **Global search** — a search bar at the top of every page, dynamic as you type, across Companies, Contacts, Deals, Tasks, and Projects at once, grouped and linked straight to each result. Scoped to what your role can otherwise see — a Developer's search only reaches Tasks and Projects
 - **Companies** — track organizations with industry, domain, and contact details
 - **Contacts** — people linked to companies, with notes and history. First and last names are auto-capitalized as you type or import them. "Save to phone" on a contact's page downloads a vCard (their details plus their company's) ready to add straight to your phone's Contacts app
@@ -13,10 +13,10 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Deals** — a kanban-style pipeline with per-stage totals, in one CRM-wide currency you can change any time in *Settings*. Each deal has a Resources section for links to a proposal, presentation deck, or anything else worth keeping one click away
 - **Pipelines** (*Settings → Pipelines*) — a new-build project, a maintenance retainer, and a referral don't have to share one kanban. Every install starts with one default "Sales" pipeline (Lead → Qualified → Proposal → Negotiation → Won/Lost); add more from Settings, each with its own ordered stage list and its own Won/Lost stage. The kanban board, stage-gate, deal-rotting flag, and Deal → Project handoff all key off a stage's Won/Lost flag rather than a fixed stage name, so they work the same way in every pipeline
 - **Tasks** — follow-ups and to-dos with due dates and a Low/Medium/High priority (shown as a green/amber/red badge), linked to contacts/companies/deals, filterable by Open / Overdue / Due today / Completed, and always ordered by due date then priority. Each task can have any number of Assignees (who's responsible) and any number of Followers (who just want visibility) — both shown right in the task list. Clicking a task opens its own page: full details, its own activity log, and — when the task resolves to a client contact (directly, or through its deal/project) — buttons to email or WhatsApp them straight from the task, logged as an activity on both the task and the contact. Each send dialog has a "Draft with AI" button *(optional, requires a Gemini API key)* that writes a first draft grounded in that contact's real history
-- **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal. Type `@` in a note to mention a teammate — they get an in-app notification (bell icon, top of the nav) linking straight back to it. From the bell dropdown, enable desktop alerts to also get a browser notification the moment a new one arrives, even while GoTech is open in a background tab
+- **Activity timeline** — notes, calls, emails, meetings, and automatic stage-change/task-completion logging on every contact, company, and deal. Type `@` in a note to mention a teammate — they get an in-app notification (bell icon, top of the nav) linking straight back to it. From the bell dropdown, enable desktop alerts to also get a browser notification the moment a new one arrives, even while Gotka is open in a background tab
 - **Dashboard** — pipeline overview (open value, closed-won, win rate), stage-by-stage breakdown, high-value open deals, and *your* upcoming tasks
 - **AI Assistant** *(optional, requires an OpenRouter API key)* — on each Contact/Company/Deal page: AI-generated summary + suggested next action, and a draftable follow-up message (the same drafting also available inline on the Task page's Email/WhatsApp send dialogs). On the dashboard: an "AI Pipeline Diagnosis" that reads pipeline health and overdue work and names the single highest-priority thing to do next
-- **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for GoTech's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. Two ways to embed it, both in *Settings → Forms & Booking*: a ready-to-paste `<iframe>` snippet, or a JS widget (`/embed/lead-form.js`) that renders straight into the host page's own DOM instead of an isolated iframe — so it automatically inherits that site's fonts, text color, and any existing input/button styling, rather than looking like a GoTech-branded box dropped on the page
+- **Public lead-capture form** (`/lead`) — an embeddable, unauthenticated form for Gotka's own marketing site. Each submission creates (or matches, by email) a Contact and Company, and opens a new Deal in Lead stage — no manual re-entry from inbound interest. Two ways to embed it, both in *Settings → Forms & Booking*: a ready-to-paste `<iframe>` snippet, or a JS widget (`/embed/lead-form.js`) that renders straight into the host page's own DOM instead of an isolated iframe — so it automatically inherits that site's fonts, text color, and any existing input/button styling, rather than looking like a Gotka-branded box dropped on the page
 - **Meeting scheduler** (`/book`) — a public booking link for discovery calls, built from a weekly-hours schedule you set in *Settings → Forms & Booking* (timezone as a fixed UTC offset, call length, per-day hours). A booking finds-or-creates a Contact and auto-adds a follow-up Task at the chosen time — no email back-and-forth
 - **Email sync** (*Settings → Integrations*) — connect your own IMAP/SMTP mailbox (Gmail, Outlook, a cPanel mailbox, anything) and new mail to/from a matching Contact gets logged as an Activity automatically, attached to that contact's one open Deal when it's unambiguous. Send from inside a Contact page too. Runs whenever you hit *Sync now*, and on a schedule via a cron job you set up (see *Deploying on cPanel* below) — see the Setup section for what each provider needs. Once connected, set a display name and an HTML signature (right there, no reconnect needed) — applied to every email that mailbox sends: Contact/Task sends, sequence steps, and the daily digest alike
 - **WhatsApp Business** (*Settings → Integrations*) — connect one shared Business phone number via the official [Meta WhatsApp Business Platform (Cloud API)](https://developers.facebook.com/docs/whatsapp/cloud-api) — never an unofficial/browser-automation integration. Incoming and outgoing messages to/from a matching Contact's phone number are logged as Activities automatically (delivered instantly via webhook, no polling), attached to that contact's one open Deal when unambiguous. An inbound message from a number that matches no existing Contact creates one on the spot (named from their WhatsApp profile name when Meta sends one, their number otherwise), so every conversation shows up — none are silently dropped for being from someone not already in the CRM. Send from inside a Contact page too, subject to WhatsApp's own 24-hour customer-service-window rule for freeform replies. The **WhatsApp** nav item (admin only) is a full conversation inbox — every contact you've exchanged messages with, ordered by most recent, and a chat-style thread per contact with delivery/read ticks and a reply box, built from that same Activity log
@@ -57,7 +57,7 @@ cp .env.example .env
 ```
 
 ```env
-DATABASE_URL="mysql://user:password@localhost:3306/gotech_crm"
+DATABASE_URL="mysql://user:password@localhost:3306/gotka_crm"
 ```
 
 Also set `SESSION_SECRET` (required — signs login sessions):
@@ -69,8 +69,8 @@ echo "SESSION_SECRET=\"$(openssl rand -base64 32)\"" >> .env
 If you don't already have a database, the quickest way to get one locally is Docker:
 
 ```bash
-docker run -d --name gotech-mysql -e MYSQL_ROOT_PASSWORD=root \
-  -e MYSQL_DATABASE=gotech_crm -p 3306:3306 mysql:8
+docker run -d --name gotka-mysql -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=gotka_crm -p 3306:3306 mysql:8
 ```
 
 ### 3. Run migrations
@@ -172,8 +172,8 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
    - Category: `Utility`
    - Language: `English`
    - Header, with exactly one variable: `{{1}}, here is your daily task digest` (or your own wording, as long as it has exactly one `{{1}}`) — this app always sends a header component for this template, so a header with no variable, or none at all, will mismatch just like too many/too few body variables would. Numbered independently of the body's own `{{1}}`, even though this app sends the same first name into both.
-   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in GoTech CRM.` on its own line, then a blank line, then `View your tasks: {{4}}`
-   - Footer (optional, static text only): anything you like, e.g. "Automated daily task digest from GoTech CRM"
+   - Body: `Good morning {{1}}! You have {{2}} overdue and {{3}} due today in Gotka CRM.` on its own line, then a blank line, then `View your tasks: {{4}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated daily task digest from Gotka CRM"
 
    Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. Whatever your header/body variable counts end up being, they need to exactly match what this app sends (1 header + 4 body, per above) — Meta rejects a send whose variable count doesn't match what was approved, so an older or differently-shaped version of this template won't work with the current code.
 2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in the body's `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
@@ -181,7 +181,7 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
 4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
 5. **Nothing to schedule separately** — this rides along on the same cron job as email sync (see step 7 under *Deploying on cPanel* below), which already runs far more often than the hourly cadence this needs. It checks the configured send hour itself and only actually sends during the one hour that matches; the 20-hour per-user rate limit stops it from double-sending if that hour gets checked more than once.
 
-The header's `{{1}}` (if you added one) and the body's `{{1}}` are both the user's first name; the body's `{{2}}`/`{{3}}` are their overdue/due-today counts, `{{4}}` a link to their own task list, filtered to exactly what those counts describe (`/tasks?filter=due&assignee=<their user id>` — the Tasks page's combined "Overdue & today" tab, not the broader "Open" one; WhatsApp auto-links a plain URL in message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into GoTech CRM in that browser.
+The header's `{{1}}` (if you added one) and the body's `{{1}}` are both the user's first name; the body's `{{2}}`/`{{3}}` are their overdue/due-today counts, `{{4}}` a link to their own task list, filtered to exactly what those counts describe (`/tasks?filter=due&assignee=<their user id>` — the Tasks page's combined "Overdue & today" tab, not the broader "Open" one; WhatsApp auto-links a plain URL in message text, no button component needed) — nothing else is templated, so the wording above should match what you submit to Meta exactly (Meta reviews the literal template text). Tapping the link requires already being logged into Gotka CRM in that browser.
 
 To trigger a send manually regardless of the configured hour (e.g. to test it), pass `--force`: `npm run send-task-digests-whatsapp -- --force`. The same Settings → Integrations card also has two buttons for this without a terminal: **Send now** runs the real digest against everyone opted in (same as `--force`), and **Send test** sends just the template itself, with placeholder counts, to your own number only — useful for confirming the template is approved and reachable without needing anyone to actually have tasks due.
 
@@ -195,9 +195,9 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
    - Name: `mention_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Header (optional, static text only — no variable): anything you like, e.g. "You have a mention in GoTech CRM"
-   - Body: `You were mentioned by {{1}} in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
-   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - Header (optional, static text only — no variable): anything you like, e.g. "You have a mention in Gotka CRM"
+   - Body: `You were mentioned by {{1}} in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
    - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own, no button component needed. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Can you review the proposal before Friday?` / `https://crm.yourcompany.com/contacts/abc123`.
 
    Submit for review, same as the digest template above.
@@ -217,8 +217,8 @@ This is its own proactive send (the mentioner is very unlikely to be within thei
    - Name: `mention_reply_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Header (optional, static text only — no variable): anything you like, e.g. "You got a reply on GoTech CRM"
-   - Body: `{{1}} replied to your mention in GoTech CRM.` on its own line, then a blank line, then `You said: "{{2}}"`, then a blank line, then `Their reply: "{{3}}"`, then a blank line, then `{{4}}`
+   - Header (optional, static text only — no variable): anything you like, e.g. "You got a reply on Gotka CRM"
+   - Body: `{{1}} replied to your mention in Gotka CRM.` on its own line, then a blank line, then `You said: "{{2}}"`, then a blank line, then `Their reply: "{{3}}"`, then a blank line, then `{{4}}`
    - Footer (optional, static text only): anything you like
    - No buttons — same reasoning as section 12's template: the link is sent as the body's own `{{4}}` variable and WhatsApp renders it as tappable on its own. Sample values Meta asks for when you submit: e.g. `Sarah` / `Can you review the proposal before Friday?` / `Yes, looks good to me` / `https://crm.yourcompany.com/contacts/abc123`.
 
@@ -243,9 +243,9 @@ Like the @mention notification, this is proactive, so it needs its own approved 
    - Name: `task_assignment_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Header (optional, static text only — no variable): anything you like, e.g. "You have a new task in GoTech CRM"
-   - Body: `{{1}} assigned you a task in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
-   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - Header (optional, static text only — no variable): anything you like, e.g. "You have a new task in Gotka CRM"
+   - Body: `{{1}} assigned you a task in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
    - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/tasks/abc123`.
 
    Submit for review, same as the other templates above.
@@ -266,7 +266,7 @@ Like the other proactive notifications, this needs its own approved template:
    - Category: `Utility`
    - Language: `English`
    - Header (optional, static text only — no variable): anything you like, e.g. "A task you're following was updated"
-   - Body: `{{1}} {{3}} a task in GoTech CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{4}}`
+   - Body: `{{1}} {{3}} a task in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{4}}`
    - Footer (optional, static text only): anything you like
    - No buttons — same reasoning as the other templates above: the link is the body's own `{{4}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah` / `Follow up with Acme Corp` / `completed` / `https://crm.yourcompany.com/tasks/abc123`.
 
@@ -287,9 +287,9 @@ Like the other proactive notifications, this needs its own approved template:
    - Name: `new_whatsapp_message_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Header (optional, static text only — no variable): anything you like, e.g. "New WhatsApp message in GoTech CRM"
+   - Header (optional, static text only — no variable): anything you like, e.g. "New WhatsApp message in Gotka CRM"
    - Body: `{{1}} sent a new WhatsApp message: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
-   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
    - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Is the proposal ready yet?` / `https://crm.yourcompany.com/whatsapp/abc123`.
 
    Submit for review, same as the other templates above.
@@ -309,9 +309,9 @@ Like the other proactive notifications, this needs its own approved template:
    - Name: `new_lead_notification` (must match exactly — this app hard-codes it)
    - Category: `Utility`
    - Language: `English`
-   - Header (optional, static text only — no variable): anything you like, e.g. "New lead in GoTech CRM"
+   - Header (optional, static text only — no variable): anything you like, e.g. "New lead in Gotka CRM"
    - Body: `New website lead: {{1}} ({{2}})` on its own line, then a blank line, then `Open it here: {{3}}`
-   - Footer (optional, static text only): anything you like, e.g. "Automated notification from GoTech CRM"
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
    - No buttons — same reasoning as the other templates above: the link is the body's own `{{3}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/deals/abc123`.
 
    Submit for review, same as the other templates above.
@@ -359,7 +359,7 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 
 **Requirements:** a cPanel account with "Setup Node.js App" and "MySQL Databases", and a Node.js version of 20.19+, 22.12+, or 24+ available in the Node selector (Prisma 7 requires one of those; picking the latest available 24.x is the simplest way to satisfy it).
 
-1. **Create the database.** In cPanel → *MySQL Databases*, create a database and a user, add the user to the database with all privileges. cPanel prefixes both with your account username, e.g. database `username_gotech`, user `username_gotech`.
+1. **Create the database.** In cPanel → *MySQL Databases*, create a database and a user, add the user to the database with all privileges. cPanel prefixes both with your account username, e.g. database `username_gotka`, user `username_gotka`.
 
 2. **Get the code onto the server**, either:
    - cPanel → *Git Version Control* → clone this repo, then use *Manage → Pull or Deploy → Deploy HEAD Commit*. This runs the copy tasks in `.cpanel.yml` — edit the `DEPLOYPATH` in that file first to match the Application root you'll use in step 3, and commit that change.
@@ -368,11 +368,11 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
 3. **Create the Node app.** cPanel → *Setup Node.js App* → Create:
    - Node.js version: 20.19+, 22.12+, or 24+ (see Requirements above)
    - Application mode: `Production`
-   - Application root: e.g. `gotech-crm` (must match `DEPLOYPATH` in `.cpanel.yml` if you used Git deploy)
+   - Application root: e.g. `gotka-crm` (must match `DEPLOYPATH` in `.cpanel.yml` if you used Git deploy)
    - Application URL: the domain or subdomain to serve it on
    - Application startup file: `server.js`
 
-4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotech:PASSWORD@localhost:3306/username_gotech`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `OPENROUTER_API_KEY` (and `OPENROUTER_MODEL`) to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
+4. **Set environment variables** in that same Node app screen: `DATABASE_URL` (using the database from step 1, e.g. `mysql://username_gotka:PASSWORD@localhost:3306/username_gotka`), `SESSION_SECRET` (required — generate one with `openssl rand -base64 32`), optionally `OPENROUTER_API_KEY` (and `OPENROUTER_MODEL`) to enable the AI Assistant, and optionally `SITE_URL` (e.g. `https://crm.yourcompany.com`) to enable the daily WhatsApp task reminder's task-list link.
 
 5. **Install and migrate.** Click *Run NPM Install* in the Node app UI. Then open the app's terminal (the UI shows a `source /home/USERNAME/nodevenv/.../bin/activate` command — run that first if using SSH instead, or use the Node app screen's *Run JS script* button to run a one-off `.js` file instead of a terminal) and run:
    ```bash

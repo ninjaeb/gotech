@@ -19,7 +19,7 @@ export default async function PartnerLayout({ children }: { children: React.Reac
             G
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">GoTech partner portal</p>
+            <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">Gotka partner portal</p>
             <p className="truncate text-xs text-slate-500 dark:text-slate-400">{user.name}</p>
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-1">

@@ -159,16 +159,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     date: "2026-08-30",
     title: "An actual \"Install app\" button",
     changes: [
-      "Settings now has an Install GoTech card with a one-tap install button on Android/desktop, Safari-specific instructions on iOS, and it hides itself once you're already running the installed app",
+      "Settings now has an Install Gotka card with a one-tap install button on Android/desktop, Safari-specific instructions on iOS, and it hides itself once you're already running the installed app",
       "Fixed a display glitch where the sidebar's bottom-left user menu could get clipped on short/landscape screens like a tablet in landscape orientation",
     ],
   },
   {
     version: "1.36",
     date: "2026-08-29",
-    title: "Install GoTech as an app",
+    title: "Install Gotka as an app",
     changes: [
-      "GoTech is now installable — \"Add to Home Screen\" on iOS, or the browser's own \"Install app\" prompt on Android/desktop — for a full-screen, no-browser-chrome experience with its own icon",
+      "Gotka is now installable — \"Add to Home Screen\" on iOS, or the browser's own \"Install app\" prompt on Android/desktop — for a full-screen, no-browser-chrome experience with its own icon",
     ],
   },
   {
@@ -353,7 +353,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "CSV import now validates email and phone format (dropping only the bad field, not the whole contact), converts phone numbers to the +country-code standard, catches duplicates by phone even when one side is missing its \"+\", and imports company industry",
       "Draft with AI on the Email/WhatsApp send dialogs (Task and Contact pages) — one click drafts a follow-up grounded in that contact's real history",
       "New cleanup tools: contacts with a badly-formatted phone, contacts without a company, and companies without a contact",
-      "Desktop notifications — enable them from the notification bell to get a browser alert for new notifications while GoTech is open in another tab",
+      "Desktop notifications — enable them from the notification bell to get a browser alert for new notifications while Gotka is open in another tab",
     ],
   },
   {
@@ -406,7 +406,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       "WhatsApp Business integration via the official Meta Cloud API — messages log automatically to the contact's activity timeline",
       "Track where each deal came from (lead source), auto-tagged for public lead-form submissions",
       "Filter tasks by assignee; companies gained a Resources section too",
-      "Refreshed the GoTech brand mark across the favicon and app icon",
+      "Refreshed the Gotka brand mark across the favicon and app icon",
     ],
   },
   {
@@ -440,7 +440,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     title: "Task followers",
     changes: [
       "Tasks can now have followers (visibility) in addition to assignees",
-      "Added the GoTech favicon and app icon",
+      "Added the Gotka favicon and app icon",
     ],
   },
   {
