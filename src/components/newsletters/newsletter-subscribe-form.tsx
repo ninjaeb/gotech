@@ -18,9 +18,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 const CHANNEL_OPTIONS = [
+  { value: "BOTH", label: "Both" },
   { value: "EMAIL", label: "Email" },
   { value: "WHATSAPP", label: "WhatsApp" },
-  { value: "BOTH", label: "Both" },
 ] as const;
 
 export function NewsletterSubscribeForm() {
@@ -31,7 +31,7 @@ export function NewsletterSubscribeForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [channel, setChannel] = useState<(typeof CHANNEL_OPTIONS)[number]["value"]>("EMAIL");
+  const [channel, setChannel] = useState<(typeof CHANNEL_OPTIONS)[number]["value"]>("BOTH");
 
   // The server rejects a submission that arrives less than MIN_FILL_MS
   // after this — see lead-spam-guard.ts (shared with the lead form).

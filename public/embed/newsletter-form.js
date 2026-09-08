@@ -49,9 +49,9 @@
     phonePlaceholder: "+1 555 123 4567",
     channelLabel: "Get updates via",
     channelOptions: [
+      { value: "BOTH", label: "Both" },
       { value: "EMAIL", label: "Email" },
       { value: "WHATSAPP", label: "WhatsApp" },
-      { value: "BOTH", label: "Both" },
     ],
     noSpam: "No spam, ever — unsubscribe from email or WhatsApp updates at any time.",
     submit: "Subscribe",
@@ -209,7 +209,7 @@
       optInput.name = "channel";
       optInput.value = opt.value;
       optInput.required = true;
-      if (opt.value === "EMAIL") optInput.checked = true;
+      if (opt.value === "BOTH") optInput.checked = true;
       var optText = document.createElement("span");
       optText.textContent = opt.label;
       optWrap.appendChild(optInput);
