@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { findOrCreateContactByEmail } from "@/lib/contact-matching";
 import { getNewsletterSubscribeListId } from "@/lib/settings";
+import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
 
 // Zod's "message" here is a semantic CODE, not display text — shared by the
 // hosted /subscribe page's Server Action and the embeddable widget's public
@@ -12,6 +13,7 @@ export type NewsletterSubscribeErrorCode =
   | "email_required"
   | "email_invalid"
   | "phone_required"
+  | "phone_invalid"
   | "channel_invalid"
   | "rate_limited"
   | "invalid_submission"
@@ -31,7 +33,11 @@ export const newsletterSubscribeChannelSchema = z.enum(["EMAIL", "WHATSAPP", "BO
 export const newsletterSubscribeSchema = z.object({
   name: z.string().trim().min(1, "name_required"),
   email: z.string().trim().min(1, "email_required").email("email_invalid"),
-  phone: z.string().trim().min(1, "phone_required"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "phone_required")
+    .refine(isValidPhoneFormat, { message: "phone_invalid" }),
   channel: newsletterSubscribeChannelSchema,
 });
 
@@ -51,7 +57,7 @@ export async function subscribeToNewsletter(data: NewsletterSubscribeInput): Pro
   const contact = await findOrCreateContactByEmail({
     name: data.name,
     email: data.email,
-    phone: data.phone,
+    phone: normalizePhone(data.phone),
     lifecycleStage: "SUBSCRIBER",
   });
 

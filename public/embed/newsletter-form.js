@@ -47,6 +47,7 @@
     emailPlaceholder: "jane@company.com",
     phoneLabel: "Phone",
     phonePlaceholder: "+1 555 123 4567",
+    phoneHint: "Include the country code with a + sign, e.g. +60 12 345 6789.",
     channelLabel: "Get updates via",
     // A checkbox each, not a single Email/WhatsApp/Both radio choice — both
     // checked by default (the common case), and the submit handler collapses
@@ -67,6 +68,7 @@
       email_required: "Email is required",
       email_invalid: "Enter a valid email",
       phone_required: "Phone number is required",
+      phone_invalid: "Enter a valid phone number",
       channel_invalid: "Choose how you'd like to get updates",
       rate_limited: "Too many attempts — please try again later.",
       not_configured: "Subscriptions aren't set up yet — please try again shortly.",
@@ -99,6 +101,7 @@
       "[data-gotech-newsletter-form] .gnf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-success{font-size:.95em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-required{color:#f43f5e}",
+      "[data-gotech-newsletter-form] .gnf-hint{font-size:.8em;opacity:.7;margin:0}",
       "[data-gotech-newsletter-form] .gnf-intro{margin:0 0 .25em;opacity:.75}",
       // flex:1 so it fills the row's remaining width next to the submit
       // button rather than wrapping onto its own line above it.
@@ -148,7 +151,7 @@
     return el;
   }
 
-  function makeField(labelText, controlEl, required) {
+  function makeField(labelText, controlEl, required, hintText) {
     var wrap = document.createElement("div");
     wrap.className = "gnf-field";
     var label = document.createElement("label");
@@ -165,6 +168,12 @@
     controlEl.id = id;
     wrap.appendChild(label);
     wrap.appendChild(controlEl);
+    if (hintText) {
+      var hint = document.createElement("p");
+      hint.className = "gnf-hint";
+      hint.textContent = hintText;
+      wrap.appendChild(hint);
+    }
     return wrap;
   }
 
@@ -258,7 +267,7 @@
     // Row 2: Phone + the channel checkboxes.
     var row2 = document.createElement("div");
     row2.className = "gnf-row";
-    row2.appendChild(makeField(t.phoneLabel, phoneInput, true));
+    row2.appendChild(makeField(t.phoneLabel, phoneInput, true, t.phoneHint));
     row2.appendChild(channelWrap);
     form.appendChild(row2);
 

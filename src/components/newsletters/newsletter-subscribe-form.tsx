@@ -4,12 +4,14 @@ import { useActionState, useState } from "react";
 import { submitNewsletterSubscribe } from "@/app/actions/newsletter-subscribe";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input } from "@/components/ui/field";
+import { PHONE_FORMAT_HINT } from "@/lib/phone";
 
 const ERROR_MESSAGES: Record<string, string> = {
   name_required: "Name is required",
   email_required: "Email is required",
   email_invalid: "Enter a valid email",
   phone_required: "Phone number is required",
+  phone_invalid: "Enter a valid phone number",
   channel_invalid: "Choose how you'd like to get updates",
   rate_limited: "Too many attempts — please try again later.",
   invalid_submission: "Please check the form and try again.",
@@ -108,6 +110,7 @@ export function NewsletterSubscribeForm() {
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
+            <p className="mt-1 text-xs text-slate-400">{PHONE_FORMAT_HINT}</p>
           </FieldGroup>
           <div>
             <input type="hidden" name="channel" value={channel} />
