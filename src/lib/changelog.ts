@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.52",
+    date: "2026-09-08",
+    title: "WhatsApp updates: subscribe channel choice and broadcasts",
+    changes: [
+      "The public subscribe form now asks whether to get updates via Email, WhatsApp, or Both — name, email, and phone are all required, and the form states the no-spam/unsubscribe-anytime policy up front",
+      "Newsletters → New WhatsApp broadcast: send a one-off update (headline + link) to a list's WhatsApp-opted-in contacts via an approved Meta template",
+      "A WhatsApp reply of \"STOP\"/\"UNSUBSCRIBE\", typed or tapped as a template button, opts a contact out of WhatsApp updates",
+    ],
+  },
+  {
     version: "1.51",
     date: "2026-09-07",
     title: "A public newsletter subscribe form",

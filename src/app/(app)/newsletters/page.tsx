@@ -1,31 +1,47 @@
 import Link from "next/link";
-import { Mail, Plus } from "lucide-react";
+import { Mail, MessageCircle, Plus } from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { NewsletterStatusBadge } from "@/components/newsletters/newsletter-status-badge";
+import { WhatsAppBroadcastStatusBadge } from "@/components/newsletters/whatsapp-broadcast-status-badge";
 
 export default async function NewslettersPage() {
-  const newsletters = await db.newsletter.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { list: { select: { name: true } }, _count: { select: { recipients: true } } },
-  });
+  const [newsletters, whatsAppBroadcasts] = await Promise.all([
+    db.newsletter.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { list: { select: { name: true } }, _count: { select: { recipients: true } } },
+    }),
+    db.whatsAppBroadcast.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { list: { select: { name: true } }, _count: { select: { recipients: true } } },
+    }),
+  ]);
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
         title="Newsletters"
-        description="Compose, schedule, and send bulk email to a contact list"
+        description="Compose and send bulk updates to a contact list, by email or WhatsApp"
         actions={
-          <Link href="/newsletters/new" className={buttonClasses("primary", "sm")}>
-            <Plus className="h-4 w-4" />
-            New newsletter
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/newsletters/whatsapp/new" className={buttonClasses("secondary", "sm")}>
+              <Plus className="h-4 w-4" />
+              New WhatsApp broadcast
+            </Link>
+            <Link href="/newsletters/new" className={buttonClasses("primary", "sm")}>
+              <Plus className="h-4 w-4" />
+              New newsletter
+            </Link>
+          </div>
         }
       />
       <Card>
+        <CardHeader>
+          <CardTitle>Email newsletters</CardTitle>
+        </CardHeader>
         <CardBody>
           {newsletters.length === 0 ? (
             <EmptyState
@@ -52,6 +68,38 @@ export default async function NewslettersPage() {
                       </p>
                     </div>
                   </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>WhatsApp broadcasts</CardTitle>
+        </CardHeader>
+        <CardBody>
+          {whatsAppBroadcasts.length === 0 ? (
+            <EmptyState
+              icon={MessageCircle}
+              title="No WhatsApp broadcasts yet."
+              description="Send an update to a list's WhatsApp-opted-in contacts via the approved template."
+            />
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+              {whatsAppBroadcasts.map((broadcast) => (
+                <li key={broadcast.id} className="flex items-center justify-between gap-2 py-2.5 text-sm">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-1.5 truncate font-medium text-slate-800 dark:text-slate-200">
+                      {broadcast.headline}
+                      <WhatsAppBroadcastStatusBadge status={broadcast.status} />
+                    </p>
+                    <p className="truncate text-xs text-slate-400">
+                      {broadcast.list?.name ?? "List deleted"} · {broadcast._count.recipients} recipient
+                      {broadcast._count.recipients === 1 ? "" : "s"}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>

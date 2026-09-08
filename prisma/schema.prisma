@@ -142,6 +142,7 @@ model User {
   pendingAssignmentNotifications         PendingTaskAssignmentNotification[] @relation("PendingAssignmentRecipient")
   assignedPendingAssignmentNotifications PendingTaskAssignmentNotification[] @relation("PendingAssignmentAssigner")
   newsletters                            Newsletter[]
+  whatsAppBroadcasts                     WhatsAppBroadcast[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -384,16 +385,17 @@ model Contact {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   companyId String?
 
-  deals                Deal[]
-  tasks                Task[]
-  activities           Activity[]
-  bookings             Booking[]
-  clientUser           ClientUser?
-  sequenceEnrollments  SequenceEnrollment[]
-  mentionNotifications WhatsAppMentionNotification[]
-  listMemberships      ContactListMember[]
-  testimonials         Testimonial[]
-  newsletterRecipients NewsletterRecipient[]
+  deals                       Deal[]
+  tasks                       Task[]
+  activities                  Activity[]
+  bookings                    Booking[]
+  clientUser                  ClientUser?
+  sequenceEnrollments         SequenceEnrollment[]
+  mentionNotifications        WhatsAppMentionNotification[]
+  listMemberships             ContactListMember[]
+  testimonials                Testimonial[]
+  newsletterRecipients        NewsletterRecipient[]
+  whatsAppBroadcastRecipients WhatsAppBroadcastRecipient[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -426,8 +428,9 @@ model ContactList {
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId String
 
-  members     ContactListMember[]
-  newsletters Newsletter[]
+  members               ContactListMember[]
+  newsletters           Newsletter[]
+  whatsAppBroadcasts    WhatsAppBroadcast[]
   // Always at most one row (Settings is a singleton) — see
   // Settings.newsletterSubscribeListId above.
   subscribeFormSettings Settings[]
@@ -1297,6 +1300,71 @@ model NewsletterRecipient {
 
   @@unique([newsletterId, contactId])
   @@index([newsletterId, status])
+}
+
+enum WhatsAppBroadcastStatus {
+  SENDING
+  SENT
+}
+
+// A single WhatsApp marketing send to a whole list's opted-in contacts —
+// the WhatsApp equivalent of Newsletter, using the same "materialize
+// recipients once, cron works through them" architecture for the same
+// reason (a large audience can't be sent in one request, and this makes a
+// partial run resumable). Always sent immediately, unlike Newsletter,
+// which can be scheduled for later — see src/lib/whatsapp-broadcast.ts.
+// Requires a Meta-approved Marketing template (see the README's WhatsApp
+// section) since Contact.whatsappMarketingOptIn consent alone doesn't put
+// a contact inside the 24h session-message window.
+model WhatsAppBroadcast {
+  id       String                  @id @default(cuid())
+  // {{1}} of the approved template — see NEW_UPDATE_TEMPLATE_NAME in
+  // src/lib/whatsapp-broadcast.ts.
+  headline String
+  // {{2}} of the same template.
+  link     String
+  status   WhatsAppBroadcastStatus @default(SENDING)
+
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  // Nullable + SetNull rather than a required cascade — same reasoning as
+  // Newsletter.list: deleting the list later shouldn't erase send history.
+  list   ContactList? @relation(fields: [listId], references: [id], onDelete: SetNull)
+  listId String?
+
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById String?
+
+  recipients WhatsAppBroadcastRecipient[]
+
+  @@index([status])
+  @@index([listId])
+}
+
+enum WhatsAppBroadcastRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+// One row per contact a WhatsAppBroadcast was (or will be) sent to — the
+// durable, resumable send queue the cron script works through, same role
+// NewsletterRecipient plays for Newsletter.
+model WhatsAppBroadcastRecipient {
+  id     String                           @id @default(cuid())
+  status WhatsAppBroadcastRecipientStatus @default(PENDING)
+  sentAt DateTime?
+  error  String?                          @db.Text
+
+  broadcast   WhatsAppBroadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  broadcastId String
+
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String
+
+  @@unique([broadcastId, contactId])
+  @@index([broadcastId, status])
 }
 
 // An image inserted into a newsletter's body via the WYSIWYG editor.

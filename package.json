@@ -14,6 +14,7 @@
     "deploy": "tsx scripts/deploy.ts",
     "process-sequences": "tsx scripts/process-sequences.ts",
     "send-newsletters": "tsx scripts/send-newsletters.ts",
+    "send-whatsapp-broadcasts": "tsx scripts/send-whatsapp-broadcasts.ts",
     "send-task-digests": "tsx scripts/send-task-digests.ts",
     "send-task-digests-whatsapp": "tsx scripts/send-task-digests-whatsapp.ts",
     "remove-contacts-without-phone": "tsx scripts/remove-contacts-without-phone.ts",

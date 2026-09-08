@@ -27,7 +27,8 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Client portal** (`/portal`) — invite a Contact (from their Contact page, once they have an email and a company) and they get their own login, entirely separate from staff accounts, scoped strictly to their own Company's data: their Projects and milestones, their Quotes, their Invoices. Nothing internal — Activities, task descriptions, non-milestone tasks, deal notes — is ever exposed. Invite generates a one-time setup link (same copy-and-send pattern as quotes and the booking link); staff can revoke access at any time from the Contact page
 - **Sequences** (*Settings → Sales → Sequences*) — multi-step automated email cadences. Build a sequence (subject, message, and a day-delay per step), then enroll any Contact with an email from their Contact page. Each step sends from your own connected mailbox on schedule; the whole sequence stops itself the moment the contact replies — checked against email sync's inbound record, no extra setup. Runs on the same cron-job pattern as email sync (see *Deploying on cPanel* below)
 - **Newsletters** (`/newsletters`, sender configured in *Settings → Newsletter*) — a broadcast email to a whole Contact List (see Lists above — a hand-picked set or a live segment like "all contacts with an email"), written in a WYSIWYG editor (bold/italic, headings, lists, links, and inline images), sent from one shared mailbox rather than a personal one (bulk volume on someone's own connected inbox risks that mailbox's deliverability). Save as a draft, then send immediately or schedule a future date/time (in the same org timezone as the booking scheduler); a scheduled send is picked up and worked through by its own cron job, in small paced batches so a large list can't trip the sending mailbox's rate limits. Every send includes a one-click unsubscribe link — a contact who uses it is excluded from every newsletter after, until an admin resubscribes them from a small toggle right on their Contact page
-- **Newsletter subscribe form** (`/subscribe`, configured in *Settings → Newsletter*) — a public, unauthenticated form (just name + email) that adds a contact straight to whichever list you designate as the subscriber list, same "finds or creates a Contact" behavior as the lead-capture form, and clears a previous unsubscribe on resubmission. Same two embed options as the lead-capture form too: a ready-to-paste `<iframe>` snippet, or a JS widget (`/embed/newsletter-form.js`) that adopts the host site's own fonts/colors/input styling instead of looking like a dropped-in box
+- **Newsletter subscribe form** (`/subscribe`, configured in *Settings → Newsletter*) — a public, unauthenticated form (name, email, and phone, all required) that adds a contact straight to whichever list you designate as the subscriber list, same "finds or creates a Contact" behavior as the lead-capture form. Visitors choose email, WhatsApp, or both — each channel's consent flag (`emailOptOut`/`whatsappMarketingOptIn`) is cleared independently based on that choice, and the form states the no-spam/unsubscribe-anytime policy up front. Same two embed options as the lead-capture form too: a ready-to-paste `<iframe>` snippet, or a JS widget (`/embed/newsletter-form.js`) that adopts the host site's own fonts/colors/input styling instead of looking like a dropped-in box
+- **WhatsApp broadcasts** (`/newsletters` → *New WhatsApp broadcast*) — a one-off marketing update (headline + link) sent via an approved WhatsApp template to every contact who opted into WhatsApp updates through the subscribe form above and still has a phone on file. See *WhatsApp broadcasts* further down for the required Meta template and cron job
 - **Task notifications** — the dashboard's "My Tasks" card and stat cards only show tasks assigned to you, and the Tasks nav item gets a red badge counting how many are due today or overdue. Optionally enable a daily digest email of that same list per mailbox, via a cron job (see *Deploying on cPanel* below)
 
 ## Stack
@@ -319,6 +320,25 @@ Like the other proactive notifications, this needs its own approved template:
 
 Since a real lead has no scheduled run to manually trigger, the **Send test** button in the same Settings → Integrations card sends a one-off test with placeholder content to your own number instead, to confirm this template is approved and reachable.
 
+### 18. WhatsApp broadcasts (optional)
+
+Send a one-off marketing update — a headline and a link — to every contact who chose "WhatsApp" or "Both" when subscribing via the public newsletter subscribe form (see *Newsletter subscribe form* above) and still has a phone number on file. Unlike the notifications above (which reuse a User's own opt-in phone number for internal alerts), this reaches Contacts, and unlike Newsletters (email), it needs an approved Marketing-category template rather than free-form HTML, since it's necessarily outside every recipient's 24-hour reply window.
+
+1. **Create the template.** Meta App Dashboard → WhatsApp → Message Templates → Create Template:
+   - Name: `gotech_new_update` (must match `NEW_UPDATE_TEMPLATE_NAME` in `src/lib/whatsapp-broadcast.ts` exactly)
+   - Category: `Marketing`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. your brand name and domain
+   - Body: a line with `{{1}}` (the update's headline) followed by a blank line, then a line with `{{2}}` (the link) — wording is up to you as long as the variables are in that order and the body doesn't start or end with a variable (Meta rejects that)
+   - Footer (optional, static text only): must tell the recipient how to opt out, e.g. "Reply STOP to unsubscribe." — Meta requires this for Marketing-category templates, and the inbound webhook (`src/app/api/whatsapp/webhook/route.ts`) is what actually clears `Contact.whatsappMarketingOptIn` when someone does
+   - Optional buttons: a Quick Reply button (e.g. "Stop") works as an opt-out too — the webhook handles both a typed "STOP"/"UNSUBSCRIBE" reply and a tap on such a button — and/or a Website URL button as a separate call-to-action, static or pointing at a fixed page (not tied to `{{2}}`, which already carries the specific link in the body)
+
+   Submit for review — Marketing-category templates get stricter review than Utility ones (avoid ALL CAPS, excessive emoji, or discount/sales-pitch framing for a smoother pass).
+2. **Compose and send** — *Newsletters → New WhatsApp broadcast*: pick a headline, a link, and a list, then send. There's no draft or schedule step; it starts sending immediately.
+3. **Schedule the cron job** — see step 7 under *Deploying on cPanel* below (`npm run send-whatsapp-broadcasts`). Without it, a broadcast sits stuck in "Sending" forever.
+
+`{{1}}` is the broadcast's headline, `{{2}}` its link — nothing else is templated. If WhatsApp Business isn't connected, or a contact has no phone number or hasn't opted into WhatsApp, they're simply excluded from that broadcast's recipient list rather than causing an error.
+
 ## Deploying on cPanel
 
 The app ships with everything needed for cPanel's **Setup Node.js App** tool (Phusion Passenger): a plain-Node `server.js` entrypoint that regenerates the Prisma Client and rebuilds the app itself on every start (see "No `postinstall` step" below for why that isn't handled by `npm install`).
@@ -357,6 +377,8 @@ The app ships with everything needed for cPanel's **Setup Node.js App** tool (Ph
    If anyone uses Sequences too, add a second entry the same way for `npm run process-sequences` — an hourly schedule is plenty, since a step's delay is day-granularity. Without this, enrolled contacts never actually get their emails, even though enrolling still "succeeds."
 
    If you use Newsletters, add a third entry for `npm run send-newsletters` — every 5-10 minutes, similar to `sync-email`, since a scheduled send should go out close to its chosen time and a large audience needs several ticks to work through in paced batches. This also needs `SITE_URL` set (see step 2 under *Daily WhatsApp task reminder* above) to build each recipient's unsubscribe link — without it, this entry logs a message and sends nothing rather than sending without one. Without this cron entry at all, a scheduled or "send now" newsletter sits stuck in Scheduled/Sending forever.
+
+   If you use WhatsApp broadcasts (*Newsletters → New WhatsApp broadcast*), add a fourth entry for `npm run send-whatsapp-broadcasts` — every 5-10 minutes, same reasoning as `send-newsletters`: a broadcast sends immediately on creation, but a large audience needs several ticks to work through in paced batches. Needs a Meta-approved Marketing template (see *WhatsApp broadcasts* below) and WhatsApp Business connected (*Settings → Integrations*). Without this cron entry, a broadcast sits stuck in Sending forever.
 
    `npm run send-task-digests` and `npm run send-task-digests-whatsapp` (the latter with `-- --force` to bypass its rate limit and send hour) still work as one-off commands for testing a digest by hand — see the sections above — but neither needs its own cron entry anymore.
 
@@ -401,6 +423,7 @@ scripts/
   sync-email.ts           CLI to sync every connected mailbox (npm run sync-email) — for cron
   process-sequences.ts    CLI to send due sequence steps (npm run process-sequences) — for cron
   send-newsletters.ts     CLI to send due/in-progress newsletters (npm run send-newsletters) — for cron
+  send-whatsapp-broadcasts.ts  CLI to send a paced batch of any in-progress WhatsApp broadcasts (npm run send-whatsapp-broadcasts) — for cron
   remove-contacts-without-phone.ts  CLI to delete contacts with no phone and no linked history (npm run remove-contacts-without-phone)
   remove-contacts-without-phone-or-email.ts  CLI to delete contacts with no phone AND no email, and no linked history (npm run remove-contacts-without-phone-or-email)
   remove-duplicate-contacts.ts  CLI to delete contacts sharing a phone or email with another contact, keeping the one with history if any (npm run remove-duplicate-contacts)
@@ -468,6 +491,7 @@ src/
 | `npm run sync-email` | Sync every connected mailbox, then check both daily digests, once (what the cron job runs) |
 | `npm run process-sequences` | Send any due sequence steps once (what the cron job runs) |
 | `npm run send-newsletters` | Send a paced batch of any due/in-progress newsletters once (what the cron job runs) |
+| `npm run send-whatsapp-broadcasts` | Send a paced batch of any in-progress WhatsApp broadcasts once (what the cron job runs) |
 | `npm run send-task-digests` | Manually check/send the daily email task digest once, outside the cron job |
 | `npm run send-task-digests-whatsapp` | Manually check/send the daily WhatsApp task reminder once, outside the cron job |
 | `npm run deploy` | Pull/install/migrate/restart once, by hand — what the GitHub push webhook runs (see *Auto-deploy from GitHub*) |
