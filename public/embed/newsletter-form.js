@@ -79,8 +79,18 @@
       // Same clamp()/CSS-variable approach as the lead-form widget — see
       // its own comments for why this beats a flat px value or font:inherit.
       ":where([data-gotech-newsletter-form]){font-size:clamp(13px,1em,16px);--gnf-accent:#111827}",
-      "[data-gotech-newsletter-form] form{display:flex;flex-direction:column;gap:1em;width:100%}",
-      "[data-gotech-newsletter-form] .gnf-field{display:flex;flex-direction:column;gap:.35em}",
+      // Two explicit horizontal rows (fields, then channel + submit) rather
+      // than one field per line — fits a footer's wide-but-short shape.
+      // Each row is its own flex-wrap container with a fixed gap, so on a
+      // wide container (a footer) everything in that row sits on one line,
+      // while a narrow one (a sidebar, mobile) still falls back to
+      // stacking, since every item keeps its own min-width and wraps
+      // freely — same "adapts to the space it's given" approach as the
+      // rest of this widget.
+      "[data-gotech-newsletter-form] form{display:flex;flex-direction:column;gap:.6em;width:100%}",
+      "[data-gotech-newsletter-form] .gnf-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6em 1em}",
+      "[data-gotech-newsletter-form] .gnf-field{display:flex;flex-direction:column;gap:.35em;flex:1 1 130px;min-width:110px}",
+      "[data-gotech-newsletter-form] .gnf-field-wide{flex:2 1 220px;min-width:200px}",
       "[data-gotech-newsletter-form] .gnf-hp{position:absolute;left:-9999px}",
       "[data-gotech-newsletter-form] .gnf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-success{font-size:.95em;margin:0}",
@@ -103,7 +113,8 @@
         "padding:.5em .75em;border:1px solid #ccc;border-radius:4px;background:#fff}",
       ":where([data-gotech-newsletter-form] button[type=submit]){" +
         "font:inherit;padding:.5em 1.1em;border:1px solid var(--gnf-accent);" +
-        "border-radius:4px;background:var(--gnf-accent);color:#fff;cursor:pointer}",
+        "border-radius:4px;background:var(--gnf-accent);color:#fff;cursor:pointer;" +
+        "flex:0 0 auto;white-space:nowrap}",
       ":where([data-gotech-newsletter-form] button:not(:disabled):hover){opacity:.85}",
       ":where([data-gotech-newsletter-form] button:disabled){opacity:.6;cursor:default}",
     ].join("");
@@ -182,12 +193,17 @@
     var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
     var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder);
 
-    form.appendChild(makeField(t.nameLabel, nameInput, true));
-    form.appendChild(makeField(t.emailLabel, emailInput, true));
-    form.appendChild(makeField(t.phoneLabel, phoneInput, true));
+    // Row 1: the three text fields, side by side on anything wide enough
+    // (a footer) — see the .gnf-row comment in ensureStyles above.
+    var fieldsRow = document.createElement("div");
+    fieldsRow.className = "gnf-row";
+    fieldsRow.appendChild(makeField(t.nameLabel, nameInput, true));
+    fieldsRow.appendChild(makeField(t.emailLabel, emailInput, true));
+    fieldsRow.appendChild(makeField(t.phoneLabel, phoneInput, true));
+    form.appendChild(fieldsRow);
 
     var channelWrap = document.createElement("div");
-    channelWrap.className = "gnf-field";
+    channelWrap.className = "gnf-field gnf-field-wide";
     var channelLabel = document.createElement("label");
     channelLabel.textContent = t.channelLabel;
     var channelMark = document.createElement("span");
@@ -218,22 +234,28 @@
       channelInputs.push(optInput);
     }
     channelWrap.appendChild(channelGroup);
-    form.appendChild(channelWrap);
 
     var noSpam = document.createElement("p");
     noSpam.className = "gnf-nospam";
     noSpam.textContent = t.noSpam;
     form.appendChild(noSpam);
 
+    var submitBtn = document.createElement("button");
+    submitBtn.type = "submit";
+    submitBtn.textContent = t.submit;
+
+    // Row 2: the channel choice and the submit button together — the
+    // second of the widget's two horizontal lines.
+    var actionRow = document.createElement("div");
+    actionRow.className = "gnf-row";
+    actionRow.appendChild(channelWrap);
+    actionRow.appendChild(submitBtn);
+    form.appendChild(actionRow);
+
     var errorEl = document.createElement("p");
     errorEl.className = "gnf-error";
     errorEl.style.display = "none";
     form.appendChild(errorEl);
-
-    var submitBtn = document.createElement("button");
-    submitBtn.type = "submit";
-    submitBtn.textContent = t.submit;
-    form.appendChild(submitBtn);
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
