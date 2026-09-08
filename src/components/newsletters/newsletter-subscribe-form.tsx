@@ -34,8 +34,16 @@ const CHANNEL_OPTIONS = [
 // checks (e.g. allows spaces/dashes in a phone number), since this only
 // needs to catch "clearly not this kind of value" (letters in a phone
 // number, no domain extension in an email), not fully replicate them.
+//
+// The parens/dot inside PHONE_PATTERN's character class MUST be escaped
+// (\(, \), \.) — modern browsers compile the `pattern` attribute with
+// regex's newer "v" (unicodeSets) flag, which treats an unescaped ( ) . -
+// inside [...] as a syntax error. A pattern that fails to compile isn't
+// enforced at all — the browser silently treats the field as always valid,
+// which is exactly how a bare "aa" was slipping through unpatterned before
+// this was caught and fixed.
 const EMAIL_PATTERN = String.raw`^[^\s@]+@[^\s@]+\.[^\s@]{2,}$`;
-const PHONE_PATTERN = String.raw`^\+[1-9][0-9\s().-]{5,18}$`;
+const PHONE_PATTERN = String.raw`^\+[1-9][0-9\s\(\)\.\-]{5,18}$`;
 
 export function NewsletterSubscribeForm() {
   const [state, formAction, pending] = useActionState(submitNewsletterSubscribe, undefined);

@@ -152,8 +152,16 @@
   // the server's own isValidPhoneFormat/zod .email() checks (e.g. allows
   // spaces/dashes in a phone number), since this only needs to catch
   // "clearly not this kind of value", not fully replicate them.
+  //
+  // The parens/dot inside PHONE_PATTERN's character class MUST be escaped
+  // (\(, \), \.) — modern browsers compile the `pattern` attribute with
+  // regex's newer "v" (unicodeSets) flag, which treats an unescaped ( ) . -
+  // inside [...] as a syntax error. A pattern that fails to compile isn't
+  // enforced at all — the browser silently treats the field as always
+  // valid, which is exactly how a bare "aa" was slipping through
+  // unpatterned before this was caught and fixed.
   var EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$";
-  var PHONE_PATTERN = "^\\+[1-9][0-9\\s().-]{5,18}$";
+  var PHONE_PATTERN = "^\\+[1-9][0-9\\s\\(\\)\\.\\-]{5,18}$";
 
   function makeInput(name, type, required, placeholder, pattern, title) {
     var el = document.createElement("input");
