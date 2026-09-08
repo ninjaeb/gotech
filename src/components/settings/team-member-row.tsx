@@ -93,43 +93,53 @@ export function TeamMemberRow({
               <Label htmlFor={`title-${user.id}`}>Title</Label>
               <Input id={`title-${user.id}`} name="title" defaultValue={user.title ?? ""} />
             </div>
-            <div>
-              <Label htmlFor={`phone-${user.id}`}>WhatsApp number</Label>
-              <Input
-                id={`phone-${user.id}`}
-                name="phone"
-                type="tel"
-                defaultValue={user.phone ?? ""}
-                placeholder="+60 12 345 6789"
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                {PHONE_FORMAT_HINT} Used for the daily task-reminder and @mention notifications over WhatsApp. Leave
-                blank to opt out of both.
-              </p>
-            </div>
+            {/* WhatsApp number + broadcast opt-ins are internal-staff features
+            (task-reminder, @mention, new-message/new-lead pings) — a Partner
+            has no tasks, mentions, or CRM inbox to be notified about, and
+            the two checkboxes below only ever fire for role ADMIN anyway
+            (see notifyNewWhatsAppMessageViaWhatsApp/notifyNewLeadViaWhatsApp
+            in src/lib/whatsapp.ts), so neither is shown for that role. */}
+            {user.role !== "PARTNER" && (
+              <div>
+                <Label htmlFor={`phone-${user.id}`}>WhatsApp number</Label>
+                <Input
+                  id={`phone-${user.id}`}
+                  name="phone"
+                  type="tel"
+                  defaultValue={user.phone ?? ""}
+                  placeholder="+60 12 345 6789"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  {PHONE_FORMAT_HINT} Used for the daily task-reminder and @mention notifications over WhatsApp. Leave
+                  blank to opt out of both.
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <input
-                type="checkbox"
-                name="notifyNewWhatsAppMessage"
-                defaultChecked={user.notifyNewWhatsAppMessage}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
-              />
-              Notify me of new WhatsApp messages
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-              <input
-                type="checkbox"
-                name="notifyNewLead"
-                defaultChecked={user.notifyNewLead}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
-              />
-              Notify me of new leads
-            </label>
-            <p className="text-xs text-slate-400">Both only take effect once a WhatsApp number is set above.</p>
-          </div>
+          {user.role !== "PARTNER" && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  name="notifyNewWhatsAppMessage"
+                  defaultChecked={user.notifyNewWhatsAppMessage}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+                />
+                Notify me of new WhatsApp messages
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  name="notifyNewLead"
+                  defaultChecked={user.notifyNewLead}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+                />
+                Notify me of new leads
+              </label>
+              <p className="text-xs text-slate-400">Both only take effect once a WhatsApp number is set above.</p>
+            </div>
+          )}
 
           {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
@@ -165,7 +175,7 @@ export function TeamMemberRow({
         <p className="truncate text-xs text-slate-400">
           {user.email}
           {user.title && ` · ${user.title}`} · joined {formatDate(user.createdAt)}
-          {user.phone && ` · WhatsApp notifications on`}
+          {user.role !== "PARTNER" && user.phone && ` · WhatsApp notifications on`}
           {user.role === "PARTNER" && user.referralCode && ` · referral link /r/${user.referralCode}`}
         </p>
       </div>

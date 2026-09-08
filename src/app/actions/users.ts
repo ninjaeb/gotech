@@ -99,7 +99,12 @@ export async function updateUserDetails(
     name: formData.get("name"),
     email: formData.get("email"),
     title: formData.get("title"),
-    phone: formData.get("phone"),
+    // Not `undefined` a plain missing-field default: a Partner's row omits
+    // this input entirely (see TeamMemberRow), so FormData.get returns
+    // `null` here, which a plain `.optional()` string schema rejects (it
+    // only widens to allow `undefined`) — `|| undefined` normalizes both
+    // "field absent" and "field present but empty" to the same thing.
+    phone: formData.get("phone") || undefined,
     notifyNewWhatsAppMessage: formData.get("notifyNewWhatsAppMessage") === "on",
     notifyNewLead: formData.get("notifyNewLead") === "on",
   });
