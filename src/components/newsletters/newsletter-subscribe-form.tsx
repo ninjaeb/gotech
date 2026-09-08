@@ -18,10 +18,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 const CHANNEL_OPTIONS = [
-  { value: "BOTH", label: "Both" },
-  { value: "EMAIL", label: "Email" },
-  { value: "WHATSAPP", label: "WhatsApp" },
-] as const;
+  { key: "whatsapp" as const, label: "WhatsApp" },
+  { key: "email" as const, label: "Email" },
+];
 
 export function NewsletterSubscribeForm() {
   const [state, formAction, pending] = useActionState(submitNewsletterSubscribe, undefined);
@@ -31,7 +30,19 @@ export function NewsletterSubscribeForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [channel, setChannel] = useState<(typeof CHANNEL_OPTIONS)[number]["value"]>("BOTH");
+
+  // A checkbox each, both checked by default, rather than a single Email/
+  // WhatsApp/Both radio choice. toggleChannel refuses to leave both
+  // unchecked — "opted into nothing" isn't a real choice, so there's no
+  // channel_invalid state to design a message for, only two valid ones.
+  const [channels, setChannels] = useState({ email: true, whatsapp: true });
+  function toggleChannel(key: "email" | "whatsapp") {
+    setChannels((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      return next.email || next.whatsapp ? next : prev;
+    });
+  }
+  const channel = channels.email && channels.whatsapp ? "BOTH" : channels.email ? "EMAIL" : "WHATSAPP";
 
   // The server rejects a submission that arrives less than MIN_FILL_MS
   // after this — see lead-spam-guard.ts (shared with the lead form).
@@ -93,26 +104,25 @@ export function NewsletterSubscribeForm() {
           />
         </FieldGroup>
 
+        <input type="hidden" name="channel" value={channel} />
         <div>
           <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
             Get updates via<span className="text-rose-500"> *</span>
           </span>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {CHANNEL_OPTIONS.map((option) => (
               <label
-                key={option.value}
+                key={option.key}
                 className={`flex cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                  channel === option.value
+                  channels[option.key]
                     ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950 dark:text-indigo-300"
                     : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-neutral-700 dark:text-slate-300"
                 }`}
               >
                 <input
-                  type="radio"
-                  name="channel"
-                  value={option.value}
-                  checked={channel === option.value}
-                  onChange={() => setChannel(option.value)}
+                  type="checkbox"
+                  checked={channels[option.key]}
+                  onChange={() => toggleChannel(option.key)}
                   className="sr-only"
                 />
                 {option.label}

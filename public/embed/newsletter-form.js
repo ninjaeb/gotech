@@ -48,10 +48,15 @@
     phoneLabel: "Phone",
     phonePlaceholder: "+1 555 123 4567",
     channelLabel: "Get updates via",
+    // A checkbox each, not a single Email/WhatsApp/Both radio choice — both
+    // checked by default (the common case), and the submit handler collapses
+    // whichever combination is checked back into the one EMAIL/WHATSAPP/BOTH
+    // value the API expects. Unchecking the last one is blocked below rather
+    // than allowed through as an error, since "opted into nothing" isn't a
+    // real choice worth a round trip to find out about.
     channelOptions: [
-      { value: "BOTH", label: "Both" },
-      { value: "EMAIL", label: "Email" },
       { value: "WHATSAPP", label: "WhatsApp" },
+      { value: "EMAIL", label: "Email" },
     ],
     noSpam: "No spam, ever — unsubscribe from email or WhatsApp updates at any time.",
     submit: "Subscribe",
@@ -89,6 +94,9 @@
       // rest of this widget.
       "[data-gotech-newsletter-form] form{display:flex;flex-direction:column;gap:.6em;width:100%}",
       "[data-gotech-newsletter-form] .gnf-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6em 1em}",
+      // The bottom row (no-spam text + submit button) has no label-over-
+      // input pairs to bottom-align against, so it centers instead.
+      "[data-gotech-newsletter-form] .gnf-row-bottom{align-items:center}",
       "[data-gotech-newsletter-form] .gnf-field{display:flex;flex-direction:column;gap:.35em;flex:1 1 130px;min-width:110px}",
       "[data-gotech-newsletter-form] .gnf-field-wide{flex:2 1 220px;min-width:200px}",
       "[data-gotech-newsletter-form] .gnf-hp{position:absolute;left:-9999px}",
@@ -96,8 +104,10 @@
       "[data-gotech-newsletter-form] .gnf-success{font-size:.95em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-required{color:#f43f5e}",
       "[data-gotech-newsletter-form] .gnf-intro{margin:0 0 .25em;opacity:.75}",
-      "[data-gotech-newsletter-form] .gnf-nospam{margin:0;font-size:.85em;opacity:.6}",
-      "[data-gotech-newsletter-form] .gnf-channels{display:grid;grid-template-columns:repeat(3,1fr);gap:.5em}",
+      // flex:1 so it fills the row's remaining width next to the submit
+      // button rather than wrapping onto its own line above it.
+      "[data-gotech-newsletter-form] .gnf-nospam{flex:1 1 200px;margin:0;font-size:.85em;opacity:.6}",
+      "[data-gotech-newsletter-form] .gnf-channels{display:grid;grid-template-columns:repeat(2,1fr);gap:.5em}",
       "[data-gotech-newsletter-form] .gnf-channel{position:relative}",
       "[data-gotech-newsletter-form] .gnf-channel input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}",
       ":where([data-gotech-newsletter-form] .gnf-channel span){" +
@@ -193,14 +203,12 @@
     var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
     var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder);
 
-    // Row 1: the three text fields, side by side on anything wide enough
-    // (a footer) — see the .gnf-row comment in ensureStyles above.
-    var fieldsRow = document.createElement("div");
-    fieldsRow.className = "gnf-row";
-    fieldsRow.appendChild(makeField(t.nameLabel, nameInput, true));
-    fieldsRow.appendChild(makeField(t.emailLabel, emailInput, true));
-    fieldsRow.appendChild(makeField(t.phoneLabel, phoneInput, true));
-    form.appendChild(fieldsRow);
+    // Row 1: Name + Email.
+    var row1 = document.createElement("div");
+    row1.className = "gnf-row";
+    row1.appendChild(makeField(t.nameLabel, nameInput, true));
+    row1.appendChild(makeField(t.emailLabel, emailInput, true));
+    form.appendChild(row1);
 
     var channelWrap = document.createElement("div");
     channelWrap.className = "gnf-field gnf-field-wide";
@@ -221,11 +229,10 @@
       var optWrap = document.createElement("label");
       optWrap.className = "gnf-channel";
       var optInput = document.createElement("input");
-      optInput.type = "radio";
-      optInput.name = "channel";
+      optInput.type = "checkbox";
+      optInput.name = "channel_" + opt.value.toLowerCase();
       optInput.value = opt.value;
-      optInput.required = true;
-      if (opt.value === "BOTH") optInput.checked = true;
+      optInput.checked = true;
       var optText = document.createElement("span");
       optText.textContent = opt.label;
       optWrap.appendChild(optInput);
@@ -233,24 +240,42 @@
       channelGroup.appendChild(optWrap);
       channelInputs.push(optInput);
     }
+    // At least one channel has to stay checked — unchecking the last one
+    // just reverts it, rather than letting "opted into nothing" through as
+    // a submit-time error.
+    channelInputs.forEach(function (input) {
+      input.addEventListener("change", function () {
+        var anyChecked = channelInputs.some(function (i) {
+          return i.checked;
+        });
+        if (!anyChecked) input.checked = true;
+      });
+    });
     channelWrap.appendChild(channelGroup);
+
+    // Row 2: Phone + the channel checkboxes.
+    var row2 = document.createElement("div");
+    row2.className = "gnf-row";
+    row2.appendChild(makeField(t.phoneLabel, phoneInput, true));
+    row2.appendChild(channelWrap);
+    form.appendChild(row2);
 
     var noSpam = document.createElement("p");
     noSpam.className = "gnf-nospam";
     noSpam.textContent = t.noSpam;
-    form.appendChild(noSpam);
 
     var submitBtn = document.createElement("button");
     submitBtn.type = "submit";
     submitBtn.textContent = t.submit;
 
-    // Row 2: the channel choice and the submit button together — the
-    // second of the widget's two horizontal lines.
-    var actionRow = document.createElement("div");
-    actionRow.className = "gnf-row";
-    actionRow.appendChild(channelWrap);
-    actionRow.appendChild(submitBtn);
-    form.appendChild(actionRow);
+    // Row 3: the no-spam disclaimer alongside the submit button, instead of
+    // its own full-width line above it — keeps the whole form to three
+    // rows instead of a taller four.
+    var row3 = document.createElement("div");
+    row3.className = "gnf-row gnf-row-bottom";
+    row3.appendChild(noSpam);
+    row3.appendChild(submitBtn);
+    form.appendChild(row3);
 
     var errorEl = document.createElement("p");
     errorEl.className = "gnf-error";
@@ -263,10 +288,15 @@
       submitBtn.disabled = true;
       submitBtn.textContent = t.submitting;
 
-      var selectedChannel = "";
-      for (var ci = 0; ci < channelInputs.length; ci++) {
-        if (channelInputs[ci].checked) selectedChannel = channelInputs[ci].value;
-      }
+      var checkedValues = channelInputs.filter(function (input) {
+        return input.checked;
+      }).map(function (input) {
+        return input.value;
+      });
+      var selectedChannel =
+        checkedValues.indexOf("EMAIL") !== -1 && checkedValues.indexOf("WHATSAPP") !== -1
+          ? "BOTH"
+          : checkedValues[0] || "";
 
       var payload = {
         website: hpInput.value,
