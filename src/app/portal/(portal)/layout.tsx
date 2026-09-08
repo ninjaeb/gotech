@@ -8,9 +8,7 @@ export default async function PortalLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-full flex-col">
       <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900 sm:px-8">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
-          G
-        </div>
+        <img src="/icon-192.png" alt="" className="h-7 w-7 shrink-0" />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
             Gotka CRM

@@ -13,9 +13,7 @@ export default function LoginPage() {
     <div className="flex min-h-full items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-indigo-600 text-base font-bold text-white">
-            G
-          </div>
+          <img src="/icon-192.png" alt="" className="h-10 w-10 shrink-0" />
           <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             Gotka CRM
           </h1>
