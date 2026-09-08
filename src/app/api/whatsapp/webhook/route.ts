@@ -44,6 +44,10 @@ type WhatsAppTextMessage = {
   image?: WhatsAppMediaPayload;
   document?: WhatsAppMediaPayload;
   video?: WhatsAppMediaPayload;
+  // Present when type is "button" — a tap on a template's quick-reply
+  // button (e.g. a "Stop" button on a marketing template) arrives this way,
+  // not as a text message, so it needs its own opt-out check below.
+  button?: { text: string; payload?: string };
   // Present when this message is a swipe-to-reply/quote of an earlier one —
   // `id` there is that earlier message's own wamid. Used to detect a reply
   // to a mention notification; see handleMentionReply below.
@@ -87,6 +91,7 @@ function toWhatsAppMessageStatus(status: string): "SENT" | "DELIVERED" | "READ" 
 // get real handling instead — see buildInboundMediaContent below.
 function describeMessage(message: WhatsAppTextMessage): string {
   if (message.type === "text" && message.text?.body) return message.text.body;
+  if (message.type === "button" && message.button?.text) return message.button.text;
   return `[${message.type} message — open WhatsApp to view]`;
 }
 
@@ -253,10 +258,17 @@ export async function POST(request: NextRequest) {
 
     // "STOP"/"UNSUBSCRIBE" is the opt-out instruction any WhatsApp marketing
     // template we send is required to carry (see Contact.whatsappMarketingOptIn)
-    // — mirrors the one-click email unsubscribe link the same way. Still falls
-    // through to log the message itself below, same as any other reply.
-    const textBody = message.type === "text" ? message.text?.body?.trim().toUpperCase() : undefined;
-    if (textBody === "STOP" || textBody === "UNSUBSCRIBE") {
+    // — mirrors the one-click email unsubscribe link the same way. Checks both
+    // a typed reply (type "text") and a tap on a template's quick-reply button
+    // (type "button", e.g. a "Stop" button) since either is a valid opt-out.
+    // Still falls through to log the message itself below, same as any other reply.
+    const replyText =
+      message.type === "text"
+        ? message.text?.body?.trim().toUpperCase()
+        : message.type === "button"
+          ? message.button?.text?.trim().toUpperCase()
+          : undefined;
+    if (replyText === "STOP" || replyText === "UNSUBSCRIBE") {
       await db.contact.update({
         where: { id: contactId },
         data: { whatsappMarketingOptIn: false, whatsappMarketingOptInAt: null },
