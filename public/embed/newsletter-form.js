@@ -44,10 +44,13 @@
     namePlaceholder: "Jane Smith",
     emailLabel: "Email",
     emailPlaceholder: "jane@company.com",
+    phoneLabel: "Phone",
+    phonePlaceholder: "+1 555 123 4567",
     submit: "Subscribe",
     submitting: "Subscribing…",
     success: "You're subscribed — thanks for signing up!",
     errors: {
+      name_required: "Name is required",
       email_required: "Email is required",
       email_invalid: "Enter a valid email",
       rate_limited: "Too many attempts — please try again later.",
@@ -150,11 +153,13 @@
     // answer that fast. See lead-spam-guard.ts (shared with the lead form).
     var renderedAt = Date.now();
 
-    var nameInput = makeInput("name", "text", false, t.namePlaceholder);
+    var nameInput = makeInput("name", "text", true, t.namePlaceholder);
     var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
+    var phoneInput = makeInput("phone", "tel", false, t.phonePlaceholder);
 
-    form.appendChild(makeField(t.nameLabel, nameInput));
+    form.appendChild(makeField(t.nameLabel, nameInput, true));
     form.appendChild(makeField(t.emailLabel, emailInput, true));
+    form.appendChild(makeField(t.phoneLabel, phoneInput));
 
     var errorEl = document.createElement("p");
     errorEl.className = "gnf-error";
@@ -177,6 +182,7 @@
         renderedAt: renderedAt,
         name: nameInput.value,
         email: emailInput.value,
+        phone: phoneInput.value,
       };
 
       fetch(API_URL, {

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FieldGroup, Input } from "@/components/ui/field";
 
 const ERROR_MESSAGES: Record<string, string> = {
+  name_required: "Name is required",
   email_required: "Email is required",
   email_invalid: "Enter a valid email",
   rate_limited: "Too many attempts — please try again later.",
@@ -21,6 +22,7 @@ export function NewsletterSubscribeForm() {
   // shouldn't wipe out what the visitor already typed in the other field.
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
   // The server rejects a submission that arrives less than MIN_FILL_MS
   // after this — see lead-spam-guard.ts (shared with the lead form).
@@ -47,8 +49,15 @@ export function NewsletterSubscribeForm() {
         </div>
         <input type="hidden" name="renderedAt" value={renderedAt} />
 
-        <FieldGroup label="Name" htmlFor="name">
-          <Input id="name" name="name" placeholder="Jane Smith" value={name} onChange={(event) => setName(event.target.value)} />
+        <FieldGroup label="Name" htmlFor="name" required>
+          <Input
+            id="name"
+            name="name"
+            required
+            placeholder="Jane Smith"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
         </FieldGroup>
         <FieldGroup label="Email" htmlFor="email" required>
           <Input
@@ -59,6 +68,16 @@ export function NewsletterSubscribeForm() {
             placeholder="jane@company.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
+          />
+        </FieldGroup>
+        <FieldGroup label="Phone" htmlFor="phone">
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="+1 555 123 4567"
+            value={phone}
+            onChange={(event) => setPhone(event.target.value)}
           />
         </FieldGroup>
 

@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
   const parsed = newsletterSubscribeSchema.safeParse({
     name: record.name,
     email: record.email,
+    phone: record.phone,
   });
   if (!parsed.success) {
     const code = (parsed.error.issues[0]?.message as NewsletterSubscribeErrorCode) ?? "invalid_submission";

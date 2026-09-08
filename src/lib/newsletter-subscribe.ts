@@ -8,6 +8,7 @@ import { getNewsletterSubscribeListId } from "@/lib/settings";
 // hosted /subscribe page's Server Action and the embeddable widget's public
 // API route, same pattern as leads.ts's leadSchema/LeadFormErrorCode.
 export type NewsletterSubscribeErrorCode =
+  | "name_required"
   | "email_required"
   | "email_invalid"
   | "rate_limited"
@@ -16,8 +17,9 @@ export type NewsletterSubscribeErrorCode =
   | "generic";
 
 export const newsletterSubscribeSchema = z.object({
-  name: z.string().trim().optional(),
+  name: z.string().trim().min(1, "name_required"),
   email: z.string().trim().min(1, "email_required").email("email_invalid"),
+  phone: z.string().trim().optional(),
 });
 
 export type NewsletterSubscribeInput = z.infer<typeof newsletterSubscribeSchema>;
@@ -34,11 +36,9 @@ export async function subscribeToNewsletter(data: NewsletterSubscribeInput): Pro
   }
 
   const contact = await findOrCreateContactByEmail({
-    // A name field would be one more required box for what's meant to be a
-    // one-field "just my email" form — falling back to the email itself
-    // keeps the contact usably labeled even when nobody typed one.
-    name: data.name?.trim() || data.email,
+    name: data.name,
     email: data.email,
+    phone: data.phone?.trim() || null,
     lifecycleStage: "SUBSCRIBER",
   });
 

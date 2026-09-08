@@ -20,7 +20,12 @@ export function NewsletterSubscribeListForm({
     <form action={formAction} className="flex flex-wrap items-end gap-3">
       <div className="min-w-48">
         <Label htmlFor="subscribeListId">Adds subscribers to</Label>
-        <Select id="subscribeListId" name="listId" defaultValue={currentListId ?? ""}>
+        {/* Keyed on currentListId so a successful save (which revalidates the
+        page and passes a new currentListId prop down) remounts the <select>
+        instead of leaving its defaultValue-driven display stale — defaultValue
+        only takes effect on mount, not on prop updates to an already-mounted
+        uncontrolled element. */}
+        <Select key={currentListId ?? "none"} id="subscribeListId" name="listId" defaultValue={currentListId ?? ""}>
           <option value="">Off — no list selected</option>
           {lists.map((list) => (
             <option key={list.id} value={list.id}>
