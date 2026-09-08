@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import {
-  parseGoogleContactsCsv,
+  parseContactImportFile,
   type ParsedContactRow,
-} from "@/lib/google-contacts-import";
+} from "@/lib/contact-import-parsing";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { toTitleCase } from "@/lib/names";
@@ -73,16 +73,15 @@ export async function previewContactImport(
   await requireAdminAction();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return { status: "error", message: "Choose a CSV file to import." };
+    return { status: "error", message: "Choose a CSV or Excel file to import." };
   }
   if (file.size > MAX_FILE_SIZE) {
     return { status: "error", message: "That file is too large (max 5MB)." };
   }
 
-  const text = await file.text();
-  let parsed: ReturnType<typeof parseGoogleContactsCsv>;
+  let parsed: Awaited<ReturnType<typeof parseContactImportFile>>;
   try {
-    parsed = parseGoogleContactsCsv(text);
+    parsed = await parseContactImportFile(file);
   } catch (error) {
     return {
       status: "error",
@@ -193,6 +192,8 @@ export async function confirmContactImport(
   const industryByCompanyName = new Map<string, Industry>();
   const descriptionByCompanyName = new Map<string, string>();
   const addressByCompanyName = new Map<string, string>();
+  const phoneByCompanyName = new Map<string, string>();
+  const domainByCompanyName = new Map<string, string>();
   for (const row of importableRows) {
     const name = row.companyName?.trim();
     if (!name) continue;
@@ -203,6 +204,8 @@ export async function confirmContactImport(
     if (row.companyAddress && !addressByCompanyName.has(name)) {
       addressByCompanyName.set(name, row.companyAddress);
     }
+    if (row.companyPhone && !phoneByCompanyName.has(name)) phoneByCompanyName.set(name, row.companyPhone);
+    if (row.companyDomain && !domainByCompanyName.has(name)) domainByCompanyName.set(name, row.companyDomain);
   }
 
   const companyIdByName = new Map<string, string>();
@@ -210,23 +213,34 @@ export async function confirmContactImport(
   for (const name of companyNames) {
     const existing = await db.company.findFirst({
       where: { name },
-      select: { id: true, industry: true, notes: true, address: true },
+      select: { id: true, industry: true, notes: true, address: true, phone: true, domain: true },
     });
     const industry = industryByCompanyName.get(name);
     const description = descriptionByCompanyName.get(name);
     const address = addressByCompanyName.get(name);
+    const phone = phoneByCompanyName.get(name);
+    const domain = domainByCompanyName.get(name);
     if (existing) {
       companyIdByName.set(name, existing.id);
-      const fill: { industry?: Industry; notes?: string; address?: string } = {};
+      const fill: { industry?: Industry; notes?: string; address?: string; phone?: string; domain?: string } = {};
       if (!existing.industry && industry) fill.industry = industry;
       if (!existing.notes && description) fill.notes = description;
       if (!existing.address && address) fill.address = address;
+      if (!existing.phone && phone) fill.phone = phone;
+      if (!existing.domain && domain) fill.domain = domain;
       if (Object.keys(fill).length > 0) {
         await db.company.update({ where: { id: existing.id }, data: fill });
       }
     } else {
       const company = await db.company.create({
-        data: { name, industry: industry ?? null, notes: description ?? null, address: address ?? null },
+        data: {
+          name,
+          industry: industry ?? null,
+          notes: description ?? null,
+          address: address ?? null,
+          phone: phone ?? null,
+          domain: domain ?? null,
+        },
         select: { id: true },
       });
       companyIdByName.set(name, company.id);

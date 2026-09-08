@@ -1,5 +1,19 @@
 import Link from "next/link";
-import { Building2, CheckSquare, Clock, Flag, Plus, Users } from "lucide-react";
+import {
+  Building2,
+  CalendarClock,
+  CalendarDays,
+  CheckSquare,
+  Clock,
+  FileText,
+  Flag,
+  FolderKanban,
+  Hourglass,
+  Plus,
+  Receipt,
+  Star,
+  Users,
+} from "lucide-react";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -10,6 +24,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
 import { LEAD_SOURCE_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
+import { computeProjectActuals, budgetSeverity, timelineSeverity } from "@/lib/project-budget";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
@@ -19,6 +34,12 @@ export default async function DashboardPage() {
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);
   endOfToday.setDate(endOfToday.getDate() + 1);
+  const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+  const startOfNextMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth() + 1, 1);
+  const sevenDaysOut = new Date(startOfToday);
+  sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+  const thirtyDaysAgo = new Date(startOfToday);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const currentUser = await requireAdmin();
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
@@ -38,15 +59,27 @@ export default async function DashboardPage() {
     users,
     hasEmailAccount,
     hasWhatsAppAccount,
+    outstandingInvoices,
+    overdueInvoiceCount,
+    quoteStatusCounts,
+    activeProjects,
+    testimonialStats,
+    dealsClosingThisMonthCount,
+    upcomingBookingsCount,
+    companyCount30dAgo,
+    contactCount30dAgo,
   ] = await Promise.all([
     getCurrency(),
     db.company.count(),
     db.contact.count(),
     db.deal.findMany({
       select: {
+        id: true,
+        title: true,
         value: true,
         pipelineStageId: true,
         source: true,
+        createdAt: true,
         pipelineStage: { select: { isWon: true, isLost: true } },
       },
     }),
@@ -106,6 +139,39 @@ export default async function DashboardPage() {
     db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
+    db.invoice.aggregate({
+      where: { status: { in: ["DEPOSIT_SENT", "PROGRESS_BILLED"] } },
+      _sum: { amount: true },
+      _count: true,
+    }),
+    db.invoice.count({
+      where: { status: { in: ["DEPOSIT_SENT", "PROGRESS_BILLED"] }, dueDate: { lt: startOfToday } },
+    }),
+    db.quote.groupBy({ by: ["status"], _count: { _all: true } }),
+    db.project.findMany({
+      where: { status: { in: ["NOT_STARTED", "IN_PROGRESS"] } },
+      select: {
+        status: true,
+        budgetHours: true,
+        budgetAmount: true,
+        targetCompletionDate: true,
+        tasks: { select: { timeEntries: { select: { minutes: true, user: { select: { hourlyRate: true } } } } } },
+      },
+    }),
+    db.testimonial.aggregate({
+      where: { status: "SUBMITTED" },
+      _count: true,
+      _avg: { rating: true },
+    }),
+    db.deal.count({
+      where: {
+        pipelineStage: { isWon: false, isLost: false },
+        expectedCloseDate: { gte: startOfMonth, lt: startOfNextMonth },
+      },
+    }),
+    db.booking.count({ where: { startAt: { gte: startOfToday, lt: sevenDaysOut } } }),
+    db.company.count({ where: { createdAt: { lt: thirtyDaysAgo } } }),
+    db.contact.count({ where: { createdAt: { lt: thirtyDaysAgo } } }),
   ]);
 
   const openDeals = allDeals.filter((deal) => !deal.pipelineStage.isWon && !deal.pipelineStage.isLost);
@@ -157,6 +223,46 @@ export default async function DashboardPage() {
     .sort((a, b) => b.count - a.count);
   const maxSourceValue = Math.max(1, ...sourceBreakdown.map((s) => s.value));
 
+  const outstandingInvoiceAmount = Number(outstandingInvoices._sum.amount ?? 0);
+  const outstandingInvoiceCount = outstandingInvoices._count;
+
+  const quotesByStatus = new Map<string, number>(
+    quoteStatusCounts.map((row) => [row.status, row._count._all]),
+  );
+  const quotesAwaitingCount = (quotesByStatus.get("SENT") ?? 0) + (quotesByStatus.get("VIEWED") ?? 0);
+  const quotesAccepted = quotesByStatus.get("ACCEPTED") ?? 0;
+  const quotesDecided = quotesAccepted + (quotesByStatus.get("DECLINED") ?? 0);
+  const quoteAcceptanceRate = quotesDecided > 0 ? Math.round((quotesAccepted / quotesDecided) * 100) : null;
+
+  // Same over-budget/over-timeline check as the projects list page — see
+  // src/app/(app)/projects/page.tsx — just tallied instead of shown per-row.
+  const flaggedProjectCount = activeProjects.filter((project) => {
+    const { totalMinutes, totalCost } = computeProjectActuals(project.tasks.flatMap((task) => task.timeEntries));
+    const overHours = budgetSeverity(totalMinutes / 60, project.budgetHours) === "over";
+    const overCost =
+      budgetSeverity(totalCost, project.budgetAmount === null ? null : Number(project.budgetAmount)) === "over";
+    const overTimeline = timelineSeverity(project.targetCompletionDate, project.status) === "over";
+    return overHours || overCost || overTimeline;
+  }).length;
+
+  const testimonialCount = testimonialStats._count;
+  const avgTestimonialRating = testimonialStats._avg.rating;
+
+  let oldestOpenDeal: (typeof openDeals)[number] | null = null;
+  for (const deal of openDeals) {
+    if (!oldestOpenDeal || deal.createdAt < oldestOpenDeal.createdAt) oldestOpenDeal = deal;
+  }
+  const oldestOpenDealDays = oldestOpenDeal
+    ? Math.floor((startOfToday.getTime() - oldestOpenDeal.createdAt.getTime()) / 86_400_000)
+    : null;
+
+  const companyDelta = companyCount - companyCount30dAgo;
+  const contactDelta = contactCount - contactCount30dAgo;
+  const companyDeltaLabel =
+    companyDelta > 0 ? `+${companyDelta} this month` : companyDelta < 0 ? `${companyDelta} this month` : "No change this month";
+  const contactDeltaLabel =
+    contactDelta > 0 ? `+${contactDelta} this month` : contactDelta < 0 ? `${contactDelta} this month` : "No change this month";
+
   return (
     <div>
       <PageHeader title="Dashboard" description="Your CRM at a glance" />
@@ -199,6 +305,7 @@ export default async function DashboardPage() {
           value={companyCount.toString()}
           icon={Building2}
           accent="indigo"
+          description={companyDeltaLabel}
           href="/companies"
         />
         <StatCard
@@ -206,6 +313,7 @@ export default async function DashboardPage() {
           value={contactCount.toString()}
           icon={Users}
           accent="sky"
+          description={contactDeltaLabel}
           href="/contacts"
         />
         <StatCard
@@ -230,6 +338,74 @@ export default async function DashboardPage() {
           accent="orange"
           description={needsFollowUpCount > 0 ? "Open deals, no next step" : "All deals on track"}
           href="/deals?flag=needs-follow-up"
+        />
+      </div>
+
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        Revenue &amp; delivery
+      </p>
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Outstanding invoices"
+          value={formatCurrency(outstandingInvoiceAmount, currency)}
+          icon={Receipt}
+          accent="emerald"
+          description={
+            outstandingInvoiceCount === 0
+              ? "Nothing sent yet"
+              : overdueInvoiceCount > 0
+                ? `${overdueInvoiceCount} overdue`
+                : "All within terms"
+          }
+        />
+        <StatCard
+          label="Quotes awaiting response"
+          value={quotesAwaitingCount.toString()}
+          icon={FileText}
+          accent="sky"
+          description={quoteAcceptanceRate !== null ? `${quoteAcceptanceRate}% acceptance rate` : "No decided quotes yet"}
+        />
+        <StatCard
+          label="Active projects"
+          value={activeProjects.length.toString()}
+          icon={FolderKanban}
+          accent="orange"
+          description={flaggedProjectCount > 0 ? `${flaggedProjectCount} over budget` : "All on track"}
+          href="/projects"
+        />
+        <StatCard
+          label="Testimonials collected"
+          value={testimonialCount.toString()}
+          icon={Star}
+          accent="amber"
+          description={avgTestimonialRating !== null ? `${avgTestimonialRating.toFixed(1)}★ average` : "No ratings yet"}
+        />
+      </div>
+
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        Coming up
+      </p>
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Deals closing this month"
+          value={dealsClosingThisMonthCount.toString()}
+          icon={CalendarClock}
+          accent="indigo"
+          href="/deals"
+        />
+        <StatCard
+          label="Bookings, next 7 days"
+          value={upcomingBookingsCount.toString()}
+          icon={CalendarDays}
+          accent="sky"
+        />
+        <StatCard
+          label="Oldest open deal"
+          value={oldestOpenDealDays !== null ? `${oldestOpenDealDays}d` : "—"}
+          icon={Hourglass}
+          accent="rose"
+          description={oldestOpenDeal?.title}
+          href={oldestOpenDeal ? `/deals/${oldestOpenDeal.id}` : undefined}
         />
       </div>
 

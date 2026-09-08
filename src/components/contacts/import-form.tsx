@@ -231,18 +231,20 @@ export function ImportForm() {
           <UploadCloud className="h-10 w-10 text-slate-400" />
           <div>
             <Label htmlFor="file" className="sr-only">
-              CSV file
+              CSV or Excel file
             </Label>
             <input
               id="file"
               name="file"
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,text/csv,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               required
               className="block text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 dark:text-slate-400 dark:file:bg-indigo-950 dark:file:text-indigo-300"
             />
             <p className="mt-2 text-xs text-slate-400">
-              From Google Contacts: Export → Google CSV. Max 5MB.
+              CSV or Excel (.xlsx) — from Google Contacts, HubSpot, Salesforce, or your own
+              spreadsheet. Columns are matched automatically, and a Company/Organization column
+              creates or links that contact&apos;s company too. Max 5MB.
             </p>
           </div>
           {error && (
