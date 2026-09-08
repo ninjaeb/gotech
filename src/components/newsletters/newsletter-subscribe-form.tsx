@@ -24,6 +24,19 @@ const CHANNEL_OPTIONS = [
   { key: "email" as const, label: "Email" },
 ];
 
+// `pattern` makes the browser catch a bad email/phone with its own native
+// validation popup at submit time — the same one it already shows for an
+// empty required field — instead of only finding out from the server and
+// showing that as a separate paragraph at the bottom of the form. The
+// server (newsletterSubscribeSchema) is still the real authority — this is
+// just so the common case never has to make a round trip to find out.
+// Deliberately looser than the server's own isValidPhoneFormat/zod .email()
+// checks (e.g. allows spaces/dashes in a phone number), since this only
+// needs to catch "clearly not this kind of value" (letters in a phone
+// number, no domain extension in an email), not fully replicate them.
+const EMAIL_PATTERN = String.raw`^[^\s@]+@[^\s@]+\.[^\s@]{2,}$`;
+const PHONE_PATTERN = String.raw`^\+[1-9][0-9\s().-]{5,18}$`;
+
 export function NewsletterSubscribeForm() {
   const [state, formAction, pending] = useActionState(submitNewsletterSubscribe, undefined);
 
@@ -93,6 +106,8 @@ export function NewsletterSubscribeForm() {
               name="email"
               type="email"
               required
+              pattern={EMAIL_PATTERN}
+              title="Enter a full email address, including the domain, e.g. jane@company.com"
               placeholder="jane@company.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -106,6 +121,8 @@ export function NewsletterSubscribeForm() {
               name="phone"
               type="tel"
               required
+              pattern={PHONE_PATTERN}
+              title={PHONE_FORMAT_HINT}
               placeholder="+1 555 123 4567"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}

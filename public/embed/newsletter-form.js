@@ -45,6 +45,7 @@
     namePlaceholder: "Jane Smith",
     emailLabel: "Email",
     emailPlaceholder: "jane@company.com",
+    emailTitle: "Enter a full email address, including the domain, e.g. jane@company.com",
     phoneLabel: "Phone",
     phonePlaceholder: "+1 555 123 4567",
     phoneHint: "Include the country code with a + sign, e.g. +60 12 345 6789.",
@@ -142,12 +143,26 @@
     return "gnf-" + prefix + "-" + uid;
   }
 
-  function makeInput(name, type, required, placeholder) {
+  // `pattern` makes the browser catch a bad email/phone with its own native
+  // validation popup at submit time — the same one it already shows for an
+  // empty required field — instead of only finding out from the server and
+  // showing that as a separate errorEl paragraph. The server
+  // (newsletterSubscribeSchema) stays the real authority — this is just so
+  // the common case never needs the round trip. Deliberately looser than
+  // the server's own isValidPhoneFormat/zod .email() checks (e.g. allows
+  // spaces/dashes in a phone number), since this only needs to catch
+  // "clearly not this kind of value", not fully replicate them.
+  var EMAIL_PATTERN = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$";
+  var PHONE_PATTERN = "^\\+[1-9][0-9\\s().-]{5,18}$";
+
+  function makeInput(name, type, required, placeholder, pattern, title) {
     var el = document.createElement("input");
     el.name = name;
     el.type = type;
     if (required) el.required = true;
     if (placeholder) el.placeholder = placeholder;
+    if (pattern) el.pattern = pattern;
+    if (title) el.title = title;
     return el;
   }
 
@@ -211,8 +226,8 @@
     var renderedAt = Date.now();
 
     var nameInput = makeInput("name", "text", true, t.namePlaceholder);
-    var emailInput = makeInput("email", "email", true, t.emailPlaceholder);
-    var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder);
+    var emailInput = makeInput("email", "email", true, t.emailPlaceholder, EMAIL_PATTERN, t.emailTitle);
+    var phoneInput = makeInput("phone", "tel", true, t.phonePlaceholder, PHONE_PATTERN, t.phoneHint);
 
     // Row 1: Name + Email.
     var row1 = document.createElement("div");
