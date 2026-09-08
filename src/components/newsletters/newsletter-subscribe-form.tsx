@@ -71,69 +71,71 @@ export function NewsletterSubscribeForm() {
         </div>
         <input type="hidden" name="renderedAt" value={renderedAt} />
 
-        <FieldGroup label="Name" htmlFor="name" required>
-          <Input
-            id="name"
-            name="name"
-            required
-            placeholder="Jane Smith"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </FieldGroup>
-        <FieldGroup label="Email" htmlFor="email" required>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            required
-            placeholder="jane@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </FieldGroup>
-        <FieldGroup label="Phone" htmlFor="phone" required>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            placeholder="+1 555 123 4567"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-          />
-        </FieldGroup>
-
-        <input type="hidden" name="channel" value={channel} />
-        <div>
-          <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-            Get updates via<span className="text-rose-500"> *</span>
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            {CHANNEL_OPTIONS.map((option) => (
-              <label
-                key={option.key}
-                className={`flex cursor-pointer items-center justify-center rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                  channels[option.key]
-                    ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950 dark:text-indigo-300"
-                    : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-neutral-700 dark:text-slate-300"
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={channels[option.key]}
-                  onChange={() => toggleChannel(option.key)}
-                  className="sr-only"
-                />
-                {option.label}
-              </label>
-            ))}
+        {/* Same 2-up grid the lead-capture form uses (1 column below sm,
+        2 above), and the same Input component, so every field on this
+        page is the exact same height/width behavior as /lead's. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldGroup label="Name" htmlFor="name" required>
+            <Input
+              id="name"
+              name="name"
+              required
+              placeholder="Jane Smith"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </FieldGroup>
+          <FieldGroup label="Email" htmlFor="email" required>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              required
+              placeholder="jane@company.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </FieldGroup>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldGroup label="Phone" htmlFor="phone" required>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              required
+              placeholder="+1 555 123 4567"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+          </FieldGroup>
+          <div>
+            <input type="hidden" name="channel" value={channel} />
+            <span className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Get updates via<span className="text-rose-500"> *</span>
+            </span>
+            <div className="grid h-11 grid-cols-2 gap-2">
+              {CHANNEL_OPTIONS.map((option) => (
+                <label
+                  key={option.key}
+                  className={`flex cursor-pointer items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors ${
+                    channels[option.key]
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-700 dark:border-indigo-500 dark:bg-indigo-950 dark:text-indigo-300"
+                      : "border-slate-300 text-slate-600 hover:border-slate-400 dark:border-neutral-700 dark:text-slate-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={channels[option.key]}
+                    onChange={() => toggleChannel(option.key)}
+                    className="sr-only"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
-
-        <p className="text-xs text-slate-400">
-          No spam, ever — unsubscribe from email or WhatsApp updates at any time.
-        </p>
 
         {state?.status === "error" && (
           <p className="text-sm text-rose-600 dark:text-rose-400">
@@ -141,9 +143,14 @@ export function NewsletterSubscribeForm() {
           </p>
         )}
 
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Subscribing…" : "Subscribe"}
-        </Button>
+        <div className="flex items-center gap-3">
+          <p className="flex-1 text-xs text-slate-400">
+            No spam, ever — unsubscribe from email or WhatsApp updates at any time.
+          </p>
+          <Button type="submit" disabled={pending}>
+            {pending ? "Subscribing…" : "Subscribe"}
+          </Button>
+        </div>
       </form>
     </div>
   );

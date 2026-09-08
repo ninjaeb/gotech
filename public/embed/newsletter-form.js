@@ -84,21 +84,17 @@
       // Same clamp()/CSS-variable approach as the lead-form widget — see
       // its own comments for why this beats a flat px value or font:inherit.
       ":where([data-gotech-newsletter-form]){font-size:clamp(13px,1em,16px);--gnf-accent:#111827}",
-      // Two explicit horizontal rows (fields, then channel + submit) rather
-      // than one field per line — fits a footer's wide-but-short shape.
-      // Each row is its own flex-wrap container with a fixed gap, so on a
-      // wide container (a footer) everything in that row sits on one line,
-      // while a narrow one (a sidebar, mobile) still falls back to
-      // stacking, since every item keeps its own min-width and wraps
-      // freely — same "adapts to the space it's given" approach as the
-      // rest of this widget.
-      "[data-gotech-newsletter-form] form{display:flex;flex-direction:column;gap:.6em;width:100%}",
-      "[data-gotech-newsletter-form] .gnf-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:.6em 1em}",
-      // The bottom row (no-spam text + submit button) has no label-over-
-      // input pairs to bottom-align against, so it centers instead.
-      "[data-gotech-newsletter-form] .gnf-row-bottom{align-items:center}",
-      "[data-gotech-newsletter-form] .gnf-field{display:flex;flex-direction:column;gap:.35em;flex:1 1 130px;min-width:110px}",
-      "[data-gotech-newsletter-form] .gnf-field-wide{flex:2 1 220px;min-width:200px}",
+      // Same 2-up grid the hosted /subscribe page and the lead-capture
+      // form/widget both use (1 column below 640px, 2 above) — so this
+      // widget lines up with the other two ways of presenting the same
+      // form instead of having its own bespoke layout. The bottom row
+      // (no-spam text + submit) is deliberately not part of this grid — see
+      // .gnf-row-bottom below.
+      "[data-gotech-newsletter-form] form{display:flex;flex-direction:column;gap:.75em;width:100%}",
+      "[data-gotech-newsletter-form] .gnf-row{display:grid;grid-template-columns:1fr;gap:.75em 1em}",
+      "@media (min-width:640px){[data-gotech-newsletter-form] .gnf-row{grid-template-columns:1fr 1fr}}",
+      "[data-gotech-newsletter-form] .gnf-row-bottom{display:flex;flex-wrap:wrap;align-items:center;gap:.6em 1em}",
+      "[data-gotech-newsletter-form] .gnf-field{display:flex;flex-direction:column;gap:.35em}",
       "[data-gotech-newsletter-form] .gnf-hp{position:absolute;left:-9999px}",
       "[data-gotech-newsletter-form] .gnf-error{color:#dc2626;font-size:.9em;margin:0}",
       "[data-gotech-newsletter-form] .gnf-success{font-size:.95em;margin:0}",
@@ -107,22 +103,28 @@
       // flex:1 so it fills the row's remaining width next to the submit
       // button rather than wrapping onto its own line above it.
       "[data-gotech-newsletter-form] .gnf-nospam{flex:1 1 200px;margin:0;font-size:.85em;opacity:.6}",
-      "[data-gotech-newsletter-form] .gnf-channels{display:grid;grid-template-columns:repeat(2,1fr);gap:.5em}",
+      // 2.75rem matches the CRM's own Input component (Tailwind h-11) —
+      // same fixed height as every field on the hosted /subscribe page and
+      // the lead-capture form/widget, not just a same-ish padding formula.
+      "[data-gotech-newsletter-form] .gnf-channels{display:grid;grid-template-columns:repeat(2,1fr);gap:.5em;height:2.75rem}",
       "[data-gotech-newsletter-form] .gnf-channel{position:relative}",
       "[data-gotech-newsletter-form] .gnf-channel input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}",
       ":where([data-gotech-newsletter-form] .gnf-channel span){" +
-        "display:flex;align-items:center;justify-content:center;text-align:center;" +
-        "border:1px solid #ccc;border-radius:4px;padding:.5em .4em;cursor:pointer}",
+        "display:flex;height:100%;align-items:center;justify-content:center;text-align:center;" +
+        "box-sizing:border-box;border:1px solid #ccc;border-radius:4px;padding:0 .4em;cursor:pointer}",
       "[data-gotech-newsletter-form] .gnf-channel input:checked + span{" +
         "border-color:var(--gnf-accent);color:var(--gnf-accent);font-weight:600}",
       // Appearance fallbacks — zero specificity via :where(), so any host
       // site rule for input/button/label always wins over these.
       ":where([data-gotech-newsletter-form] label){font-size:.9em}",
       ":where([data-gotech-newsletter-form] input){" +
-        "font:inherit;color:inherit;width:100%;box-sizing:border-box;" +
-        "padding:.5em .75em;border:1px solid #ccc;border-radius:4px;background:#fff}",
+        "font:inherit;color:inherit;width:100%;height:2.75rem;box-sizing:border-box;" +
+        "padding:0 .75em;border:1px solid #ccc;border-radius:4px;background:#fff}",
+      // 2.25rem matches the CRM's own Button component (Tailwind h-9) —
+      // intentionally shorter than the 2.75rem inputs, same as every other
+      // form in this app.
       ":where([data-gotech-newsletter-form] button[type=submit]){" +
-        "font:inherit;padding:.5em 1.1em;border:1px solid var(--gnf-accent);" +
+        "font:inherit;height:2.25rem;padding:0 1.1em;border:1px solid var(--gnf-accent);" +
         "border-radius:4px;background:var(--gnf-accent);color:#fff;cursor:pointer;" +
         "flex:0 0 auto;white-space:nowrap}",
       ":where([data-gotech-newsletter-form] button:not(:disabled):hover){opacity:.85}",
@@ -211,7 +213,7 @@
     form.appendChild(row1);
 
     var channelWrap = document.createElement("div");
-    channelWrap.className = "gnf-field gnf-field-wide";
+    channelWrap.className = "gnf-field";
     var channelLabel = document.createElement("label");
     channelLabel.textContent = t.channelLabel;
     var channelMark = document.createElement("span");
