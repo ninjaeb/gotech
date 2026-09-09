@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import {
+  generateListingSeoMeta,
   rewriteListingDescription,
   rewriteListingServices,
   saveDirectoryListing,
@@ -15,10 +16,23 @@ import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/comp
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
+import { ServicesEditor } from "@/components/directory/services-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
 import type { OperatingHours } from "@/lib/operating-hours";
+import type { ServiceEntry } from "@/lib/directory";
+
+// The other two AI actions (description rewrite, SEO meta) just want a
+// readable summary of what services exist for grounding — not the
+// structured list itself, which rewriteListingServices below handles on
+// its own terms.
+function servicesContextText(services: ServiceEntry[]): string {
+  return services
+    .filter((service) => service.title.trim())
+    .map((service) => (service.description ? `${service.title} — ${service.description}` : service.title))
+    .join("\n");
+}
 
 export function PartnerListingForm({
   values,
@@ -67,9 +81,12 @@ export function PartnerListingForm({
   // rewrite time is enough; they don't need to be controlled state.
   const formRef = useRef<HTMLFormElement>(null);
   const [description, setDescription] = useState(current.description);
-  const [services, setServices] = useState(current.services);
+  const [services, setServices] = useState<ServiceEntry[]>(current.services);
+  const [seoTitle, setSeoTitle] = useState(current.seoTitle);
+  const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [rewritingDescription, startRewriteDescription] = useTransition();
   const [rewritingServices, startRewriteServices] = useTransition();
+  const [generatingSeoMeta, startGenerateSeoMeta] = useTransition();
 
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -104,7 +121,7 @@ export function PartnerListingForm({
   function handleRewriteDescription() {
     const context = contextFromForm();
     startRewriteDescription(async () => {
-      const result = await rewriteListingDescription(description, { ...context, services });
+      const result = await rewriteListingDescription(description, { ...context, services: servicesContextText(services) });
       if (result.status === "ok") setDescription(result.data.text);
       else toast.error(result.message);
     });
@@ -113,9 +130,37 @@ export function PartnerListingForm({
   function handleRewriteServices() {
     const context = contextFromForm();
     startRewriteServices(async () => {
-      const result = await rewriteListingServices(services, { ...context, description });
-      if (result.status === "ok") setServices(result.data.text);
-      else toast.error(result.message);
+      const result = await rewriteListingServices(
+        services.map(({ title, description: serviceDescription }) => ({ title, description: serviceDescription })),
+        { ...context, description },
+      );
+      if (result.status === "ok") {
+        setServices(
+          result.data.services.map((entry, i) => ({
+            title: entry.title,
+            description: entry.description,
+            price: services[i]?.price ?? "",
+          })),
+        );
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleGenerateSeoMeta() {
+    const context = contextFromForm();
+    startGenerateSeoMeta(async () => {
+      const result = await generateListingSeoMeta(
+        { title: seoTitle, description: seoDescription },
+        { ...context, description, services: servicesContextText(services) },
+      );
+      if (result.status === "ok") {
+        setSeoTitle(result.data.title);
+        setSeoDescription(result.data.description);
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 
@@ -234,7 +279,7 @@ export function PartnerListingForm({
 
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <Label htmlFor="services" className="mb-0">
+            <Label className="mb-0">
               Services
               <RequiredMark />
             </Label>
@@ -250,23 +295,59 @@ export function PartnerListingForm({
               </button>
             )}
           </div>
-          <Textarea
-            id="services"
-            name="services"
-            rows={9}
-            value={services}
-            onChange={(event) => setServices(event.target.value)}
-            placeholder={"One service per line, e.g.\nWeb design\nSEO\nHosting"}
-          />
+          <ServicesEditor name="services" value={services} onChange={setServices} />
           {servicesError ? (
             <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{servicesError}</p>
           ) : (
             <p className="mt-1 text-xs text-slate-400">
-              One per line (or comma-separated) — shown as tags on your listing. At least one is required before you
-              can submit for review.
+              A title, an optional description, and an optional price for each — shown on your listing. At least one
+              is required before you can submit for review.
             </p>
           )}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label className="mb-0">Search &amp; social preview</Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleGenerateSeoMeta}
+              disabled={generatingSeoMeta}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {generatingSeoMeta ? "Generating…" : "Generate with AI"}
+            </button>
+          )}
+        </div>
+        <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
+          <FieldGroup label="SEO title" htmlFor="seoTitle">
+            <Input
+              id="seoTitle"
+              name="seoTitle"
+              value={seoTitle}
+              onChange={(event) => setSeoTitle(event.target.value)}
+              placeholder={`${current.companyName || "Your company"} | Gotka Partner Directory`}
+              maxLength={100}
+            />
+          </FieldGroup>
+          <FieldGroup label="SEO description" htmlFor="seoDescription">
+            <Textarea
+              id="seoDescription"
+              name="seoDescription"
+              rows={2}
+              value={seoDescription}
+              onChange={(event) => setSeoDescription(event.target.value)}
+              placeholder="Shown in search results and when your link is shared — one or two sentences."
+              maxLength={300}
+            />
+          </FieldGroup>
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          Optional — leave blank to use your tagline and About text automatically.
+        </p>
       </div>
 
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}

@@ -10,6 +10,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.61",
+    date: "2026-09-09",
+    title: "AI-written SEO, service pricing, and a few listing refinements",
+    changes: [
+      "New Search & social preview fields (SEO title and description) on a listing, with a Generate with AI button — falls back to the existing tagline/About-based behavior when left blank",
+      "A listing's social share preview (and its schema.org image) now uses the partner's own logo instead of Gotka's generic app icon",
+      "Services are now a full catalog entry — a title, an optional description, and an optional price — instead of just a name; shown in full on the detail page, with an AI button that improves the wording without ever touching a price",
+      "Detail page layout: About is back to full width, Services now sits side by side with Operating hours (instead of with About), and the map has its own full-width row with the day-by-day hours table promoted to its own card",
+      "Bigger logo and a Share button (native share sheet, or copies the link) on the detail page header",
+    ],
+  },
+  {
     version: "1.60",
     date: "2026-09-09",
     title: "Photo uploads, a proper hours table, and a tidier layout",

@@ -76,11 +76,13 @@ export default async function PartnerListingPage() {
               companyName: listing.companyName,
               tagline: listing.tagline ?? "",
               description: listing.description ?? "",
-              services: servicesFromJson(listing.services).join("\n"),
+              services: servicesFromJson(listing.services),
               industry: listing.industry ?? "",
               website: listing.website ?? "",
               location: listing.location ?? "",
               address: listing.address ?? "",
+              seoTitle: listing.seoTitle ?? "",
+              seoDescription: listing.seoDescription ?? "",
             }}
           />
         </CardBody>

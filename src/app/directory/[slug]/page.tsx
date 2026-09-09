@@ -13,6 +13,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
+import { ShareButton } from "@/components/directory/share-button";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const url = `${siteOrigin}/directory/${slug}`;
   // Meta/OG/Twitter descriptions are plain-text summaries — strip the
   // About field's own markdown-lite syntax first so a search result or
-  // link preview never shows literal "**"/"[]()" characters.
+  // link preview never shows literal "**"/"[]()" characters. seoTitle/
+  // seoDescription (optionally AI-written — see generateListingSeoMeta)
+  // take priority when a partner has set them; everything after is the
+  // same fallback chain as before.
   const plainDescription = stripMarkdownLiteToPlainText(listing.description);
   const description =
-    listing.tagline ?? (plainDescription ? plainDescription.slice(0, 160) : undefined) ?? `${listing.companyName} on the Gotka partner directory.`;
-  const title = `${listing.companyName} | Gotka Partner Directory`;
+    listing.seoDescription?.trim() ||
+    listing.tagline ||
+    (plainDescription ? plainDescription.slice(0, 160) : undefined) ||
+    `${listing.companyName} on the Gotka partner directory.`;
+  const title = listing.seoTitle?.trim() || `${listing.companyName} | Gotka Partner Directory`;
+  const imageUrl = buildListingLogoUrl(listing, siteOrigin, slug) ?? `${siteOrigin}/icon-192.png`;
 
   return {
     title,
@@ -48,15 +56,31 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url,
       siteName: "Gotka Partner Directory",
       type: "website",
-      images: [{ url: `${siteOrigin}/icon-192.png` }],
+      images: [{ url: imageUrl }],
     },
     twitter: {
       card: "summary",
       title,
       description,
-      images: [`${siteOrigin}/icon-192.png`],
+      images: [imageUrl],
     },
   };
+}
+
+// A listing's logo is stored as a data: URL (see photoDataUrl), which
+// Open Graph/Twitter/JSON-LD can't use directly — those are read by a
+// crawler that fetches the image URL itself, not by a browser rendering
+// the page. /api/directory-images/logo/[slug] decodes and re-serves it
+// under a real URL instead. Returns null when the listing has no logo —
+// callers decide their own fallback (OG/Twitter want the app's own icon;
+// JSON-LD's `image` is meant to represent this specific business, so it's
+// left unset entirely rather than pointed at unrelated Gotka branding).
+function buildListingLogoUrl(
+  listing: NonNullable<Awaited<ReturnType<typeof getPublishedListing>>>,
+  siteOrigin: string,
+  slug: string,
+): string | null {
+  return listing.logoUrl ? `${siteOrigin}/api/directory-images/logo/${slug}` : null;
 }
 
 // Schema.org LocalBusiness markup — read by both search engines (SEO) and
@@ -65,16 +89,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 // contact details stay internal (see PublishedListingSnapshot's own
 // comment in src/lib/directory.ts) — a visitor reaches a partner only
 // through the lead form below, never directly.
-function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublishedListing>>>, url: string) {
+function buildJsonLd(
+  listing: NonNullable<Awaited<ReturnType<typeof getPublishedListing>>>,
+  url: string,
+  imageUrl: string | null,
+) {
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: listing.companyName,
     url,
   };
-  const description = stripMarkdownLiteToPlainText(listing.description) || listing.tagline;
+  const description = listing.seoDescription?.trim() || stripMarkdownLiteToPlainText(listing.description) || listing.tagline;
   if (description) jsonLd.description = description;
-  if (listing.logoUrl && /^https?:\/\//.test(listing.logoUrl)) jsonLd.image = listing.logoUrl;
+  if (imageUrl) jsonLd.image = imageUrl;
   if (listing.address || listing.location) jsonLd.address = listing.address || listing.location;
   if (listing.website) jsonLd.sameAs = [listing.website];
   if (listing.industry) jsonLd.additionalType = INDUSTRY_LABELS[listing.industry];
@@ -85,7 +113,12 @@ function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublished
   if (listing.services.length > 0) {
     jsonLd.makesOffer = listing.services.map((service) => ({
       "@type": "Offer",
-      itemOffered: { "@type": "Service", name: service },
+      ...(service.price ? { price: service.price } : {}),
+      itemOffered: {
+        "@type": "Service",
+        name: service.title,
+        ...(service.description ? { description: service.description } : {}),
+      },
     }));
   }
   // JSON.stringify doesn't escape "</script>" — without this, a company
@@ -129,15 +162,18 @@ export default async function DirectoryListingPage({ params }: { params: Promise
   const [locale, siteOrigin] = await Promise.all([getDirectoryLocale(), getSiteOrigin()]);
   const t = DIRECTORY_STRINGS[locale];
   const mapAddress = listing.address || listing.location;
+  const pageUrl = `${siteOrigin}/directory/${slug}`;
 
   return (
     <div className="w-full px-4 py-10 sm:px-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: buildJsonLd(listing, `${siteOrigin}/directory/${slug}`) }}
+        dangerouslySetInnerHTML={{
+          __html: buildJsonLd(listing, pageUrl, buildListingLogoUrl(listing, siteOrigin, slug)),
+        }}
       />
       <div className="mb-8 flex flex-wrap items-start gap-4">
-        <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-16 w-16 text-xl" />
+        <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
           {listing.tagline && <p className="mt-1 text-slate-600 dark:text-slate-300">{listing.tagline}</p>}
@@ -162,42 +198,104 @@ export default async function DirectoryListingPage({ params }: { params: Promise
             )}
           </div>
         </div>
+        <ShareButton title={listing.companyName} url={pageUrl} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {(listing.description || listing.services.length > 0) && (
-            <div className={cn("grid gap-6", listing.description && listing.services.length > 0 ? "sm:grid-cols-2" : "")}>
-              {listing.description && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
-                  </CardHeader>
-                  <CardBody className="text-base text-slate-600 dark:text-slate-300">
-                    {renderMarkdownLite(listing.description)}
-                  </CardBody>
-                </Card>
+          {listing.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
+              </CardHeader>
+              <CardBody className="text-base text-slate-600 dark:text-slate-300">
+                {renderMarkdownLite(listing.description)}
+              </CardBody>
+            </Card>
+          )}
+
+          {(listing.services.length > 0 || listing.operatingHours) && (
+            <div
+              className={cn(
+                "grid gap-6",
+                listing.services.length > 0 && listing.operatingHours ? "sm:grid-cols-2" : "",
               )}
+            >
               {listing.services.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
                   </CardHeader>
-                  <CardBody className="flex flex-wrap content-start gap-2.5">
-                    {listing.services.map((service) => (
-                      <Badge
-                        key={service}
-                        className="bg-led-soft px-4 py-2 text-base text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20"
+                  <CardBody className="space-y-4">
+                    {listing.services.map((service, index) => (
+                      <div
+                        key={index}
+                        className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0 dark:border-neutral-800"
                       >
-                        {service}
-                      </Badge>
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                          <h3 className="font-semibold text-slate-900 dark:text-slate-100">{service.title}</h3>
+                          {service.price && (
+                            <span className="shrink-0 text-sm font-medium text-petrol dark:text-petrol-light">
+                              {service.price}
+                            </span>
+                          )}
+                        </div>
+                        {service.description && (
+                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{service.description}</p>
+                        )}
+                      </div>
                     ))}
+                  </CardBody>
+                </Card>
+              )}
+              {listing.operatingHours && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-1.5 text-lg">
+                      <Clock className="h-4 w-4 text-slate-400" />
+                      {t.hoursHeading}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardBody>
+                    <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
+                      <table className="w-full text-sm">
+                        <tbody>
+                          {buildHoursRows(listing.operatingHours, t).map((row) => (
+                            <tr
+                              key={row.day}
+                              className={cn(
+                                "border-b border-slate-200 last:border-b-0 dark:border-neutral-800",
+                                row.isToday && "bg-led-soft dark:bg-led-soft-dark",
+                              )}
+                            >
+                              <td
+                                className={cn(
+                                  "px-3 py-2 font-semibold text-slate-700 dark:text-slate-300",
+                                  row.isToday && "text-petrol-ink dark:text-petrol-light",
+                                )}
+                              >
+                                {row.label}
+                              </td>
+                              <td
+                                className={cn(
+                                  "px-3 py-2 text-slate-600 dark:text-slate-300",
+                                  row.isToday && "font-semibold text-petrol-ink dark:text-petrol-light",
+                                )}
+                              >
+                                {row.status}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </CardBody>
                 </Card>
               )}
             </div>
           )}
-          {(mapAddress || listing.operatingHours) && (
+
+          {mapAddress && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">{t.visitHeading}</CardTitle>
@@ -209,59 +307,13 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                     <span className="whitespace-pre-wrap">{listing.address}</span>
                   </p>
                 )}
-                {(listing.operatingHours || mapAddress) && (
-                  <div className={cn("grid gap-4", listing.operatingHours && mapAddress ? "sm:grid-cols-2" : "")}>
-                    {listing.operatingHours && (
-                      <div>
-                        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                          <Clock className="h-4 w-4 text-slate-400" />
-                          {t.hoursHeading}
-                        </h3>
-                        <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
-                          <table className="w-full text-sm">
-                            <tbody>
-                              {buildHoursRows(listing.operatingHours, t).map((row) => (
-                                <tr
-                                  key={row.day}
-                                  className={cn(
-                                    "border-b border-slate-200 last:border-b-0 dark:border-neutral-800",
-                                    row.isToday && "bg-led-soft dark:bg-led-soft-dark",
-                                  )}
-                                >
-                                  <td
-                                    className={cn(
-                                      "px-3 py-2 font-semibold text-slate-700 dark:text-slate-300",
-                                      row.isToday && "text-petrol-ink dark:text-petrol-light",
-                                    )}
-                                  >
-                                    {row.label}
-                                  </td>
-                                  <td
-                                    className={cn(
-                                      "px-3 py-2 text-slate-600 dark:text-slate-300",
-                                      row.isToday && "font-semibold text-petrol-ink dark:text-petrol-light",
-                                    )}
-                                  >
-                                    {row.status}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                    {mapAddress && (
-                      <iframe
-                        title={`${listing.companyName} on the map`}
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
-                        className="h-64 w-full rounded-md border-0 sm:h-auto sm:min-h-[14rem]"
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    )}
-                  </div>
-                )}
+                <iframe
+                  title={`${listing.companyName} on the map`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
+                  className="h-64 w-full rounded-md border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               </CardBody>
             </Card>
           )}

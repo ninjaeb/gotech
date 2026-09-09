@@ -17,9 +17,10 @@ import {
   isValidSlugFormat,
   isValidTimeString,
   normalizeWebsiteUrl,
-  parseServicesInput,
+  parseServicesJson,
   slugify,
   type OperatingHours,
+  type ServiceEntry,
 } from "@/lib/directory";
 import { notifyPartnerOfNewLead, sendDirectoryLeadReply } from "@/lib/directory-notify";
 import { DIRECTORY_LOCALE_COOKIE } from "@/lib/directory-locale";
@@ -133,7 +134,6 @@ const listingSchema = z.object({
   companyName: z.string().trim().min(1, "Company name is required"),
   tagline: z.string().trim().max(140).optional(),
   description: z.string().trim().optional(),
-  services: z.string().trim().optional(),
   industry: z
     .string()
     .trim()
@@ -142,17 +142,21 @@ const listingSchema = z.object({
   website: z.string().trim().optional(),
   location: z.string().trim().optional(),
   address: z.string().trim().optional(),
+  seoTitle: z.string().trim().max(100).optional(),
+  seoDescription: z.string().trim().max(300).optional(),
 });
 
 export type ListingFormValues = {
   companyName: string;
   tagline: string;
   description: string;
-  services: string;
+  services: ServiceEntry[];
   industry: string;
   website: string;
   location: string;
   address: string;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 // Which field an error belongs to, so the UI can show it right under that
@@ -170,16 +174,21 @@ function stringField(formData: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+// services isn't part of listingSchema below — like operatingHours, it's
+// structured data (see ServicesEditor's hidden JSON input), sanitized by
+// parseServicesJson itself rather than a plain string Zod rule.
 function extractListingFormValues(formData: FormData): ListingFormValues {
   return {
     companyName: stringField(formData, "companyName"),
     tagline: stringField(formData, "tagline"),
     description: stringField(formData, "description"),
-    services: stringField(formData, "services"),
+    services: parseServicesJson(stringField(formData, "services")),
     industry: stringField(formData, "industry"),
     website: stringField(formData, "website"),
     location: stringField(formData, "location"),
     address: stringField(formData, "address"),
+    seoTitle: stringField(formData, "seoTitle"),
+    seoDescription: stringField(formData, "seoDescription"),
   };
 }
 
@@ -260,26 +269,73 @@ export async function rewriteListingDescription(
   return callAi(RewrittenTextSchema, LISTING_DESCRIPTION_SYSTEM_PROMPT, prompt);
 }
 
-const LISTING_SERVICES_SYSTEM_PROMPT =
-  "You clean up and organize a list of services or products a business offers, for a directory listing. Respond with one short, clear service name per line — no numbering, no bullets, no explanations, nothing else. Never invent a service that isn't implied by what's given.";
+const ServiceListSchema = z.object({
+  services: z
+    .array(
+      z.object({
+        title: z.string().describe("Short service or product name."),
+        description: z.string().describe("One short sentence describing what it includes."),
+      }),
+    )
+    .describe("The cleaned-up (or, if none existed yet, newly drafted) list of services/products."),
+});
 
-// Same pattern as rewriteListingDescription, for the Services field —
-// output stays newline-per-service so it round-trips through
-// parseServicesInput unchanged.
+const LISTING_SERVICES_SYSTEM_PROMPT =
+  "You clean up and organize the services or products a business offers, for a directory listing — a short title plus a one-sentence description for each. Ground everything only in what's given — never invent a service, or a description detail, that isn't implied by the company's other information. Never invent pricing — that's set separately and isn't part of what you write.";
+
+// Same improve-existing-or-draft-fresh pattern as rewriteListingDescription.
+// Only title/description go through the model — price is a partner-only
+// manual field the AI never sees or touches; the caller (see
+// handleRewriteServices in partner-listing-form.tsx) re-attaches each
+// existing entry's price by index once this returns.
 export async function rewriteListingServices(
-  currentText: string,
+  currentServices: { title: string; description: string }[],
   context: { companyName: string; industry: string; description: string },
-): Promise<AiResult<{ text: string }>> {
+): Promise<AiResult<{ services: { title: string; description: string }[] }>> {
   await requirePartnerAction();
   if (!isAiConfigured()) return AI_NOT_CONFIGURED;
 
-  const trimmed = currentText.trim();
   const contextLines = listingContextLines({ ...context, otherField: context.description }, "About us");
-  const prompt = trimmed
-    ? `${contextLines}\n\nHere is the current services list, one per line:\n\n${trimmed}\n\nClean up the wording and naming — clearer, more specific — without adding services that aren't already there or removing any.`
-    : `${contextLines}\n\nList the services this company likely offers for its partner directory listing, one per line, based only on the information above.`;
+  const currentList = currentServices
+    .filter((entry) => entry.title.trim())
+    .map((entry) => `- ${entry.title}${entry.description ? `: ${entry.description}` : ""}`)
+    .join("\n");
+  const prompt = currentList
+    ? `${contextLines}\n\nHere is the current services list:\n\n${currentList}\n\nClean up the wording — clearer titles, a short description for each — without adding services that aren't already there or removing any.`
+    : `${contextLines}\n\nList the services this company likely offers for its partner directory listing, each with a short title and a one-sentence description, based only on the information above.`;
 
-  return callAi(RewrittenTextSchema, LISTING_SERVICES_SYSTEM_PROMPT, prompt);
+  return callAi(ServiceListSchema, LISTING_SERVICES_SYSTEM_PROMPT, prompt);
+}
+
+const SeoMetaSchema = z.object({
+  title: z.string().describe("SEO title tag, ideally 50-60 characters. Include the company name."),
+  description: z.string().describe("SEO meta description, ideally 140-160 characters — compelling and specific, not generic."),
+});
+
+const LISTING_SEO_SYSTEM_PROMPT =
+  "You write SEO title tags and meta descriptions for a business's page on a public partner directory — the text search engines show as the blue link and snippet, and what a social platform shows when the page's link is shared. Ground everything only in what's given — never invent client names, numbers, awards, or claims that aren't present. Specific and inviting, not generic marketing filler ('Welcome to our website'). The title and description should complement each other, not repeat the same sentence twice.";
+
+// Partner-gated — called from the "Generate with AI" button next to the
+// listing editor's Search & social preview fields. Writes both together in
+// one call (rather than two separate rewrite actions, like the About/
+// Services fields have) since a good title and description are written as
+// a matched pair, not independently. Same improve-existing-or-draft-fresh
+// pattern as rewriteListingDescription/rewriteListingServices.
+export async function generateListingSeoMeta(
+  current: { title: string; description: string },
+  context: { companyName: string; industry: string; description: string; services: string },
+): Promise<AiResult<{ title: string; description: string }>> {
+  await requirePartnerAction();
+  if (!isAiConfigured()) return AI_NOT_CONFIGURED;
+
+  const contextLines = listingContextLines({ ...context, otherField: context.services }, "Services offered");
+  const aboutLine = context.description.trim() ? `About us text: ${context.description.trim()}` : "";
+  const hasCurrent = current.title.trim() || current.description.trim();
+  const prompt = hasCurrent
+    ? `${contextLines}\n${aboutLine}\n\nCurrent SEO title: ${current.title.trim() || "(none set)"}\nCurrent SEO description: ${current.description.trim() || "(none set)"}\n\nImprove both — clearer, more compelling, better matched to each other — without inventing new claims.`
+    : `${contextLines}\n${aboutLine}\n\nWrite an SEO title and meta description for this company's page on the Gotka partner directory, based only on the information above.`;
+
+  return callAi(SeoMetaSchema, LISTING_SEO_SYSTEM_PROMPT, prompt);
 }
 
 type ListingSaveResult =
@@ -321,12 +377,14 @@ async function saveListingFields(
       companyName: parsed.data.companyName,
       tagline: parsed.data.tagline || null,
       description: parsed.data.description || null,
-      services: parseServicesInput(parsed.data.services ?? ""),
+      services: parseServicesJson(stringField(formData, "services")),
       industry: (parsed.data.industry || null) as Industry | null,
       website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
       location: parsed.data.location || null,
       address: parsed.data.address || null,
       operatingHours: parseOperatingHoursFormData(formData),
+      seoTitle: parsed.data.seoTitle || null,
+      seoDescription: parsed.data.seoDescription || null,
       ...logo,
       ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
       ...extraData,
@@ -409,7 +467,7 @@ export async function submitDirectoryListingForReview(
   if (!values.companyName.trim()) {
     return { error: "Add a company name before submitting.", field: "companyName" };
   }
-  if (parseServicesInput(values.services).length === 0) {
+  if (values.services.length === 0) {
     return { error: "List at least one service before submitting.", field: "services" };
   }
 

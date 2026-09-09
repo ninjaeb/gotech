@@ -1564,6 +1564,12 @@ model PartnerListing {
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
+  // Optional overrides for the detail page's <title>/meta description (and,
+  // through it, Open Graph/Twitter/JSON-LD) — see generateMetadata in
+  // src/app/directory/[slug]/page.tsx. Falls back to the existing
+  // auto-derived title/description when either is left unset.
+  seoTitle       String?
+  seoDescription String?
 
   reviewNote        String?   @db.Text
   submittedAt       DateTime?
