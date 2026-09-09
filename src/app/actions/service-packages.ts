@@ -120,7 +120,7 @@ export async function createServicePackage(
       },
     },
   });
-  revalidatePath("/settings/products");
+  revalidatePath("/system/settings/products");
   return { success: true };
 }
 
@@ -148,13 +148,13 @@ export async function updateServicePackage(
       },
     },
   });
-  revalidatePath("/settings/products");
-  redirect(withFlash("/settings/products", "Changes saved."));
+  revalidatePath("/system/settings/products");
+  redirect(withFlash("/system/settings/products", "Changes saved."));
 }
 
 export async function deleteServicePackage(id: string): Promise<ServicePackageState> {
   await requireAdminAction();
   await db.servicePackage.delete({ where: { id } });
-  revalidatePath("/settings/products");
+  revalidatePath("/system/settings/products");
   return { success: true };
 }

@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         await notifyNewWhatsAppMessageViaWhatsApp(
           fullName(contact.firstName, contact.lastName),
           mentionExcerpt(messageContent),
-          `/whatsapp/${contactId}`,
+          `/system/whatsapp/${contactId}`,
         );
       }
     }

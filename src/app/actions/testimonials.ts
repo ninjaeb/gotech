@@ -56,7 +56,7 @@ export async function requestTestimonial(contactId: string): Promise<ActionResul
     const token = randomBytes(24).toString("base64url");
     const aiDraft = await generateTestimonialDraft(contactId);
     await db.testimonial.create({ data: { token, contactId, aiDraft } });
-    revalidatePath(`/contacts/${contactId}`);
+    revalidatePath(`/system/contacts/${contactId}`);
     return { ok: true };
   } catch (error) {
     console.error("requestTestimonial failed:", error);
@@ -125,7 +125,7 @@ export async function regenerateTestimonialDraft(
     if (aiDraft) {
       await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft } });
     }
-    revalidatePath(`/contacts/${testimonial.contactId}`);
+    revalidatePath(`/system/contacts/${testimonial.contactId}`);
     return { ok: true, regenerated: aiDraft !== null, draft: aiDraft };
   } catch (error) {
     console.error("regenerateTestimonialDraft failed:", error);
@@ -173,7 +173,7 @@ export async function updateTestimonialDraft(testimonialId: string, content: str
       return { ok: false, error: "This testimonial has already been submitted." };
     }
     await db.testimonial.update({ where: { id: testimonialId }, data: { aiDraft: content } });
-    revalidatePath(`/contacts/${testimonial.contactId}`);
+    revalidatePath(`/system/contacts/${testimonial.contactId}`);
     return { ok: true };
   } catch (error) {
     console.error("updateTestimonialDraft failed:", error);
@@ -192,7 +192,7 @@ export async function deleteTestimonialRequest(testimonialId: string): Promise<A
       where: { id: testimonialId },
       select: { contactId: true },
     });
-    revalidatePath(`/contacts/${testimonial.contactId}`);
+    revalidatePath(`/system/contacts/${testimonial.contactId}`);
     return { ok: true };
   } catch (error) {
     console.error("deleteTestimonialRequest failed:", error);
@@ -271,6 +271,6 @@ export async function submitTestimonial(
   });
 
   revalidatePath(`/testimonial/${token}`);
-  revalidatePath(`/contacts/${testimonial.contactId}`);
+  revalidatePath(`/system/contacts/${testimonial.contactId}`);
   return { status: "success" };
 }

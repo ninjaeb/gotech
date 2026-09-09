@@ -83,7 +83,7 @@ export async function enrollContact(contactId: string, formData: FormData) {
   }
 
   await upsertEnrollment({ sequenceId, contactId, contactEmail: contact.email, userId: user.id, firstStep });
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
 }
 
 export type BulkEnrollState =
@@ -133,7 +133,7 @@ export async function bulkEnrollListInSequence(
     }
   }
 
-  revalidatePath(`/lists/${listId}`);
+  revalidatePath(`/system/lists/${listId}`);
   return { status: "done", enrolled, skipped };
 }
 
@@ -145,5 +145,5 @@ export async function stopEnrollment(id: string, formData: FormData) {
     data: { status: "STOPPED_MANUAL" },
     select: { contactId: true },
   });
-  revalidatePath(`/contacts/${enrollment.contactId}`);
+  revalidatePath(`/system/contacts/${enrollment.contactId}`);
 }

@@ -17,12 +17,12 @@ function revalidateTimePaths(taskId: string, task: {
   dealId: string | null;
   projectId: string | null;
 }) {
-  revalidatePath(`/tasks/${taskId}/time`);
-  revalidatePath("/tasks");
-  if (task.contactId) revalidatePath(`/contacts/${task.contactId}`);
-  if (task.companyId) revalidatePath(`/companies/${task.companyId}`);
-  if (task.dealId) revalidatePath(`/deals/${task.dealId}`);
-  if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
+  revalidatePath(`/system/tasks/${taskId}/time`);
+  revalidatePath("/system/tasks");
+  if (task.contactId) revalidatePath(`/system/contacts/${task.contactId}`);
+  if (task.companyId) revalidatePath(`/system/companies/${task.companyId}`);
+  if (task.dealId) revalidatePath(`/system/deals/${task.dealId}`);
+  if (task.projectId) revalidatePath(`/system/projects/${task.projectId}`);
 }
 
 export async function logTime(taskId: string, formData: FormData) {

@@ -3,7 +3,7 @@ import { decrypt } from "@/lib/auth/session";
 import { decryptPortalSession } from "@/lib/portal/session";
 
 // Routes logged-out visitors can reach at all.
-const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
+const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // Routes that stay public even for a logged-in user — e.g. a shared quote
 // link, which staff previewing it shouldn't get bounced away from.
 // /api/whatsapp/webhook is Meta's server calling in directly (no session
@@ -15,8 +15,8 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // the embeddable widgets (public/embed/*.js) — called from arbitrary
 // third-party marketing sites, so neither the script files nor their API
 // endpoints can require a session; without this, both would redirect to
-// /login instead of serving JS / accepting the cross-origin POST, which a
-// <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
+// /system/login instead of serving JS / accepting the cross-origin POST,
+// which a <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
 // referral link (src/app/r/[code]/route.ts) — followed by strangers, who
 // then land on the marketing site, never here. /directory is the public
 // partner directory (src/app/directory) — browsed and its lead form
@@ -68,6 +68,13 @@ async function proxyPortalRoute(request: NextRequest, pathname: string) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // The public business directory is the site's front door now — the CRM
+  // itself lives at /system (see below), so a bare "/" has nothing of its
+  // own to render and always hands off to the directory instead.
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/directory", request.url));
+  }
+
   if (pathname === "/portal" || pathname.startsWith("/portal/")) {
     return proxyPortalRoute(request, pathname);
   }
@@ -78,11 +85,11 @@ export async function proxy(request: NextRequest) {
   const session = await decrypt(request.cookies.get("session")?.value);
 
   if (!isPublicRoute && !session?.userId) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/system/login", request.url));
   }
 
   if (isAuthOnlyPublic && session?.userId) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/system", request.url));
   }
 
   return NextResponse.next();

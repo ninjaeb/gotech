@@ -120,7 +120,7 @@ export async function runTaskReminders({ force = false }: { force?: boolean } = 
     // filter=due is the Tasks page's combined overdue+due-today view (see
     // buildWhere in the Tasks page) — lands exactly on what overdueCount/
     // dueTodayCount above just reported, not the broader "Open" tab.
-    const taskListUrl = `${siteOrigin}/tasks?filter=due&assignee=${user.id}`;
+    const taskListUrl = `${siteOrigin}/system/tasks?filter=due&assignee=${user.id}`;
 
     try {
       // The approved template's own Header greets by name too (its own

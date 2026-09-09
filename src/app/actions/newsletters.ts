@@ -50,8 +50,8 @@ export async function createNewsletter(
     data: { ...parsed.data, createdById: user.id },
   });
 
-  revalidatePath("/newsletters");
-  redirect(withFlash(`/newsletters/${newsletter.id}`, "Draft created."));
+  revalidatePath("/system/newsletters");
+  redirect(withFlash(`/system/newsletters/${newsletter.id}`, "Draft created."));
 }
 
 export async function updateNewsletter(
@@ -75,17 +75,17 @@ export async function updateNewsletter(
     return { error: "This newsletter can no longer be edited." };
   }
 
-  revalidatePath(`/newsletters/${id}`);
-  revalidatePath("/newsletters");
-  redirect(withFlash(`/newsletters/${id}`, "Changes saved."));
+  revalidatePath(`/system/newsletters/${id}`);
+  revalidatePath("/system/newsletters");
+  redirect(withFlash(`/system/newsletters/${id}`, "Changes saved."));
 }
 
 export async function deleteNewsletter(id: string, formData: FormData) {
   void formData;
   await requireAdminAction();
   await db.newsletter.deleteMany({ where: { id, status: "DRAFT" } });
-  revalidatePath("/newsletters");
-  redirect(withFlash("/newsletters", "Draft deleted."));
+  revalidatePath("/system/newsletters");
+  redirect(withFlash("/system/newsletters", "Draft deleted."));
 }
 
 // Shared by scheduleNewsletter (a future date/time the admin picked) and
@@ -121,9 +121,9 @@ async function scheduleAt(id: string, scheduledAt: Date): Promise<NewsletterForm
   }
 
   await db.newsletter.update({ where: { id }, data: { status: "SCHEDULED", scheduledAt } });
-  revalidatePath(`/newsletters/${id}`);
-  revalidatePath("/newsletters");
-  redirect(withFlash(`/newsletters/${id}`, "Newsletter scheduled."));
+  revalidatePath(`/system/newsletters/${id}`);
+  revalidatePath("/system/newsletters");
+  redirect(withFlash(`/system/newsletters/${id}`, "Newsletter scheduled."));
 }
 
 const scheduleSchema = z.object({
@@ -182,7 +182,7 @@ export async function cancelNewsletterSchedule(id: string, formData: FormData) {
       db.newsletter.update({ where: { id }, data: { status: "DRAFT", scheduledAt: null } }),
     ]);
   }
-  revalidatePath(`/newsletters/${id}`);
-  revalidatePath("/newsletters");
-  redirect(withFlash(`/newsletters/${id}`, "Schedule canceled — back to draft."));
+  revalidatePath(`/system/newsletters/${id}`);
+  revalidatePath("/system/newsletters");
+  redirect(withFlash(`/system/newsletters/${id}`, "Schedule canceled — back to draft."));
 }

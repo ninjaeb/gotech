@@ -35,7 +35,7 @@ export async function addCompanyResource(companyId: string, formData: FormData) 
     },
   });
 
-  revalidatePath(`/companies/${companyId}`);
+  revalidatePath(`/system/companies/${companyId}`);
 }
 
 export async function updateCompanyResource(companyId: string, id: string, formData: FormData) {
@@ -56,12 +56,12 @@ export async function updateCompanyResource(companyId: string, id: string, formD
     },
   });
 
-  revalidatePath(`/companies/${companyId}`);
+  revalidatePath(`/system/companies/${companyId}`);
 }
 
 export async function deleteCompanyResource(companyId: string, id: string, formData: FormData) {
   void formData;
   await requireSalesAction();
   await db.companyResource.delete({ where: { id, companyId } });
-  revalidatePath(`/companies/${companyId}`);
+  revalidatePath(`/system/companies/${companyId}`);
 }

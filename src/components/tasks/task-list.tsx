@@ -141,7 +141,7 @@ export function TaskList({
             <div className={cn("min-w-0 flex-1", !stackActions && "sm:order-2")}>
               <div className="flex flex-wrap items-center gap-2">
                 <Link
-                  href={`/tasks/${task.id}`}
+                  href={`/system/tasks/${task.id}`}
                   className={cn(
                     "text-sm font-medium text-slate-800 hover:text-indigo-600 hover:underline dark:text-slate-200",
                     task.completed && "text-slate-400 line-through dark:text-slate-500",
@@ -190,7 +190,7 @@ export function TaskList({
                 <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-400">
                   {task.contact && (
                     <Link
-                      href={`/contacts/${task.contact.id}`}
+                      href={`/system/contacts/${task.contact.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
                       {fullName(task.contact.firstName, task.contact.lastName)}
@@ -198,7 +198,7 @@ export function TaskList({
                   )}
                   {task.company && (
                     <Link
-                      href={`/companies/${task.company.id}`}
+                      href={`/system/companies/${task.company.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
                       {task.company.name}
@@ -206,7 +206,7 @@ export function TaskList({
                   )}
                   {task.deal && (
                     <Link
-                      href={`/deals/${task.deal.id}`}
+                      href={`/system/deals/${task.deal.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
                       {task.deal.title}
@@ -214,7 +214,7 @@ export function TaskList({
                   )}
                   {task.project && (
                     <Link
-                      href={`/projects/${task.project.id}`}
+                      href={`/system/projects/${task.project.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
                       {task.project.name}
@@ -242,7 +242,7 @@ export function TaskList({
                 <SendWhatsAppButton contactId={clientContact.id} contactName={clientName} taskId={task.id} />
               )}
               <Link
-                href={`/tasks/${task.id}/time`}
+                href={`/system/tasks/${task.id}/time`}
                 aria-label="Log time"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sky-500 transition-colors hover:bg-sky-50 hover:text-sky-600 dark:text-sky-400 dark:hover:bg-sky-950 dark:hover:text-sky-300"
               >
@@ -251,7 +251,7 @@ export function TaskList({
               {canManage && (
                 <>
                   <Link
-                    href={`/tasks/${task.id}/edit`}
+                    href={`/system/tasks/${task.id}/edit`}
                     aria-label="Edit task"
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md text-indigo-500 transition-colors hover:bg-indigo-50 hover:text-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-950 dark:hover:text-indigo-300"
                   >

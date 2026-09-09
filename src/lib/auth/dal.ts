@@ -9,7 +9,7 @@ import type { Role } from "@/generated/prisma/client";
 export const verifySession = cache(async () => {
   const session = await getSessionPayload();
   if (!session?.userId) {
-    redirect("/login");
+    redirect("/system/login");
   }
   return session;
 });
@@ -21,14 +21,14 @@ export const getCurrentUser = cache(async () => {
     select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true },
   });
   if (!user) {
-    redirect("/login");
+    redirect("/system/login");
   }
   return user;
 });
 
 // Technical team members only get Projects, Tasks, and a trimmed-down
 // Settings — this is where one landing on a blocked page gets sent instead.
-export const TECHNICAL_HOME = "/tasks";
+export const TECHNICAL_HOME = "/system/tasks";
 // Partners (external referrers) only ever get the partner portal — see
 // src/lib/referrals.ts. The (app) layout bounces them here too, so no CRM
 // page is reachable for that role even without its own explicit gate.
@@ -40,7 +40,7 @@ export const PARTNER_HOME = "/partner";
 export function homeForRole(role: Role) {
   if (role === "PARTNER") return PARTNER_HOME;
   if (role === "TECHNICAL") return TECHNICAL_HOME;
-  return "/";
+  return "/system";
 }
 
 // For Server Components: redirects non-admins away rather than rendering.

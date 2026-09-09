@@ -57,7 +57,7 @@ export async function requestReferralWithdrawal(
 
   revalidatePath("/partner");
   revalidatePath("/partner/commissions");
-  revalidatePath("/referrals");
+  revalidatePath("/system/referrals");
   return { success: true };
 }
 
@@ -83,8 +83,8 @@ export async function updateReferralSettings(
     return { error: parsed.error.issues[0]?.message ?? "Invalid settings" };
   }
   await setReferralSettings(parsed.data);
-  revalidatePath("/settings/referrals");
-  revalidatePath("/referrals");
+  revalidatePath("/system/settings/referrals");
+  revalidatePath("/system/referrals");
   revalidatePath("/partner");
   return { success: true };
 }
@@ -110,12 +110,12 @@ export async function updatePartnerCommissionRate(userId: string, formData: Form
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid rate");
   }
   await db.user.update({ where: { id: userId, role: "PARTNER" }, data: { referralCommissionRate: parsed.data.rate } });
-  revalidatePath("/referrals");
-  revalidatePath("/settings/team");
+  revalidatePath("/system/referrals");
+  revalidatePath("/system/settings/team");
 }
 
 function revalidateReferralPaths() {
-  revalidatePath("/referrals");
+  revalidatePath("/system/referrals");
   revalidatePath("/partner");
   revalidatePath("/partner/leads");
   revalidatePath("/partner/commissions");

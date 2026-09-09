@@ -29,12 +29,12 @@ export async function inviteToPortal(contactId: string) {
     create: { contactId, email: contact.email, inviteToken, inviteTokenExpiresAt },
   });
 
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
 }
 
 export async function revokePortalAccess(contactId: string, formData: FormData) {
   void formData;
   await requireAdminAction();
   await db.clientUser.deleteMany({ where: { contactId } });
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
 }

@@ -41,16 +41,16 @@ export async function createList(_prevState: ListFormState, formData: FormData):
   const list = await db.contactList.create({
     data: { name, type, ownerId: user.id, filterDefinition },
   });
-  revalidatePath("/lists");
-  redirect(`/lists/${list.id}`);
+  revalidatePath("/system/lists");
+  redirect(`/system/lists/${list.id}`);
 }
 
 export async function deleteList(id: string, formData: FormData) {
   void formData;
   await requireAdminAction();
   await db.contactList.delete({ where: { id } });
-  revalidatePath("/lists");
-  redirect("/lists");
+  revalidatePath("/system/lists");
+  redirect("/system/lists");
 }
 
 export async function addContactToList(listId: string, formData: FormData) {
@@ -68,7 +68,7 @@ export async function addContactToList(listId: string, formData: FormData) {
     create: { listId, contactId },
     update: {},
   });
-  revalidatePath(`/lists/${listId}`);
+  revalidatePath(`/system/lists/${listId}`);
 }
 
 export async function removeContactFromList(listId: string, formData: FormData) {
@@ -77,5 +77,5 @@ export async function removeContactFromList(listId: string, formData: FormData) 
   if (!contactId) return;
 
   await db.contactListMember.deleteMany({ where: { listId, contactId } });
-  revalidatePath(`/lists/${listId}`);
+  revalidatePath(`/system/lists/${listId}`);
 }

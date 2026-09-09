@@ -107,7 +107,7 @@ export function WhatsAppInboxList({ initialConversations }: { initialConversatio
         {conversations.map(({ id, contactId, name, photoUrl, direction, text, createdAt, isUnread }) => (
           <Link
             key={id}
-            href={`/whatsapp/${contactId}`}
+            href={`/system/whatsapp/${contactId}`}
             className={cn(
               "flex items-center gap-3 border-l-4 px-4 py-3.5 transition-colors",
               isUnread

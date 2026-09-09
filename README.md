@@ -90,7 +90,7 @@ This creates the schema and generates the Prisma Client into `src/generated/pris
 npx prisma db seed
 ```
 
-The app requires logging in, so run this at least once. If no users exist yet, it creates one and prints the email/password to the terminal **once** — copy it down, then sign in at `/login`. It also populates sample companies, contacts, deals, tasks, and activity so you can explore the app immediately.
+The app requires logging in, so run this at least once. If no users exist yet, it creates one and prints the email/password to the terminal **once** — copy it down, then sign in at `/system/login`. It also populates sample companies, contacts, deals, tasks, and activity so you can explore the app immediately.
 
 Re-running the seed clears and re-creates the sample CRM data, but never touches existing users — it's safe to run again later without affecting logins. Set `ADMIN_EMAIL`/`ADMIN_NAME` env vars before the *first* run to customize the initial account.
 
@@ -115,7 +115,7 @@ npm run clear-data -- --yes # actually deletes it
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000/system/login](http://localhost:3000/system/login) — the bare root now redirects to the public business directory at `/directory`, so the CRM itself lives under `/system`.
 
 ### 6. Enable the AI Assistant (optional)
 
@@ -199,7 +199,7 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
    - Header (optional, static text only — no variable): anything you like, e.g. "You have a mention in Gotka CRM"
    - Body: `You were mentioned by {{1}} in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
    - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
-   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own, no button component needed. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Can you review the proposal before Friday?` / `https://crm.yourcompany.com/contacts/abc123`.
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own, no button component needed. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Can you review the proposal before Friday?` / `https://crm.yourcompany.com/system/contacts/abc123`.
 
    Submit for review, same as the digest template above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
@@ -221,7 +221,7 @@ This is its own proactive send (the mentioner is very unlikely to be within thei
    - Header (optional, static text only — no variable): anything you like, e.g. "You got a reply on Gotka CRM"
    - Body: `{{1}} replied to your mention in Gotka CRM.` on its own line, then a blank line, then `You said: "{{2}}"`, then a blank line, then `Their reply: "{{3}}"`, then a blank line, then `{{4}}`
    - Footer (optional, static text only): anything you like
-   - No buttons — same reasoning as section 12's template: the link is sent as the body's own `{{4}}` variable and WhatsApp renders it as tappable on its own. Sample values Meta asks for when you submit: e.g. `Sarah` / `Can you review the proposal before Friday?` / `Yes, looks good to me` / `https://crm.yourcompany.com/contacts/abc123`.
+   - No buttons — same reasoning as section 12's template: the link is sent as the body's own `{{4}}` variable and WhatsApp renders it as tappable on its own. Sample values Meta asks for when you submit: e.g. `Sarah` / `Can you review the proposal before Friday?` / `Yes, looks good to me` / `https://crm.yourcompany.com/system/contacts/abc123`.
 
    Submit for review, same as the other templates above.
 2. Nothing else to configure. If WhatsApp Business isn't connected, or the original mentioner never set their own phone number, or this template isn't approved yet, the reply is still logged in the CRM as normal — only the WhatsApp forward is silently skipped.
@@ -247,7 +247,7 @@ Like the @mention notification, this is proactive, so it needs its own approved 
    - Header (optional, static text only — no variable): anything you like, e.g. "You have a new task in Gotka CRM"
    - Body: `{{1}} assigned you a task in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
    - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
-   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/tasks/abc123`.
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/system/tasks/abc123`.
 
    Submit for review, same as the other templates above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest and @mention notification (setting one opts a user into all three). If WhatsApp Business isn't connected, the assignee has no phone number set, or the template isn't approved yet, the assignment still creates the normal in-app notification — the WhatsApp message is just silently skipped.
@@ -269,7 +269,7 @@ Like the other proactive notifications, this needs its own approved template:
    - Header (optional, static text only — no variable): anything you like, e.g. "A task you're following was updated"
    - Body: `{{1}} {{3}} a task in Gotka CRM: "{{2}}"` on its own line, then a blank line, then `Open it here: {{4}}`
    - Footer (optional, static text only): anything you like
-   - No buttons — same reasoning as the other templates above: the link is the body's own `{{4}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah` / `Follow up with Acme Corp` / `completed` / `https://crm.yourcompany.com/tasks/abc123`.
+   - No buttons — same reasoning as the other templates above: the link is the body's own `{{4}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah` / `Follow up with Acme Corp` / `completed` / `https://crm.yourcompany.com/system/tasks/abc123`.
 
    Submit for review, same as the other templates above.
 2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the other WhatsApp notifications. If WhatsApp Business isn't connected, a follower has no phone number set, or the template isn't approved yet, the change still creates the normal in-app notification — the WhatsApp message is just silently skipped.
@@ -291,7 +291,7 @@ Like the other proactive notifications, this needs its own approved template:
    - Header (optional, static text only — no variable): anything you like, e.g. "New WhatsApp message in Gotka CRM"
    - Body: `{{1}} sent a new WhatsApp message: "{{2}}"` on its own line, then a blank line, then `Open it here: {{3}}`
    - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
-   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Is the proposal ready yet?` / `https://crm.yourcompany.com/whatsapp/abc123`.
+   - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Is the proposal ready yet?` / `https://crm.yourcompany.com/system/whatsapp/abc123`.
 
    Submit for review, same as the other templates above.
 2. **Turn it on per person** — each admin who wants this checks "Notify me of new WhatsApp messages" on their own row in *Settings → Team* (an admin sets it for anyone, same as the phone number itself) and needs a phone number set too; leaving either off means that person is silently skipped. If WhatsApp Business isn't connected, or the template isn't approved yet, the message is still logged in the CRM as normal — the WhatsApp ping is just silently skipped.
@@ -313,7 +313,7 @@ Like the other proactive notifications, this needs its own approved template:
    - Header (optional, static text only — no variable): anything you like, e.g. "New lead in Gotka CRM"
    - Body: `New website lead: {{1}} ({{2}})` on its own line, then a blank line, then `Open it here: {{3}}`
    - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
-   - No buttons — same reasoning as the other templates above: the link is the body's own `{{3}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/deals/abc123`.
+   - No buttons — same reasoning as the other templates above: the link is the body's own `{{3}}` variable. Sample values Meta asks for when you submit: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/system/deals/abc123`.
 
    Submit for review, same as the other templates above.
 2. **Turn it on per person** — each admin who wants this checks "Notify me of new leads" on their own row in *Settings → Team* (an admin sets it for anyone). A phone number is only needed for the WhatsApp half — the in-app bell notification goes out either way. If WhatsApp Business isn't connected, the person has no phone number set, or the template isn't approved yet, the lead is still logged (and the in-app notification still sent) as normal — only the WhatsApp ping is silently skipped.

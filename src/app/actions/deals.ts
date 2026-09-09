@@ -79,11 +79,11 @@ async function markContactAsCustomer(contactId: string | null) {
 }
 
 function revalidateDealPaths(dealId: string, companyId?: string | null, contactId?: string | null) {
-  revalidatePath("/deals");
-  revalidatePath(`/deals/${dealId}`);
-  revalidatePath("/");
-  if (companyId) revalidatePath(`/companies/${companyId}`);
-  if (contactId) revalidatePath(`/contacts/${contactId}`);
+  revalidatePath("/system/deals");
+  revalidatePath(`/system/deals/${dealId}`);
+  revalidatePath("/system");
+  if (companyId) revalidatePath(`/system/companies/${companyId}`);
+  if (contactId) revalidatePath(`/system/contacts/${contactId}`);
 }
 
 export type DealFormState = { error: string } | undefined;
@@ -112,7 +112,7 @@ export async function createDeal(_prevState: DealFormState, formData: FormData):
 
   const deal = await db.deal.create({ data });
   revalidateDealPaths(deal.id, data.companyId, data.contactId);
-  redirect(`/deals/${deal.id}`);
+  redirect(`/system/deals/${deal.id}`);
 }
 
 export async function updateDeal(
@@ -168,7 +168,7 @@ export async function updateDeal(
 
   revalidateDealPaths(id, previous.companyId, previous.contactId);
   revalidateDealPaths(id, data.companyId, data.contactId);
-  redirect(`/deals/${id}`);
+  redirect(`/system/deals/${id}`);
 }
 
 export async function changeDealStage(id: string, pipelineStageId: string): Promise<{ error: string } | undefined> {
@@ -216,5 +216,5 @@ export async function deleteDeal(id: string, formData: FormData) {
   const deal = await db.deal.findUniqueOrThrow({ where: { id } });
   await db.deal.delete({ where: { id } });
   revalidateDealPaths(id, deal.companyId, deal.contactId);
-  redirect("/deals");
+  redirect("/system/deals");
 }

@@ -35,7 +35,7 @@ export async function addDealResource(dealId: string, formData: FormData) {
     },
   });
 
-  revalidatePath(`/deals/${dealId}`);
+  revalidatePath(`/system/deals/${dealId}`);
 }
 
 export async function updateDealResource(dealId: string, id: string, formData: FormData) {
@@ -56,12 +56,12 @@ export async function updateDealResource(dealId: string, id: string, formData: F
     },
   });
 
-  revalidatePath(`/deals/${dealId}`);
+  revalidatePath(`/system/deals/${dealId}`);
 }
 
 export async function deleteDealResource(dealId: string, id: string, formData: FormData) {
   void formData;
   await requireSalesAction();
   await db.dealResource.delete({ where: { id, dealId } });
-  revalidatePath(`/deals/${dealId}`);
+  revalidatePath(`/system/deals/${dealId}`);
 }

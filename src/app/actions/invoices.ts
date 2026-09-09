@@ -66,8 +66,8 @@ export async function createInvoice(
     },
   });
 
-  revalidatePath(`/projects/${projectId}`);
-  redirect(`/projects/${projectId}`);
+  revalidatePath(`/system/projects/${projectId}`);
+  redirect(`/system/projects/${projectId}`);
 }
 
 export async function updateInvoice(
@@ -100,8 +100,8 @@ export async function updateInvoice(
     },
   });
 
-  revalidatePath(`/projects/${invoice.projectId}`);
-  redirect(`/projects/${invoice.projectId}`);
+  revalidatePath(`/system/projects/${invoice.projectId}`);
+  redirect(`/system/projects/${invoice.projectId}`);
 }
 
 export async function changeInvoiceStatus(id: string, status: InvoiceStatus) {
@@ -111,12 +111,12 @@ export async function changeInvoiceStatus(id: string, status: InvoiceStatus) {
     where: { id },
     data: { status, ...statusTimestamps(status, previous.sentAt) },
   });
-  revalidatePath(`/projects/${invoice.projectId}`);
+  revalidatePath(`/system/projects/${invoice.projectId}`);
 }
 
 export async function deleteInvoice(id: string, formData: FormData) {
   void formData;
   await requireAdminAction();
   const invoice = await db.invoice.delete({ where: { id } });
-  revalidatePath(`/projects/${invoice.projectId}`);
+  revalidatePath(`/system/projects/${invoice.projectId}`);
 }

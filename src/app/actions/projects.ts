@@ -37,16 +37,16 @@ export async function ensureProjectForWonDeal(deal: { id: string; title: string 
     },
   });
 
-  revalidatePath("/projects");
-  revalidatePath(`/deals/${deal.id}`);
+  revalidatePath("/system/projects");
+  revalidatePath(`/system/deals/${deal.id}`);
   return project;
 }
 
 export async function updateProjectStatus(id: string, status: ProjectStatus) {
   await requireTechnicalAction();
   await db.project.update({ where: { id }, data: { status } });
-  revalidatePath("/projects");
-  revalidatePath(`/projects/${id}`);
+  revalidatePath("/system/projects");
+  revalidatePath(`/system/projects/${id}`);
 }
 
 const optionalNonNegative = (message: string) =>
@@ -87,15 +87,15 @@ export async function updateProjectBudget(id: string, formData: FormData) {
     },
   });
 
-  revalidatePath("/projects");
-  revalidatePath(`/projects/${id}`);
+  revalidatePath("/system/projects");
+  revalidatePath(`/system/projects/${id}`);
 }
 
 export async function deleteProject(id: string, formData: FormData) {
   void formData;
   await requireAdminAction();
   const project = await db.project.delete({ where: { id }, select: { dealId: true } });
-  revalidatePath("/projects");
-  revalidatePath(`/deals/${project.dealId}`);
-  redirect("/projects");
+  revalidatePath("/system/projects");
+  revalidatePath(`/system/deals/${project.dealId}`);
+  redirect("/system/projects");
 }

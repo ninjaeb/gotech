@@ -54,7 +54,7 @@ export function CompanySearchList({ companies }: { companies: CompanyRow[] }) {
           }
           action={
             !query && (
-              <Link href="/companies/new" className={buttonClasses()}>
+              <Link href="/system/companies/new" className={buttonClasses()}>
                 <Plus className="h-4 w-4" />
                 New company
               </Link>
@@ -67,7 +67,7 @@ export function CompanySearchList({ companies }: { companies: CompanyRow[] }) {
             {filtered.map((company) => (
               <li key={company.id}>
                 <Link
-                  href={`/companies/${company.id}`}
+                  href={`/system/companies/${company.id}`}
                   className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                 >
                   <div className="min-w-0">

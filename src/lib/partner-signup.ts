@@ -90,10 +90,10 @@ export async function registerPartnerWithPassword(
     },
   });
 
-  revalidatePath("/companies");
-  revalidatePath("/contacts");
-  revalidatePath("/settings/team");
-  revalidatePath("/referrals");
+  revalidatePath("/system/companies");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system/settings/team");
+  revalidatePath("/system/referrals");
 
   return { ok: true, userId: user.id };
 }
@@ -123,10 +123,10 @@ export async function registerOrSignInPartnerWithGoogle(
     },
   });
 
-  revalidatePath("/companies");
-  revalidatePath("/contacts");
-  revalidatePath("/settings/team");
-  revalidatePath("/referrals");
+  revalidatePath("/system/companies");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system/settings/team");
+  revalidatePath("/system/referrals");
 
   return { userId: user.id, isNew: true };
 }

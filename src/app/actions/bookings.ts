@@ -108,9 +108,9 @@ export async function submitBooking(
     },
   });
 
-  revalidatePath("/tasks");
-  revalidatePath("/contacts");
-  revalidatePath("/");
+  revalidatePath("/system/tasks");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system");
   revalidatePath("/book");
 
   return { status: "success" };

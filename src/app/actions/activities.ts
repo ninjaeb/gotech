@@ -128,10 +128,10 @@ export async function addActivity(_prevState: AddActivityState, formData: FormDa
     }
   }
 
-  if (data.contactId) revalidatePath(`/contacts/${data.contactId}`);
-  if (data.companyId) revalidatePath(`/companies/${data.companyId}`);
-  if (data.dealId) revalidatePath(`/deals/${data.dealId}`);
-  if (data.projectId) revalidatePath(`/projects/${data.projectId}`);
-  if (data.taskId) revalidatePath(`/tasks/${data.taskId}`);
+  if (data.contactId) revalidatePath(`/system/contacts/${data.contactId}`);
+  if (data.companyId) revalidatePath(`/system/companies/${data.companyId}`);
+  if (data.dealId) revalidatePath(`/system/deals/${data.dealId}`);
+  if (data.projectId) revalidatePath(`/system/projects/${data.projectId}`);
+  if (data.taskId) revalidatePath(`/system/tasks/${data.taskId}`);
   return { success: true };
 }

@@ -76,7 +76,7 @@ export async function connectWhatsAppAccount(
     },
   });
 
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -87,7 +87,7 @@ export async function disconnectWhatsAppAccount(
   void formData;
   await requireAdminAction();
   await db.whatsAppAccount.deleteMany({ where: { id: WHATSAPP_ACCOUNT_ID } });
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -125,7 +125,7 @@ export async function sendMentionNotificationTest(
     await sendWhatsAppTemplateMessage(account, phone, MENTION_TEMPLATE_NAME, "en", [
       admin.name,
       "This is a test mention notification from Gotka CRM.",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
@@ -162,7 +162,7 @@ export async function sendMentionReplyNotificationTest(
       admin.name,
       "This is a test mention notification from Gotka CRM.",
       "This is a test reply.",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
@@ -201,7 +201,7 @@ export async function sendTaskAssignmentNotificationTest(
     await sendWhatsAppTemplateMessage(account, phone, TASK_ASSIGNMENT_TEMPLATE_NAME, "en", [
       admin.name,
       "This is a test task assignment notification from Gotka CRM.",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
@@ -241,7 +241,7 @@ export async function sendTaskStatusNotificationTest(
       admin.name,
       "This is a test task from Gotka CRM.",
       "completed",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
@@ -280,7 +280,7 @@ export async function sendNewWhatsAppMessageNotificationTest(
     await sendWhatsAppTemplateMessage(account, phone, NEW_WHATSAPP_MESSAGE_TEMPLATE_NAME, "en", [
       "Test Contact",
       "This is a test WhatsApp message from Gotka CRM.",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
@@ -318,7 +318,7 @@ export async function sendNewLeadNotificationTest(
     await sendWhatsAppTemplateMessage(account, phone, NEW_LEAD_TEMPLATE_NAME, "en", [
       "Test Lead",
       "Acme Corp",
-      `${siteOrigin}/settings/integrations`,
+      `${siteOrigin}/system/settings/integrations`,
     ]);
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };

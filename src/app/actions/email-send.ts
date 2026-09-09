@@ -61,8 +61,8 @@ export async function sendEmailToContact(
     },
   });
 
-  revalidatePath(`/contacts/${contactId}`);
-  if (dealId) revalidatePath(`/deals/${dealId}`);
-  if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
+  if (dealId) revalidatePath(`/system/deals/${dealId}`);
+  if (parsed.data.taskId) revalidatePath(`/system/tasks/${parsed.data.taskId}`);
   return { success: true };
 }
