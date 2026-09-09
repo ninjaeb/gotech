@@ -333,7 +333,12 @@ export default async function DirectoryListingPage({
               )}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          {/* Full width on mobile so flex-wrap gives this its own line
+              below the logo/name instead of squeezing the name column
+              down to fit two pill buttons beside it — with two buttons
+              (Share plus Recommend, when signed in) there usually isn't
+              room for both on the same line as a long company name. */}
+          <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
             <ShareButton title={listing.companyName} url={pageUrl} />
             {recommendUrl && (
               <ShareButton
