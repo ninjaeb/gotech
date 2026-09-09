@@ -299,7 +299,7 @@ export default async function DashboardPage() {
         <AiPipelineDiagnosis />
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="Companies"
           value={companyCount.toString()}
@@ -344,7 +344,7 @@ export default async function DashboardPage() {
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Revenue &amp; delivery
       </p>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Outstanding invoices"
           value={formatCurrency(outstandingInvoiceAmount, currency)}
@@ -385,7 +385,7 @@ export default async function DashboardPage() {
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Coming up
       </p>
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard
           label="Deals closing this month"
           value={dealsClosingThisMonthCount.toString()}

@@ -103,7 +103,7 @@ export default async function ReferralsPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Partners" value={partners.length.toString()} icon={Handshake} accent="indigo" />
         <StatCard label="Link clicks" value={totals.clicks.toString()} icon={MousePointerClick} accent="sky" />
         <StatCard label="Referred leads" value={totals.leads.toString()} icon={UserPlus} accent="amber" />

@@ -284,14 +284,14 @@ function DetailRow({
   href?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       {href && value ? (
-        <Link href={href} className="mt-0.5 block text-indigo-600 hover:underline">
+        <Link href={href} className="mt-0.5 block break-words text-indigo-600 hover:underline">
           {value}
         </Link>
       ) : (
-        <p className="mt-0.5 text-slate-800 dark:text-slate-200">{value || "—"}</p>
+        <p className="mt-0.5 break-words text-slate-800 dark:text-slate-200">{value || "—"}</p>
       )}
     </div>
   );

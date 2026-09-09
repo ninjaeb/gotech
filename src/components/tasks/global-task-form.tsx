@@ -81,7 +81,7 @@ export function GlobalTaskForm({
           <Input id="g-title" name="title" required placeholder="Follow up on proposal" />
         </FieldGroup>
       </div>
-      <div className="grid gap-3 sm:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
         <FieldGroup label="Type" htmlFor="g-type">
           <Select id="g-type" name="type" defaultValue="OTHER">
             {TASK_TYPES.map((type) => (

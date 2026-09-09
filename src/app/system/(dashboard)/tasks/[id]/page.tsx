@@ -204,17 +204,17 @@ export default async function TaskDetailPage({
 
 function DetailRow({ label, value, href }: { label: string; value: ReactNode; href?: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       {href && value ? (
-        <Link href={href} className="mt-0.5 block text-indigo-600 hover:underline">
+        <Link href={href} className="mt-0.5 block break-words text-indigo-600 hover:underline">
           {value}
         </Link>
       ) : (
         // A div, not a p — value can carry the SendEmailButton/SendWhatsAppButton
         // modal (a <div role="dialog"> with its own <h2>/<form>/<p>), which
         // isn't valid inside a <p> and breaks the DOM once that modal opens.
-        <div className="mt-0.5 text-slate-800 dark:text-slate-200">{value ?? "—"}</div>
+        <div className="mt-0.5 break-words text-slate-800 dark:text-slate-200">{value ?? "—"}</div>
       )}
     </div>
   );
