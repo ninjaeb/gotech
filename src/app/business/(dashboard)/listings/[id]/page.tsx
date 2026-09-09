@@ -7,6 +7,7 @@ import { faqsFromJson, getOwnedListing, operatingHoursFromJson, servicesFromJson
 import { getSiteOrigin } from "@/lib/site-url";
 import { directoryListingPath } from "@/lib/directory-i18n";
 import { isAiConfigured } from "@/lib/ai/client";
+import { isGooglePlacesConfigured } from "@/lib/google-places";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,6 +84,7 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
             logoUrl={listing.logoUrl}
             operatingHours={operatingHoursFromJson(listing.operatingHours)}
             aiAvailable={isAiConfigured()}
+            placesAvailable={isGooglePlacesConfigured()}
             categories={categories}
             values={{
               companyName: listing.companyName,

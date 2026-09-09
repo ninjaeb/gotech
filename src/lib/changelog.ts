@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.71",
+    date: "2026-09-09",
+    title: "Listing editor: AI Auto Business Details Creation",
+    changes: [
+      "A new section at the top of a business's listing editor finds the business on Google Maps — picking it fills in the Website field straight away",
+      "One click on AI Auto Create then drafts the whole listing from the Google listing and the website: About, tagline, Products & services, FAQ, industry, and business categories are AI-written, while operating hours and address are copied straight from Google — all as a draft to review before saving",
+      "Google Maps search needs a GOOGLE_PLACES_API_KEY (see .env.example); without it, AI Auto Create still works from the Website field alone",
+    ],
+  },
+  {
     version: "1.70",
     date: "2026-09-09",
     title: "Listing page: clickable address, mobile jump bar",
