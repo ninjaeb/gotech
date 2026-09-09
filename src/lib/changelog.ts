@@ -10,15 +10,6 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
-    version: "1.64",
-    date: "2026-09-09",
-    title: "Support serving the directory and partner portal from gotka.com",
-    changes: [
-      "/directory and /partner can now be reverse-proxied from gotka.com's own web server, so a visitor sees gotka.com in the address bar instead of this app's own crm.gotka.com host — this app already builds its canonical URLs, sitemap, and share links from the proxied host automatically",
-      "Allowlisted gotka.com for Server Actions, so the partner login, listing editor, and public lead form all keep working once reached through that proxy instead of directly",
-    ],
-  },
-  {
     version: "1.63",
     date: "2026-09-09",
     title: "Editor layout cleanup, a list-editing bug fix, and clickable products",

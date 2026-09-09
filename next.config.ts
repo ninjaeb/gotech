@@ -29,18 +29,6 @@ const nextConfig: NextConfig = {
       // 5mb this was previously raised to for the Google Contacts CSV
       // import upload too.
       bodySizeLimit: "24mb",
-      // /directory and /partner are reverse-proxied from gotka.com's own
-      // web server (see README's Public partner directory section) so
-      // they can be reached at gotka.com instead of this app's own
-      // crm.gotka.com host — the browser only ever talks to gotka.com, so
-      // every Server Action request on those pages (the partner login,
-      // the listing editor, the public lead form) carries an
-      // Origin: https://gotka.com header. Next.js's own CSRF check
-      // rejects a Server Action whose Origin doesn't match the host it's
-      // running on unless that origin is allowlisted here; crm.gotka.com
-      // itself doesn't need an entry since same-origin requests are
-      // always allowed.
-      allowedOrigins: ["gotka.com", "*.gotka.com"],
     },
     // Both the "Collecting page data" and "Generating static pages" build
     // phases spawn one worker *process* per experimental.cpus (see
