@@ -3,29 +3,38 @@
 import { createContext, useContext, useRef, useState, type ReactNode, type RefObject } from "react";
 
 type InquiryContextValue = {
-  selectedService: string | null;
-  selectService: (title: string) => void;
+  selectedServices: string[];
+  toggleService: (title: string) => void;
   formRef: RefObject<HTMLDivElement | null>;
 };
 
 const InquiryContext = createContext<InquiryContextValue | null>(null);
 
-// Bridges a click on a product/service entry (see ServiceList) to the Get
+// Bridges clicks on product/service entries (see ServiceList) to the Get
 // in touch card's message field (see DirectoryLeadForm) — both need to
-// share this one bit of state, so it's lifted into a small client-only
+// share this bit of state, so it's lifted into a small client-only
 // context wrapping just the two-column layout, rather than converting the
 // whole (mostly static, server-rendered) detail page into a client
-// component just for this.
+// component just for this. A visitor can pick more than one item — each
+// click toggles that title in or out of the list, like a checkbox.
 export function InquiryProvider({ children }: { children: ReactNode }) {
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const formRef = useRef<HTMLDivElement>(null);
 
-  function selectService(title: string) {
-    setSelectedService(title);
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  function toggleService(title: string) {
+    setSelectedServices((prev) => {
+      const next = prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title];
+      // Only scroll on the very first pick — once a visitor knows where the
+      // form is, yanking them back down on every later toggle would just
+      // get in the way of picking several items in a row.
+      if (prev.length === 0 && next.length > 0) {
+        formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return next;
+    });
   }
 
-  return <InquiryContext.Provider value={{ selectedService, selectService, formRef }}>{children}</InquiryContext.Provider>;
+  return <InquiryContext.Provider value={{ selectedServices, toggleService, formRef }}>{children}</InquiryContext.Provider>;
 }
 
 export function useInquiry(): InquiryContextValue {

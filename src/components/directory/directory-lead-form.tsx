@@ -23,18 +23,29 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
   const [message, setMessage] = useState("");
   const [renderedAt] = useState(() => Date.now());
 
-  // Clicking a product/service (see ServiceList) sets this, which prefills
-  // the message here instead of leaving a visitor to type out what they're
-  // asking about — see InquiryProvider for the shared click state. Updating
+  // Clicking one or more products/services (see ServiceList) sets this,
+  // which prefills the message here instead of leaving a visitor to type
+  // out what they're asking about — see InquiryProvider for the shared
+  // click state. The message is fully regenerated from the current
+  // selection on every change (one line for a single pick, a bulleted list
+  // for several, cleared back to empty once nothing's picked) rather than
+  // trying to preserve anything a visitor typed alongside it — simpler and
+  // more predictable than partially patching hand-typed free text. Updating
   // `message` during render (comparing against the last-seen selection)
-  // rather than in an effect is React's own documented way to sync state
-  // to a changed prop/context value without an extra render round-trip —
-  // same pattern partner-listing-form.tsx uses for its own display state.
-  const { selectedService } = useInquiry();
-  const [lastSelectedService, setLastSelectedService] = useState(selectedService);
-  if (selectedService !== lastSelectedService) {
-    setLastSelectedService(selectedService);
-    if (selectedService) setMessage(`I'm interested in: ${selectedService}. `);
+  // rather than in an effect is React's own documented way to sync state to
+  // a changed prop/context value without an extra render round-trip — same
+  // pattern partner-listing-form.tsx uses for its own display state.
+  const { selectedServices } = useInquiry();
+  const [lastSelectedServices, setLastSelectedServices] = useState(selectedServices);
+  if (selectedServices !== lastSelectedServices) {
+    setLastSelectedServices(selectedServices);
+    if (selectedServices.length === 0) {
+      setMessage("");
+    } else if (selectedServices.length === 1) {
+      setMessage(`I'm interested in: ${selectedServices[0]}. `);
+    } else {
+      setMessage(`I'm interested in:\n${selectedServices.map((title) => `- ${title}`).join("\n")}\n`);
+    }
   }
 
   if (state?.status === "success") {
