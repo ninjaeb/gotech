@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
+import { buttonClasses } from "@/components/ui/button";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
 
@@ -22,6 +23,9 @@ export default async function DirectoryLayout({ children }: { children: React.Re
             <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Gotka</span>
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            <Link href="/directory/signup" className={buttonClasses("secondary", "sm")}>
+              {t.listBusinessCta}
+            </Link>
             <DirectoryLanguageSwitcher current={locale} />
             <ThemeToggle />
           </div>

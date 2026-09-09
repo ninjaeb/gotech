@@ -367,7 +367,7 @@ export function PartnerListingForm({
               name="seoTitle"
               value={seoTitle}
               onChange={(event) => setSeoTitle(event.target.value)}
-              placeholder={`${current.companyName || "Your company"} | Gotka Partner Directory`}
+              placeholder={`${current.companyName || "Your company"} | Business Directory`}
               maxLength={100}
             />
           </FieldGroup>

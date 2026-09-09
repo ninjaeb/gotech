@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search, Handshake } from "lucide-react";
 import { ListingCard } from "@/components/directory/listing-card";
+import { ShareButton } from "@/components/directory/share-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
 import type { PublishedListingSnapshot } from "@/lib/directory";
@@ -18,6 +19,7 @@ export function DirectorySearch({
   t,
   initialQuery,
   initialIndustry,
+  directoryUrl,
 }: {
   listings: ListingRow[];
   industries: Industry[];
@@ -25,6 +27,7 @@ export function DirectorySearch({
   t: DirectoryStrings;
   initialQuery: string;
   initialIndustry: string;
+  directoryUrl: string;
 }) {
   // Filters entirely in the browser as the user types — no round trip, no
   // debounce needed. Safe because the whole listing set is fetched once up
@@ -54,6 +57,9 @@ export function DirectorySearch({
         <div className="w-full px-4 py-14 text-center sm:px-8">
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">{t.heroTitle}</h1>
           <p className="mx-auto mt-3 max-w-xl text-slate-500 dark:text-slate-400">{t.heroSubtitle}</p>
+          <div className="mt-4 flex justify-center">
+            <ShareButton title={t.heroTitle} url={directoryUrl} />
+          </div>
 
           <form onSubmit={(event) => event.preventDefault()} className="mx-auto mt-6 flex max-w-xl flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
