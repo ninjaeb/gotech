@@ -125,7 +125,7 @@ export type PartnerSignupErrorCode =
 export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
   en: {
     heroTitle: "Find the right business for your project",
-    heroSubtitle: "Browse trusted businesses in the Gotka network and reach out directly.",
+    heroSubtitle: "Browse trusted businesses and reach out directly.",
     searchPlaceholder: "Search by company or service…",
     allIndustries: "All industries",
     allCategories: "All categories",
@@ -226,7 +226,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
   },
   zh: {
     heroTitle: "为您的项目寻找合适的企业",
-    heroSubtitle: "浏览 Gotka 网络中值得信赖的企业，并直接联系他们。",
+    heroSubtitle: "浏览值得信赖的企业，并直接联系他们。",
     searchPlaceholder: "按公司或服务搜索…",
     allIndustries: "所有行业",
     allCategories: "所有类别",
@@ -327,7 +327,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
   },
   ms: {
     heroTitle: "Cari perniagaan yang sesuai untuk projek anda",
-    heroSubtitle: "Semak imbas perniagaan yang dipercayai dalam rangkaian Gotka dan hubungi terus.",
+    heroSubtitle: "Semak imbas perniagaan yang dipercayai dan hubungi terus.",
     searchPlaceholder: "Cari mengikut syarikat atau perkhidmatan…",
     allIndustries: "Semua industri",
     allCategories: "Semua kategori",

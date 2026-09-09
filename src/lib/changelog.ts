@@ -10,6 +10,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.68",
+    date: "2026-09-09",
+    title: "Friendly category pages, SEO/GEO upgrades, and a wider search box",
+    changes: [
+      "The directory's search box is now wider and sits on its own row above the industry/category filters, instead of squeezed alongside them",
+      "Every business category now has its own crawlable page — /directory/category/<name>, with /zh or /ms for the other languages — linked directly from the home page and every category page, not just reachable through the category dropdown",
+      "The home page and every listing now support a specific language via ?lang= (in addition to the language switcher), and every directory page declares its language versions to search engines",
+      "The home page and every category page now carry structured data describing what's on the page, on top of a listing's own existing structured data",
+      "The homepage subtitle is shorter: \"Browse trusted businesses and reach out directly.\"",
+    ],
+  },
+  {
     version: "1.67",
     date: "2026-09-09",
     title: "Directory nav menu: clearer sign-in label, a link back for visitors",
