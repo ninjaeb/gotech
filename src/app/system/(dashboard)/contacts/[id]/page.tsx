@@ -165,8 +165,8 @@ export default async function ContactDetailPage({
                   label="Email"
                   value={
                     contact.email && (
-                      <span className="inline-flex items-center gap-1.5">
-                        {contact.email}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 break-words">{contact.email}</span>
                         <MailLink email={contact.email} />
                         {hasEmailAccount && (
                           <SendEmailButton contactId={contact.id} contactName={contactName} />
@@ -179,8 +179,8 @@ export default async function ContactDetailPage({
                   label="Phone"
                   value={
                     contact.phone && (
-                      <span className="inline-flex items-center gap-1.5">
-                        {contact.phone}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 break-words">{contact.phone}</span>
                         <WhatsAppLink phone={contact.phone} />
                         {hasWhatsAppAccount && (
                           <>
@@ -454,12 +454,12 @@ export default async function ContactDetailPage({
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
       {/* A div, not a p — value can carry the SendEmailButton/SendWhatsAppButton
           modal (a <div role="dialog"> with its own <h2>/<form>/<p>), which
           isn't valid inside a <p> and breaks the DOM once that modal opens. */}
-      <div className="mt-0.5 text-slate-800 dark:text-slate-200">{value || "—"}</div>
+      <div className="mt-0.5 break-words text-slate-800 dark:text-slate-200">{value || "—"}</div>
     </div>
   );
 }

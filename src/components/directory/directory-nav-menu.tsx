@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, LogIn, LogOut, Menu, Store, X } from "lucide-react";
+import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
+import { cn } from "@/lib/utils";
 
 // Who's currently browsing, as far as the hamburger menu cares — a signed-
-// out visitor gets the sign-up funnel (Login/Register, List your
+// out visitor gets the sign-up funnel (Business Login, List your
 // business); a signed-in business owner gets a shortcut back to their own
 // portal instead of being asked to sign up again; a signed-in staff member
-// (their CRM session is the same cookie, so it's just as valid here) gets a
-// shortcut back to the CRM. Either signed-in case adds Sign out.
+// gets a shortcut back to the CRM. Either signed-in case adds Sign out.
 export type DirectoryViewer = "business" | "staff" | null;
 
 // The directory header's real destinations — sign in, start listing a
@@ -22,6 +23,7 @@ export function DirectoryNavMenu({
   logoutAction,
   loginLabel,
   listBusinessLabel,
+  directoryLabel,
   myBusinessLabel,
   goToCrmLabel,
   signOutLabel,
@@ -30,6 +32,7 @@ export function DirectoryNavMenu({
   logoutAction: () => void | Promise<void>;
   loginLabel: string;
   listBusinessLabel: string;
+  directoryLabel: string;
   myBusinessLabel: string;
   goToCrmLabel: string;
   signOutLabel: string;
@@ -78,6 +81,15 @@ export function DirectoryNavMenu({
         >
           {viewer === null && (
             <>
+              {/* Same directoryLabel/Store combination the signed-in
+              business viewer's own "back to directory" link uses below —
+              this is the state that link was missing from: a visitor
+              browsing an outside-the-shell page like /directory/signup or
+              /business/login had no way back into the directory itself. */}
+              <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+                <Store className="h-4 w-4 shrink-0 text-slate-400" />
+                {directoryLabel}
+              </Link>
               <Link href="/business/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <LogIn className="h-4 w-4 shrink-0 text-slate-400" />
                 {loginLabel}
@@ -89,18 +101,34 @@ export function DirectoryNavMenu({
             </>
           )}
           {viewer === "business" && (
-            <Link href="/business" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
-              <Store className="h-4 w-4 shrink-0 text-slate-400" />
-              {myBusinessLabel}
-            </Link>
+            <>
+              <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+                <Store className="h-4 w-4 shrink-0 text-slate-400" />
+                {directoryLabel}
+              </Link>
+              <div className="border-t border-slate-100 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-neutral-800 dark:text-slate-500">
+                {myBusinessLabel}
+              </div>
+              {BUSINESS_NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={cn(itemClasses, "pl-5")}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </>
           )}
           {viewer === "staff" && (
-            // Links to /business, not /system — requirePartner() on the
-            // business portal bounces a signed-in non-partner to their real
-            // home (/system) via server redirect, so this never surfaces
-            // the CRM's internal path in the directory's rendered HTML or a
-            // link preview.
-            <Link href="/business" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+            // /system directly — the business portal now has its own
+            // business_session cookie, entirely separate from the staff
+            // session this viewer state implies (see directory-chrome.tsx),
+            // so routing a staff member through /business first would just
+            // bounce them to /business/login instead of anywhere useful.
+            <Link href="/system" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
               <LayoutDashboard className="h-4 w-4 shrink-0 text-slate-400" />
               {goToCrmLabel}
             </Link>

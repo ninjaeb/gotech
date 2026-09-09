@@ -121,8 +121,8 @@ export default async function CompanyDetailPage({
                 label="Phone"
                 value={
                   company.phone && (
-                    <span className="inline-flex items-center gap-1.5">
-                      {company.phone}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 break-words">{company.phone}</span>
                       <WhatsAppLink phone={company.phone} />
                     </span>
                   )
@@ -278,9 +278,9 @@ export default async function CompanyDetailPage({
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-0.5 text-slate-800 dark:text-slate-200">{value || "—"}</p>
+      <p className="mt-0.5 break-words text-slate-800 dark:text-slate-200">{value || "—"}</p>
     </div>
   );
 }

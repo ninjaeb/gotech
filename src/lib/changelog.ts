@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.67",
+    date: "2026-09-09",
+    title: "Directory nav menu: clearer sign-in label, a link back for visitors",
+    changes: [
+      "A visitor who isn't signed in can now get back to the directory listing from the menu on pages outside it, like List your business or the sign-in page",
+      "The sign-in link is now labeled \"Business Login\" instead of the more roundabout \"Login / Register\", since it only ever leads to a sign-in page",
+    ],
+  },
+  {
     version: "1.66",
     date: "2026-09-09",
     title: "Directory nav menu no longer surfaces the internal /system link",
