@@ -1564,6 +1564,7 @@ model PartnerListing {
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
   faqs        Json? // FaqEntry[] (src/lib/directory.ts) — {question, answer}; also emitted as FAQPage JSON-LD for SEO/GEO
+  translations Json? // ListingTranslations (src/lib/directory.ts) — {zh?: {tagline, description}, ms?: {tagline, description}}; AI-translated (or hand-edited) copies of tagline/description for the directory's non-English locales, shown in place of the fields above when a visitor is browsing in that language
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
   // Optional overrides for the detail page's <title>/meta description (and,
   // through it, Open Graph/Twitter/JSON-LD) — see generateMetadata in
@@ -1584,10 +1585,40 @@ model PartnerListing {
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId String @unique
 
-  leads  DirectoryLead[]
-  images DirectoryListingImage[]
+  leads      DirectoryLead[]
+  images     DirectoryListingImage[]
+  categories PartnerListingCategory[]
 
   @@index([status])
+}
+
+// Admin-managed vocabulary a partner can pick multiple of for their listing
+// — e.g. "Web Design", "Accounting", "Logistics". Distinct from Industry (a
+// single required top-level classification, fixed enum): a business
+// category is optional, multi-select, and its vocabulary can grow over time
+// via Settings → Directory rather than requiring a code change.
+model BusinessCategory {
+  id   String @id @default(cuid())
+  name String @unique
+
+  createdAt DateTime @default(now())
+
+  listings PartnerListingCategory[]
+}
+
+// A plain many-to-many via an explicit join model, matching this schema's
+// TaskAssignee convention (never Prisma's implicit many-to-many).
+model PartnerListingCategory {
+  id String @id @default(cuid())
+
+  listing   PartnerListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  category   BusinessCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@unique([listingId, categoryId])
+  @@index([categoryId])
 }
 
 // An image a partner uploaded and embedded inline in their About field

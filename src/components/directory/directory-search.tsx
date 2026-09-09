@@ -16,17 +16,21 @@ export function DirectorySearch({
   listings,
   industries,
   industryLabels,
+  categories,
   t,
   initialQuery,
   initialIndustry,
+  initialCategory,
   directoryUrl,
 }: {
   listings: ListingRow[];
   industries: Industry[];
   industryLabels: Record<Industry, string>;
+  categories: string[];
   t: DirectoryStrings;
   initialQuery: string;
   initialIndustry: string;
+  initialCategory: string;
   directoryUrl: string;
 }) {
   // Filters entirely in the browser as the user types — no round trip, no
@@ -36,11 +40,13 @@ export function DirectorySearch({
   // on (see the page's own fetch comment).
   const [query, setQuery] = useState(initialQuery);
   const [industry, setIndustry] = useState(initialIndustry);
+  const [category, setCategory] = useState(initialCategory);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return listings.filter(({ listing }) => {
       if (industry && listing.industry !== industry) return false;
+      if (category && !listing.categories.includes(category)) return false;
       if (!q) return true;
       return (
         listing.companyName.toLowerCase().includes(q) ||
@@ -49,7 +55,7 @@ export function DirectorySearch({
         )
       );
     });
-  }, [listings, query, industry]);
+  }, [listings, query, industry, category]);
 
   return (
     <>
@@ -61,7 +67,10 @@ export function DirectorySearch({
             <ShareButton title={t.heroTitle} url={directoryUrl} />
           </div>
 
-          <form onSubmit={(event) => event.preventDefault()} className="mx-auto mt-6 flex max-w-xl flex-col gap-2 sm:flex-row">
+          <form
+            onSubmit={(event) => event.preventDefault()}
+            className="mx-auto mt-6 flex max-w-xl flex-col flex-wrap gap-2 sm:flex-row"
+          >
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
@@ -80,6 +89,16 @@ export function DirectorySearch({
                 </option>
               ))}
             </Select>
+            {categories.length > 0 && (
+              <Select value={category} onChange={(event) => setCategory(event.target.value)} className="sm:w-56">
+                <option value="">{t.allCategories}</option>
+                {categories.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </form>
         </div>
       </div>

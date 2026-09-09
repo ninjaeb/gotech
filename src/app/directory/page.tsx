@@ -44,9 +44,9 @@ export const dynamic = "force-dynamic";
 export default async function DirectoryHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; industry?: string }>;
+  searchParams: Promise<{ q?: string; industry?: string; category?: string }>;
 }) {
-  const { q, industry } = await searchParams;
+  const { q, industry, category } = await searchParams;
   const [locale, siteOrigin] = await Promise.all([getDirectoryLocale(), getSiteOrigin()]);
   const t = DIRECTORY_STRINGS[locale];
 
@@ -56,10 +56,13 @@ export default async function DirectoryHomePage({
   // partner network is small by nature: dozens, not thousands) and the
   // searchable text lives inside publishedSnapshot's JSON, which
   // MySQL/Prisma can't cheaply query into either way.
-  const rows = await db.partnerListing.findMany({
-    select: { slug: true, publishedSnapshot: true },
-    orderBy: { publishedAt: "desc" },
-  });
+  const [rows, businessCategories] = await Promise.all([
+    db.partnerListing.findMany({
+      select: { slug: true, publishedSnapshot: true },
+      orderBy: { publishedAt: "desc" },
+    }),
+    db.businessCategory.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
+  ]);
   const listings = rows
     .map((row) => ({ slug: row.slug, listing: readPublishedSnapshot(row.publishedSnapshot) }))
     .filter((row): row is { slug: string; listing: PublishedListingSnapshot } => row.listing !== null);
@@ -69,9 +72,11 @@ export default async function DirectoryHomePage({
       listings={listings}
       industries={INDUSTRIES}
       industryLabels={INDUSTRY_LABELS}
+      categories={businessCategories.map((row) => row.name)}
       t={t}
       initialQuery={q ?? ""}
       initialIndustry={industry ?? ""}
+      initialCategory={category ?? ""}
       directoryUrl={`${siteOrigin}/directory`}
     />
   );

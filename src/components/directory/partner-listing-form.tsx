@@ -9,6 +9,7 @@ import {
   rewriteListingServices,
   saveDirectoryListing,
   submitDirectoryListingForReview,
+  translateListingContent,
   type ListingFormField,
   type ListingFormValues,
 } from "@/app/actions/directory";
@@ -23,7 +24,50 @@ import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
 import type { OperatingHours } from "@/lib/operating-hours";
-import type { FaqEntry, ServiceEntry } from "@/lib/directory";
+import type { FaqEntry, ListingTranslations, ServiceEntry } from "@/lib/directory";
+
+type TranslationLocale = "zh" | "ms";
+
+// One Tagline + About pair for a non-English locale — factored out since
+// PartnerListingForm needs the identical block twice (zh, ms), differing
+// only in which locale's slice of `translations` it reads/writes.
+function TranslationFields({
+  locale,
+  label,
+  entry,
+  onChange,
+}: {
+  locale: TranslationLocale;
+  label: string;
+  entry: { tagline: string; description: string } | undefined;
+  onChange: (locale: TranslationLocale, field: "tagline" | "description", value: string) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
+      <div className="space-y-3">
+        <FieldGroup label="Tagline" htmlFor={`${locale}Tagline`}>
+          <Input
+            id={`${locale}Tagline`}
+            name={`${locale}Tagline`}
+            value={entry?.tagline ?? ""}
+            onChange={(event) => onChange(locale, "tagline", event.target.value)}
+            maxLength={140}
+          />
+        </FieldGroup>
+        <FieldGroup label="About" htmlFor={`${locale}Description`}>
+          <MarkdownLiteEditor
+            id={`${locale}Description`}
+            name={`${locale}Description`}
+            rows={4}
+            value={entry?.description ?? ""}
+            onChange={(value) => onChange(locale, "description", value)}
+          />
+        </FieldGroup>
+      </div>
+    </div>
+  );
+}
 
 // The other two AI actions (description rewrite, SEO meta) just want a
 // readable summary of what services exist for grounding — not the
@@ -42,12 +86,14 @@ export function PartnerListingForm({
   operatingHours,
   status,
   aiAvailable,
+  categories,
 }: {
   values: ListingFormValues;
   logoUrl: string | null;
   operatingHours: OperatingHours | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
+  categories: { id: string; name: string }[];
 }) {
   const [state, formAction, pending] = useActionState(saveDirectoryListing, undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
@@ -87,10 +133,12 @@ export function PartnerListingForm({
   const [faqs, setFaqs] = useState<FaqEntry[]>(current.faqs);
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
+  const [translations, setTranslations] = useState<ListingTranslations>(current.translations);
   const [rewritingDescription, startRewriteDescription] = useTransition();
   const [rewritingServices, startRewriteServices] = useTransition();
   const [generatingFaqs, startGenerateFaqs] = useTransition();
   const [generatingSeoMeta, startGenerateSeoMeta] = useTransition();
+  const [translating, startTranslate] = useTransition();
 
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -180,6 +228,27 @@ export function PartnerListingForm({
     });
   }
 
+  function updateTranslation(locale: "zh" | "ms", field: "tagline" | "description", value: string) {
+    setTranslations((prev) => ({
+      ...prev,
+      [locale]: { tagline: prev[locale]?.tagline ?? "", description: prev[locale]?.description ?? "", [field]: value },
+    }));
+  }
+
+  // Translates the primary tagline/description together, into both target
+  // languages at once — unlike the rewrite/generate actions above there's no
+  // existing translation to "improve"; the English fields are always the
+  // source of truth, so every call starts fresh from them.
+  function handleTranslate() {
+    const formData = new FormData(formRef.current ?? undefined);
+    const tagline = String(formData.get("tagline") || "");
+    startTranslate(async () => {
+      const result = await translateListingContent({ tagline, description });
+      if (result.status === "ok") setTranslations({ zh: result.data.zh, ms: result.data.ms });
+      else toast.error(result.message);
+    });
+  }
+
   return (
     <form ref={formRef} action={formAction} className="space-y-5">
       <div>
@@ -228,6 +297,33 @@ export function PartnerListingForm({
           </Select>
         </FieldGroup>
       </div>
+
+      <FieldGroup label="Business categories" htmlFor="categoryIds-group">
+        {categories.length === 0 ? (
+          <p className="text-sm text-slate-400">No categories yet — an admin can add some from Settings → Directory.</p>
+        ) : (
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {categories.map((category, index) => (
+              <label
+                key={category.id}
+                htmlFor={`categoryIds-${index}`}
+                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
+              >
+                <input
+                  id={`categoryIds-${index}`}
+                  type="checkbox"
+                  name="categoryIds"
+                  value={category.id}
+                  defaultChecked={current.categoryIds.includes(category.id)}
+                  className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led dark:border-neutral-700"
+                />
+                {category.name}
+              </label>
+            ))}
+          </div>
+        )}
+        <p className="mt-1 text-xs text-slate-400">Optional — helps visitors filter the directory by what you do.</p>
+      </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <FieldGroup label="Tagline" htmlFor="tagline">
@@ -343,6 +439,31 @@ export function PartnerListingForm({
             </p>
           )}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label className="mb-0">Translations</Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleTranslate}
+              disabled={translating}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {translating ? "Translating…" : "Translate with AI"}
+            </button>
+          )}
+        </div>
+        <div className="space-y-4 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
+          <TranslationFields locale="zh" label="中文 (Chinese)" entry={translations.zh} onChange={updateTranslation} />
+          <TranslationFields locale="ms" label="Bahasa Melayu (Malay)" entry={translations.ms} onChange={updateTranslation} />
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          Optional — shown in place of the Tagline and About fields above when a visitor is browsing the directory in
+          that language.
+        </p>
       </div>
 
       <div>

@@ -20,7 +20,9 @@ import {
   parseFaqsJson,
   parseServicesJson,
   slugify,
+  translationsFromJson,
   type FaqEntry,
+  type ListingTranslations,
   type OperatingHours,
   type ServiceEntry,
 } from "@/lib/directory";
@@ -158,6 +160,8 @@ export type ListingFormValues = {
   location: string;
   address: string;
   faqs: FaqEntry[];
+  categoryIds: string[];
+  translations: ListingTranslations;
   seoTitle: string;
   seoDescription: string;
 };
@@ -177,9 +181,22 @@ function stringField(formData: FormData, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
+// Both zh and ms are always read together (a partner never translates just
+// one) — plain named fields rather than a hidden JSON input like services/
+// faqs, since the shape here is fixed (two locales, two fields each) rather
+// than a variable-length list.
+function extractTranslations(formData: FormData): ListingTranslations {
+  return translationsFromJson({
+    zh: { tagline: stringField(formData, "zhTagline"), description: stringField(formData, "zhDescription") },
+    ms: { tagline: stringField(formData, "msTagline"), description: stringField(formData, "msDescription") },
+  });
+}
+
 // services isn't part of listingSchema below — like operatingHours, it's
 // structured data (see ServicesEditor's hidden JSON input), sanitized by
-// parseServicesJson itself rather than a plain string Zod rule.
+// parseServicesJson itself rather than a plain string Zod rule. categoryIds
+// is a checkbox group (see PartnerListingForm) — reconciled against real
+// BusinessCategory rows in saveListingFields, not validated here.
 function extractListingFormValues(formData: FormData): ListingFormValues {
   return {
     companyName: stringField(formData, "companyName"),
@@ -191,6 +208,8 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     location: stringField(formData, "location"),
     address: stringField(formData, "address"),
     faqs: parseFaqsJson(stringField(formData, "faqs")),
+    categoryIds: formData.getAll("categoryIds").filter((value): value is string => typeof value === "string"),
+    translations: extractTranslations(formData),
     seoTitle: stringField(formData, "seoTitle"),
     seoDescription: stringField(formData, "seoDescription"),
   };
@@ -379,6 +398,39 @@ export async function generateListingFaqs(
   return callAi(FaqListSchema, LISTING_FAQ_SYSTEM_PROMPT, prompt);
 }
 
+const TranslationSchema = z.object({
+  zh: z.object({
+    tagline: z.string().describe("Simplified Chinese translation of the tagline. Empty string if the tagline is empty."),
+    description: z.string().describe("Simplified Chinese translation of the About text. Empty string if it's empty."),
+  }),
+  ms: z.object({
+    tagline: z.string().describe("Malay (Bahasa Malaysia) translation of the tagline. Empty string if the tagline is empty."),
+    description: z.string().describe("Malay (Bahasa Malaysia) translation of the About text. Empty string if it's empty."),
+  }),
+});
+
+const LISTING_TRANSLATION_SYSTEM_PROMPT =
+  "You translate a business's partner directory listing (a short tagline and an 'About us' text) into Simplified Chinese and Malay (Bahasa Malaysia), for a multi-language public directory. Translate faithfully — never invent, drop, embellish, or add claims that aren't in the source text — but write naturally and idiomatically in each target language rather than a stiff word-for-word rendering. The About text may use a small formatting syntax: **bold**, bullet/numbered lists ('- item' / '1. item'), and [link text](url) links — preserve this syntax exactly around the translated text, never strip or alter it. If a field is empty in the source, return an empty string for it in both languages.";
+
+// Partner-gated — called from the "Translate with AI" button next to the
+// listing editor's Translations section. Unlike the other rewrite/generate
+// actions, there's no "current translation" to improve: the source of
+// truth is always the primary (English) tagline/description, so every call
+// is a fresh translation from that pair, in both target languages at once
+// (they're wanted together, not one at a time).
+export async function translateListingContent(
+  current: { tagline: string; description: string },
+): Promise<AiResult<{ zh: { tagline: string; description: string }; ms: { tagline: string; description: string } }>> {
+  await requirePartnerAction();
+  if (!isAiConfigured()) return AI_NOT_CONFIGURED;
+  if (!current.tagline.trim() && !current.description.trim()) {
+    return { status: "error", message: "Add a tagline or About text before translating." };
+  }
+
+  const prompt = `Tagline: ${current.tagline.trim() || "(none)"}\n\nAbout us:\n${current.description.trim() || "(none)"}\n\nTranslate both into Simplified Chinese and Malay.`;
+  return callAi(TranslationSchema, LISTING_TRANSLATION_SYSTEM_PROMPT, prompt);
+}
+
 type ListingSaveResult =
   | { ok: false; error: string; field?: ListingFormField; values: ListingFormValues }
   | { ok: true; listing: Awaited<ReturnType<typeof db.partnerListing.update>> };
@@ -412,26 +464,51 @@ async function saveListingFields(
   const listing = await ensurePartnerListing(partner.id, partner.name);
   const resetToDraft = listing.status === "PUBLISHED" || listing.status === "REJECTED";
 
-  const updated = await db.partnerListing.update({
-    where: { id: listing.id },
-    data: {
-      companyName: parsed.data.companyName,
-      tagline: parsed.data.tagline || null,
-      description: parsed.data.description || null,
-      services: parseServicesJson(stringField(formData, "services")),
-      industry: (parsed.data.industry || null) as Industry | null,
-      website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
-      location: parsed.data.location || null,
-      address: parsed.data.address || null,
-      operatingHours: parseOperatingHoursFormData(formData),
-      faqs: parseFaqsJson(stringField(formData, "faqs")),
-      seoTitle: parsed.data.seoTitle || null,
-      seoDescription: parsed.data.seoDescription || null,
-      ...logo,
-      ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
-      ...extraData,
-    },
-  });
+  // Reconciled against real rows rather than trusted as-is — a checkbox's
+  // value is just a string an authenticated partner's own request could in
+  // principle tamper with, and a stale id (its category was since deleted)
+  // should just drop silently rather than fail the whole save.
+  const requestedCategoryIds = formData.getAll("categoryIds").filter((value): value is string => typeof value === "string");
+  const categoryIds = requestedCategoryIds.length
+    ? [
+        ...new Set(
+          (await db.businessCategory.findMany({ where: { id: { in: requestedCategoryIds } }, select: { id: true } })).map(
+            (category) => category.id,
+          ),
+        ),
+      ]
+    : [];
+
+  // A fixed-length tuple (no spread) so $transaction's return type stays a
+  // tuple too — `updated` below narrows to the update's own result rather
+  // than a union across all three statements. Delete-then-recreate is
+  // simpler than diffing for a set this small, same reasoning as
+  // parseOperatingHoursFormData's own full-replace-every-save approach.
+  const [updated] = await db.$transaction([
+    db.partnerListing.update({
+      where: { id: listing.id },
+      data: {
+        companyName: parsed.data.companyName,
+        tagline: parsed.data.tagline || null,
+        description: parsed.data.description || null,
+        services: parseServicesJson(stringField(formData, "services")),
+        industry: (parsed.data.industry || null) as Industry | null,
+        website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
+        location: parsed.data.location || null,
+        address: parsed.data.address || null,
+        operatingHours: parseOperatingHoursFormData(formData),
+        faqs: parseFaqsJson(stringField(formData, "faqs")),
+        translations: extractTranslations(formData),
+        seoTitle: parsed.data.seoTitle || null,
+        seoDescription: parsed.data.seoDescription || null,
+        ...logo,
+        ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
+        ...extraData,
+      },
+    }),
+    db.partnerListingCategory.deleteMany({ where: { listingId: listing.id } }),
+    db.partnerListingCategory.createMany({ data: categoryIds.map((categoryId) => ({ listingId: listing.id, categoryId })) }),
+  ]);
   return { ok: true, listing: updated };
 }
 
@@ -646,7 +723,10 @@ export async function replyToDirectoryLead(
 
 export async function approveDirectoryListing(id: string): Promise<void> {
   await requireAdminAction();
-  const listing = await db.partnerListing.findUniqueOrThrow({ where: { id } });
+  const listing = await db.partnerListing.findUniqueOrThrow({
+    where: { id },
+    include: { categories: { include: { category: true } } },
+  });
   await db.partnerListing.update({
     where: { id },
     data: {
@@ -654,7 +734,10 @@ export async function approveDirectoryListing(id: string): Promise<void> {
       publishedAt: new Date(),
       reviewedAt: new Date(),
       reviewNote: null,
-      publishedSnapshot: buildPublishedSnapshot(listing),
+      publishedSnapshot: buildPublishedSnapshot(
+        listing,
+        listing.categories.map((entry) => entry.category.name),
+      ),
     },
   });
   revalidatePath("/settings/directory");
