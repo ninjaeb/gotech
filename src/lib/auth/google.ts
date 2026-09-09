@@ -2,8 +2,9 @@ import "server-only";
 
 import { SignJWT, jwtVerify, createRemoteJWKSet } from "jose";
 
-// "Sign in / up with Google" for the public business-directory signup only
-// (see src/app/directory/signup) — the staff /login form stays
+// "Sign in / up with Google" for the public business-directory signup
+// (see src/app/directory/signup) and the business portal's own login
+// (see src/app/business/login) — the staff /system/login form stays
 // email+password, unrelated to this. Deliberately not next-auth: this repo
 // has no auth library at all (see src/lib/auth/session.ts's own hand-rolled
 // jose-signed cookie), so this follows the same minimal, dependency-free
@@ -33,12 +34,15 @@ function getStateSecretKey() {
 // Carries whatever the signup form already had filled in across the full-
 // page redirect to Google and back (React state doesn't survive that trip).
 // `nonce` also doubles as the CSRF value compared against the httpOnly
-// cookie set alongside it in the /api/auth/google route.
+// cookie set alongside it in the /api/auth/google route. `returnTo` records
+// which page started the flow, so a failure bounces back to that same page
+// instead of always landing on the signup form.
 export type GoogleOAuthState = {
   nonce: string;
   companyName?: string;
   contactName?: string;
   phone?: string;
+  returnTo?: "signup" | "login";
 };
 
 export async function signGoogleOAuthState(state: GoogleOAuthState): Promise<string> {
