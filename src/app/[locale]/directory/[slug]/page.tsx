@@ -299,39 +299,6 @@ export default async function DirectoryListingPage({
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-lg text-slate-600 dark:text-slate-300">{displayTagline}</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-lg text-slate-500 dark:text-slate-400">
-              {listing.industry && (
-                <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
-                    {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
-                  </Badge>
-                </Link>
-              )}
-              {listing.categories.map((category) => (
-                <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
-                    {translateCategoryName(category, resolved)}
-                  </Badge>
-                </Link>
-              ))}
-              {listing.location && (
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {listing.location}
-                </span>
-              )}
-              {listing.website && (
-                <a
-                  href={listing.website}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
-                >
-                  <Globe className="h-4 w-4" />
-                  {t.websiteLabel}
-                </a>
-              )}
-            </div>
           </div>
           {/* Full width on mobile so flex-wrap gives this its own line
               below the logo/name instead of squeezing the name column
@@ -352,6 +319,56 @@ export default async function DirectoryListingPage({
             )}
           </div>
         </div>
+
+        {/* Its own full-width block below the logo/name row (rather than
+            squeezed into the name column alongside the logo) — at mobile
+            widths that column is narrow enough that even short badges
+            wrapped one per line; the full card width comfortably fits
+            industry+categories together, and location+website together,
+            each as their own row. */}
+        {(listing.industry || listing.categories.length > 0 || listing.location || listing.website) && (
+          <div className="mt-3 space-y-2 text-lg text-slate-500 dark:text-slate-400">
+            {(listing.industry || listing.categories.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {listing.industry && (
+                  <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
+                    <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                      {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
+                    </Badge>
+                  </Link>
+                )}
+                {listing.categories.map((category) => (
+                  <Link key={category} href={categoryPath(slugify(category), resolved)}>
+                    <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                      {translateCategoryName(category, resolved)}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {(listing.location || listing.website) && (
+              <div className="flex flex-wrap items-center gap-3">
+                {listing.location && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {listing.location}
+                  </span>
+                )}
+                {listing.website && (
+                  <a
+                    href={listing.website}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                  >
+                    <Globe className="h-4 w-4" />
+                    {t.websiteLabel}
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <InquiryProvider>
