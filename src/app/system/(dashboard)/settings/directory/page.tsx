@@ -19,7 +19,7 @@ import {
   rejectDirectoryListing,
   unpublishDirectoryListing,
 } from "@/app/actions/directory";
-import { createBusinessCategory, deleteBusinessCategory } from "@/app/actions/business-categories";
+import { deleteBusinessCategory } from "@/app/actions/business-categories";
 import {
   DIRECTORY_LEAD_STATUS_BADGE_CLASSES,
   DIRECTORY_LEAD_STATUS_LABELS,
@@ -238,16 +238,8 @@ export default async function DirectorySettingsPage() {
           <CardTitle>Business categories</CardTitle>
         </CardHeader>
         <CardBody className="space-y-4">
-          <form action={createBusinessCategory} className="flex items-center gap-2">
-            <Input name="name" required placeholder="e.g. Web Design" className="!h-8 w-56 text-xs" />
-            <Button type="submit" size="sm">
-              Add
-            </Button>
-          </form>
           {businessCategories.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              No categories yet — add one above for partners to pick from on their listing.
-            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">No categories yet.</p>
           ) : (
             <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
               {businessCategories.map((category) => (

@@ -1592,11 +1592,14 @@ model PartnerListing {
   @@index([status])
 }
 
-// Admin-managed vocabulary a partner can pick multiple of for their listing
-// — e.g. "Web Design", "Accounting", "Logistics". Distinct from Industry (a
-// single required top-level classification, fixed enum): a business
-// category is optional, multi-select, and its vocabulary can grow over time
-// via Settings → Directory rather than requiring a code change.
+// Fixed vocabulary a partner can pick multiple of for their listing — e.g.
+// "Web Design", "Accounting", "Logistics" — seeded once via migration (see
+// prisma/migrations/20260909170000_seed_business_categories). Distinct from
+// Industry (a single required top-level classification, fixed enum): a
+// business category is optional and multi-select. Admins can retire one
+// from Settings → Directory, but new ones require a migration rather than
+// a form, so the list stays a curated, consistent set across every
+// listing's picker.
 model BusinessCategory {
   id   String @id @default(cuid())
   name String @unique

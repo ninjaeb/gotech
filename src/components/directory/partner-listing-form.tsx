@@ -348,7 +348,7 @@ export function PartnerListingForm({
         </FieldGroup>
         <FieldGroup label="Business categories" htmlFor="categoryIds">
           {categories.length === 0 ? (
-            <p className="text-sm text-slate-400">No categories yet — an admin can add some from Settings → Directory.</p>
+            <p className="text-sm text-slate-400">No categories yet.</p>
           ) : (
             <MultiCombobox
               id="categoryIds"
