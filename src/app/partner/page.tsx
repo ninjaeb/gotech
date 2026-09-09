@@ -160,7 +160,7 @@ export default async function PartnerOverviewPage() {
           )}
           {stats.leads > recentLeads.length && (
             <p className="mt-3 text-right text-xs">
-              <Link href="/partner/leads" className="text-indigo-600 hover:underline dark:text-indigo-400">
+              <Link href="/partner/leads" className="text-petrol hover:underline dark:text-petrol-light">
                 See all {stats.leads} leads
               </Link>
             </p>
@@ -171,7 +171,7 @@ export default async function PartnerOverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle>Directory listing</CardTitle>
-          <Link href="/partner/listing" className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href="/partner/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
             Edit listing
           </Link>
         </CardHeader>

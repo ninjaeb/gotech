@@ -24,7 +24,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
 
   if (state?.status === "success") {
     return (
-      <p className="rounded-md bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
+      <p className="rounded-md bg-emerald-50 px-4 py-3 text-center text-base font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
         {t.formSuccess}
       </p>
     );
@@ -48,6 +48,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
           placeholder={t.formNamePlaceholder}
           value={name}
           onChange={(event) => setName(event.target.value)}
+          className="text-base"
         />
       </FieldGroup>
       <FieldGroup label={t.formEmailLabel} htmlFor="directory-email" required>
@@ -59,6 +60,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
           placeholder={t.formEmailPlaceholder}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
+          className="text-base"
         />
       </FieldGroup>
       <FieldGroup label={t.formPhoneLabel} htmlFor="directory-phone" required>
@@ -70,6 +72,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
           placeholder={t.formPhonePlaceholder}
           value={phone}
           onChange={(event) => setPhone(event.target.value)}
+          className="text-base"
         />
         <p className="mt-1 text-xs text-slate-400">{t.formPhoneHint}</p>
       </FieldGroup>
@@ -80,6 +83,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
           placeholder={t.formCompanyPlaceholder}
           value={company}
           onChange={(event) => setCompany(event.target.value)}
+          className="text-base"
         />
       </FieldGroup>
       <FieldGroup label={t.formMessageLabel} htmlFor="directory-message" required>
@@ -91,6 +95,7 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
           placeholder={t.formMessagePlaceholder}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
+          className="text-base"
         />
       </FieldGroup>
 
@@ -98,7 +103,11 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
         <p className="text-sm text-rose-600 dark:text-rose-400">{t.errors[state.code]}</p>
       )}
 
-      <Button type="submit" disabled={pending} className="w-full">
+      <Button
+        type="submit"
+        disabled={pending}
+        className="h-11 w-full bg-led text-base text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+      >
         {pending ? t.formSubmitting : t.formSubmit}
       </Button>
     </form>

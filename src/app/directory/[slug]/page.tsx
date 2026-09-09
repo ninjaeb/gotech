@@ -127,11 +127,11 @@ export default async function DirectoryListingPage({ params }: { params: Promise
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
           {listing.tagline && <p className="mt-1 text-slate-600 dark:text-slate-300">{listing.tagline}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-base text-slate-500 dark:text-slate-400">
             {listing.industry && <Badge>{INDUSTRY_LABELS[listing.industry]}</Badge>}
             {listing.location && (
               <span className="inline-flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
+                <MapPin className="h-4 w-4" />
                 {listing.location}
               </span>
             )}
@@ -140,9 +140,9 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                 href={listing.website}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1 text-indigo-600 hover:underline dark:text-indigo-400"
+                className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
               >
-                <Globe className="h-3.5 w-3.5" />
+                <Globe className="h-4 w-4" />
                 {t.websiteLabel}
               </a>
             )}
@@ -155,9 +155,9 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           {listing.description && (
             <Card>
               <CardHeader>
-                <CardTitle>{t.aboutHeading}</CardTitle>
+                <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
               </CardHeader>
-              <CardBody className="whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+              <CardBody className="whitespace-pre-wrap text-base text-slate-600 dark:text-slate-300">
                 {listing.description}
               </CardBody>
             </Card>
@@ -165,11 +165,14 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           {listing.services.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>{t.servicesHeading}</CardTitle>
+                <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
               </CardHeader>
               <CardBody className="flex flex-wrap gap-2.5">
                 {listing.services.map((service) => (
-                  <Badge key={service} className="px-3.5 py-1.5 text-sm">
+                  <Badge
+                    key={service}
+                    className="bg-led-soft px-4 py-2 text-base text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20"
+                  >
                     {service}
                   </Badge>
                 ))}
@@ -179,18 +182,18 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           {(mapAddress || listing.operatingHours) && (
             <Card>
               <CardHeader>
-                <CardTitle>{t.visitHeading}</CardTitle>
+                <CardTitle className="text-lg">{t.visitHeading}</CardTitle>
               </CardHeader>
               <CardBody className="space-y-4">
                 {listing.address && (
-                  <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <p className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
+                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                     <span className="whitespace-pre-wrap">{listing.address}</span>
                   </p>
                 )}
                 {listing.operatingHours && (
-                  <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                    <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                  <div className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
+                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                     <ul>
                       {formatOperatingHoursLines(listing.operatingHours, t).map((line) => (
                         <li key={line}>{line}</li>
@@ -212,13 +215,13 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           )}
         </div>
 
-        <div>
+        <div className="lg:sticky lg:top-6 lg:self-start">
           <Card>
             <CardHeader>
-              <CardTitle>{t.contactHeading}</CardTitle>
+              <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
             </CardHeader>
             <CardBody>
-              <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
+              <p className="mb-4 text-base text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
               <DirectoryLeadForm slug={slug} locale={locale} />
             </CardBody>
           </Card>

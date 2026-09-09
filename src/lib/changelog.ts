@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.58",
+    date: "2026-09-09",
+    title: "Gotka.com branding on the directory and partner portal",
+    changes: [
+      "The public directory and partner portal now use gotka.com's own colors — petrol teal for links and highlights, LED green for primary buttons — instead of the CRM's indigo",
+      "On a listing's detail page, the Get in touch card now follows you down the page instead of scrolling out of view once the About/Services/Visit us content runs long",
+      "Bigger, easier-to-read text throughout a listing's detail page — the About and Services sections, the Visit us details, and the inquiry form",
+    ],
+  },
+  {
     version: "1.57",
     date: "2026-09-09",
     title: "Google-My-Business-style operating hours",

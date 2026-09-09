@@ -38,12 +38,12 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
         <CardBody className="space-y-3">
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
             {lead.company && <span>{lead.company}</span>}
-            <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400">
+            <a href={`mailto:${lead.email}`} className="inline-flex items-center gap-1 hover:text-petrol dark:hover:text-petrol-light">
               <Mail className="h-3.5 w-3.5" />
               {lead.email}
             </a>
             {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1 hover:text-indigo-600 dark:hover:text-indigo-400">
+              <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1 hover:text-petrol dark:hover:text-petrol-light">
                 <Phone className="h-3.5 w-3.5" />
                 {lead.phone}
               </a>

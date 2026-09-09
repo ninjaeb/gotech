@@ -4,6 +4,22 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* gotka.com's own brand colors (see ninjaeb/go-website's site.css :root),
+     used on the public partner directory and the partner portal — the two
+     sections meant to read as part of gotka.com itself, not the internal
+     CRM. Petrol is the link/accent color; led is the CTA/focus color (with
+     dark ink text, never white — a saturated green fails contrast with
+     white). Everywhere else in the app keeps the CRM's own indigo. */
+  --color-petrol: #0d5c63;
+  --color-petrol-light: #54b9c0;
+  --color-petrol-ink: #083a3f;
+  --color-led: #2ec27e;
+  --color-led-hover: #3bd48d;
+  --color-led-active: #239a68;
+  --color-led-ink: #0b2b1d;
+  --color-led-soft: #e2f6ec;
+  --color-led-soft-dark: #0f2a1f;
 }
 
 html {

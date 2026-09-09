@@ -26,7 +26,7 @@ export function PartnerSlugForm({ slug, siteOrigin }: { slug: string; siteOrigin
     <form action={formAction} className="space-y-3">
       <div>
         <Label htmlFor="slug">Web address</Label>
-        <div className="flex items-stretch overflow-hidden rounded-md ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-indigo-500 dark:ring-neutral-700">
+        <div className="flex items-stretch overflow-hidden rounded-md ring-1 ring-inset ring-slate-300 focus-within:ring-2 focus-within:ring-led dark:ring-neutral-700">
           <span className="flex shrink-0 items-center bg-slate-50 pl-3 pr-1 text-sm text-slate-500 dark:bg-neutral-800 dark:text-slate-400">
             {prefix}
           </span>
@@ -47,7 +47,11 @@ export function PartnerSlugForm({ slug, siteOrigin }: { slug: string; siteOrigin
 
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
 
-      <Button type="submit" disabled={pending || value === slug}>
+      <Button
+        type="submit"
+        disabled={pending || value === slug}
+        className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+      >
         {pending ? "Saving…" : "Update address"}
       </Button>
     </form>

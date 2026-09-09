@@ -24,7 +24,7 @@ export function DirectoryLanguageSwitcher({ current }: { current: DirectoryLocal
           className={cn(
             "rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50",
             current === option.code
-              ? "bg-indigo-600 text-white"
+              ? "bg-petrol text-white dark:bg-petrol-light dark:text-petrol-ink"
               : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-neutral-800",
           )}
         >

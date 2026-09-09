@@ -141,7 +141,7 @@ export function PartnerListingForm({
                   name="removeLogo"
                   checked={removeLogo}
                   onChange={(event) => setRemoveLogo(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led"
                 />
                 Remove current logo
               </label>
@@ -265,7 +265,11 @@ export function PartnerListingForm({
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button
+          type="submit"
+          disabled={pending}
+          className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+        >
           {pending ? "Saving…" : "Save draft"}
         </Button>
         <Button

@@ -38,7 +38,7 @@ export default async function DirectoryLayout({ children }: { children: React.Re
               href="https://gotka.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-indigo-600 hover:underline dark:text-indigo-400"
+              className="text-petrol hover:underline dark:text-petrol-light"
             >
               gotka.com
             </a>

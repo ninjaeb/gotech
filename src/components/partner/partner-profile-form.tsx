@@ -33,7 +33,11 @@ export function PartnerProfileForm({ email, phone }: { email: string; phone: str
 
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
 
-      <Button type="submit" disabled={pending}>
+      <Button
+        type="submit"
+        disabled={pending}
+        className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+      >
         {pending ? "Saving…" : "Save"}
       </Button>
     </form>

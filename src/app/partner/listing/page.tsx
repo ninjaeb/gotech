@@ -43,7 +43,7 @@ export default async function PartnerListingPage() {
               href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+              className="inline-flex items-center gap-1 text-sm text-petrol hover:underline dark:text-petrol-light"
             >
               View public listing
               <ExternalLink className="h-3.5 w-3.5" />
