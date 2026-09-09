@@ -39,9 +39,9 @@ export function ListingCard({
 
           {listing.services.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {listing.services.slice(0, MAX_VISIBLE_SERVICES).map((service) => (
-                <Badge key={service} className="bg-led-soft text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20">
-                  {service}
+              {listing.services.slice(0, MAX_VISIBLE_SERVICES).map((service, index) => (
+                <Badge key={index} className="bg-led-soft text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20">
+                  {service.title}
                 </Badge>
               ))}
               {extraServices > 0 && (

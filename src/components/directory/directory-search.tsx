@@ -41,7 +41,9 @@ export function DirectorySearch({
       if (!q) return true;
       return (
         listing.companyName.toLowerCase().includes(q) ||
-        listing.services.some((service) => service.toLowerCase().includes(q))
+        listing.services.some(
+          (service) => service.title.toLowerCase().includes(q) || service.description.toLowerCase().includes(q),
+        )
       );
     });
   }, [listings, query, industry]);

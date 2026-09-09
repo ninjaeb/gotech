@@ -131,8 +131,8 @@ export default async function DirectorySettingsPage() {
                   ))}
                   {servicesFromJson(listing.services).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {servicesFromJson(listing.services).map((service) => (
-                        <Badge key={service}>{service}</Badge>
+                      {servicesFromJson(listing.services).map((service, index) => (
+                        <Badge key={index}>{service.price ? `${service.title} (${service.price})` : service.title}</Badge>
                       ))}
                     </div>
                   )}
