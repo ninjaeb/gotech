@@ -200,71 +200,73 @@ export function PartnerListingForm({
         <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
       </div>
 
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label htmlFor="description" className="mb-0">
-            About
-          </Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleRewriteDescription}
-              disabled={rewritingDescription}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {rewritingDescription ? "Rewriting…" : "Rewrite with AI"}
-            </button>
-          )}
-        </div>
-        <MarkdownLiteEditor
-          id="description"
-          name="description"
-          rows={5}
-          value={description}
-          onChange={setDescription}
-          placeholder="What does your business do?"
-        />
-        <p className="mt-1 text-xs text-slate-400">
-          Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to Preview
-          to see how it&apos;ll look.
-        </p>
-      </div>
-
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label htmlFor="services" className="mb-0">
-            Services
-            <RequiredMark />
-          </Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleRewriteServices}
-              disabled={rewritingServices}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {rewritingServices ? "Rewriting…" : "Rewrite with AI"}
-            </button>
-          )}
-        </div>
-        <Textarea
-          id="services"
-          name="services"
-          rows={4}
-          value={services}
-          onChange={(event) => setServices(event.target.value)}
-          placeholder={"One service per line, e.g.\nWeb design\nSEO\nHosting"}
-        />
-        {servicesError ? (
-          <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{servicesError}</p>
-        ) : (
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="description" className="mb-0">
+              About
+            </Label>
+            {aiAvailable && (
+              <button
+                type="button"
+                onClick={handleRewriteDescription}
+                disabled={rewritingDescription}
+                className={buttonClasses("ghost", "sm", "shrink-0")}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {rewritingDescription ? "Rewriting…" : "Rewrite with AI"}
+              </button>
+            )}
+          </div>
+          <MarkdownLiteEditor
+            id="description"
+            name="description"
+            rows={5}
+            value={description}
+            onChange={setDescription}
+            placeholder="What does your business do?"
+          />
           <p className="mt-1 text-xs text-slate-400">
-            One per line (or comma-separated) — shown as tags on your listing. At least one is required before you
-            can submit for review.
+            Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
+            Preview to see how it&apos;ll look.
           </p>
-        )}
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="services" className="mb-0">
+              Services
+              <RequiredMark />
+            </Label>
+            {aiAvailable && (
+              <button
+                type="button"
+                onClick={handleRewriteServices}
+                disabled={rewritingServices}
+                className={buttonClasses("ghost", "sm", "shrink-0")}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {rewritingServices ? "Rewriting…" : "Rewrite with AI"}
+              </button>
+            )}
+          </div>
+          <Textarea
+            id="services"
+            name="services"
+            rows={9}
+            value={services}
+            onChange={(event) => setServices(event.target.value)}
+            placeholder={"One service per line, e.g.\nWeb design\nSEO\nHosting"}
+          />
+          {servicesError ? (
+            <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{servicesError}</p>
+          ) : (
+            <p className="mt-1 text-xs text-slate-400">
+              One per line (or comma-separated) — shown as tags on your listing. At least one is required before you
+              can submit for review.
+            </p>
+          )}
+        </div>
       </div>
 
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}

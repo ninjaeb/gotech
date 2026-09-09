@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { Bold, Image as ImageIcon, Link2, List, ListOrdered } from "lucide-react";
+import { uploadDirectoryListingImage } from "@/app/actions/directory-images";
+import { compressImage } from "@/lib/image-compression";
 import { renderMarkdownLite } from "@/lib/markdown-lite";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +41,10 @@ export function MarkdownLiteEditor({
   placeholder?: string;
 }) {
   const [mode, setMode] = useState<"write" | "preview">("write");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSelection = useRef<Range | null>(null);
 
   // Restores the cursor/selection after a toolbar click replaces `value`
@@ -86,28 +91,45 @@ export function MarkdownLiteEditor({
     onChange(next);
   }
 
+  // Splices `text` in at the current selection (replacing it) and leaves
+  // the cursor right after it — shared by the link prompt and the image
+  // upload's own insertion once it has a URL to work with.
+  function insertAtSelection(text: string) {
+    const { start, end } = currentSelection();
+    const next = value.slice(0, start) + text + value.slice(end);
+    const cursor = start + text.length;
+    pendingSelection.current = { start: cursor, end: cursor };
+    onChange(next);
+  }
+
   function insertLink() {
     const { start, end } = currentSelection();
     const selectedText = value.slice(start, end);
     const url = window.prompt("Link URL (https://…)");
     if (!url) return;
-    const inserted = `[${selectedText || "link text"}](${url.trim()})`;
-    const next = value.slice(0, start) + inserted + value.slice(end);
-    const cursor = start + inserted.length;
-    pendingSelection.current = { start: cursor, end: cursor };
-    onChange(next);
+    insertAtSelection(`[${selectedText || "link text"}](${url.trim()})`);
   }
 
-  function insertImage() {
-    const url = window.prompt("Image URL (https://…)");
-    if (!url) return;
-    const alt = window.prompt("Alt text (a short description of the image)") ?? "";
-    const { start, end } = currentSelection();
-    const inserted = `![${alt}](${url.trim()})`;
-    const next = value.slice(0, start) + inserted + value.slice(end);
-    const cursor = start + inserted.length;
-    pendingSelection.current = { start: cursor, end: cursor };
-    onChange(next);
+  async function handleImageSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadError(null);
+    setUploading(true);
+    const compressed = await compressImage(file);
+    const formData = new FormData();
+    formData.set("image", compressed);
+    const result = await uploadDirectoryListingImage(formData);
+    setUploading(false);
+
+    if (result.status !== "ok") {
+      setUploadError(result.message);
+      return;
+    }
+    const defaultAlt = file.name.replace(/\.\w+$/, "").replace(/[-_]+/g, " ").trim();
+    const alt = window.prompt("Alt text (a short description of the image)", defaultAlt) ?? defaultAlt;
+    insertAtSelection(`![${alt}](${result.url})`);
   }
 
   return (
@@ -132,9 +154,17 @@ export function MarkdownLiteEditor({
           <button type="button" title="Link" aria-label="Link" onClick={insertLink} className={TOOLBAR_BUTTON_CLASS}>
             <Link2 className="h-4 w-4" />
           </button>
-          <button type="button" title="Image" aria-label="Image" onClick={insertImage} className={TOOLBAR_BUTTON_CLASS}>
+          <button
+            type="button"
+            title="Upload image"
+            aria-label="Upload image"
+            disabled={uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className={TOOLBAR_BUTTON_CLASS}
+          >
             <ImageIcon className="h-4 w-4" />
           </button>
+          {uploading && <span className="text-xs text-slate-400">Uploading…</span>}
         </div>
         <div className="flex items-center gap-0.5 rounded bg-slate-200/70 p-0.5 dark:bg-neutral-800">
           <button type="button" onClick={() => setMode("write")} className={TAB_BUTTON_CLASS(mode === "write")}>
@@ -145,6 +175,7 @@ export function MarkdownLiteEditor({
           </button>
         </div>
       </div>
+      {uploadError && <p className="border-b border-slate-200 bg-rose-50 px-3 py-1.5 text-xs text-rose-600 dark:border-neutral-800 dark:bg-rose-950/40 dark:text-rose-400">{uploadError}</p>}
 
       <textarea
         ref={textareaRef}
@@ -162,6 +193,7 @@ export function MarkdownLiteEditor({
           {renderMarkdownLite(value) ?? <p className="text-slate-400">Nothing to preview yet.</p>}
         </div>
       )}
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelected} className="hidden" />
     </div>
   );
 }
