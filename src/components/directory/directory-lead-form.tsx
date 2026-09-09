@@ -59,6 +59,12 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="slug" value={slug} />
+      {/* The page's own URL already carries the locale (see
+          src/app/[locale]/directory/[slug]/page.tsx) — more reliable than
+          the directory_locale cookie submitDirectoryLead used to fall back
+          on, which can lag behind (e.g. a visitor who followed a direct
+          /zh/... link without ever using the language switcher). */}
+      <input type="hidden" name="locale" value={locale} />
       {/* Honeypot: hidden from real visitors, often filled in by bots. */}
       <div className="absolute left-[-9999px]" aria-hidden="true">
         <label htmlFor="directory-website">Leave this field blank</label>

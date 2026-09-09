@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { updateListingSlug } from "@/app/actions/directory";
+import { directoryListingPath } from "@/lib/directory-i18n";
 import { Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
@@ -28,7 +29,7 @@ export function PartnerSlugForm({
     if (state && "success" in state) setValue(state.slug);
   }
 
-  const prefix = `${siteOrigin}/directory/`;
+  const prefix = `${siteOrigin}${directoryListingPath("en", "")}`;
 
   return (
     <form action={formAction} className="space-y-3">

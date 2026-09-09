@@ -7,13 +7,22 @@ import { DEFAULT_DIRECTORY_LOCALE, type DirectoryLocale } from "@/lib/directory-
 // English first the way the plain /lead form's client-only locale does.
 export const DIRECTORY_LOCALE_COOKIE = "directory_locale";
 
-// Exported for pages that carry a friendly, per-language URL (a category
-// page's own trailing /zh or /ms segment, or a ?lang= override elsewhere) —
-// a crawler never sends the directory_locale cookie, so this is how those
-// URLs actually render in a specific language rather than always falling
-// back to English or an Accept-Language guess.
+// Exported for pages that carry a friendly, per-language URL (every
+// /[locale]/directory/... route's own leading segment, or a legacy ?lang=
+// override on the old bare /directory/* redirect stubs) — a crawler never
+// sends the directory_locale cookie, so this is how those URLs actually
+// render in a specific language rather than always falling back to
+// English or an Accept-Language guess.
 export function isDirectoryLocale(value: string | undefined): value is DirectoryLocale {
   return value === "en" || value === "zh" || value === "ms";
+}
+
+// Same check, but returning the narrowed value (or null) instead of acting
+// as a type guard — what every /[locale]/... route's own generateMetadata
+// and page component call to validate their own URL segment and notFound()
+// on anything else, since App Router route params arrive as plain strings.
+export function resolveDirectoryLocale(locale: string): DirectoryLocale | null {
+  return isDirectoryLocale(locale) ? locale : null;
 }
 
 // The cookie wins once a visitor has actually picked a language; before

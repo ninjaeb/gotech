@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
 import type { PublishedListingSnapshot } from "@/lib/directory";
 import type { Industry } from "@/generated/prisma/client";
-import type { DirectoryStrings } from "@/lib/directory-i18n";
+import type { DirectoryLocale, DirectoryStrings } from "@/lib/directory-i18n";
 
 type ListingRow = { slug: string; listing: PublishedListingSnapshot };
 
@@ -18,6 +18,7 @@ export function DirectorySearch({
   industryLabels,
   categories,
   t,
+  locale,
   initialQuery,
   initialIndustry,
   initialCategory,
@@ -34,6 +35,7 @@ export function DirectorySearch({
   // display (see translateCategoryName).
   categories: { value: string; label: string }[];
   t: DirectoryStrings;
+  locale: DirectoryLocale;
   initialQuery: string;
   initialIndustry: string;
   initialCategory: string;
@@ -127,6 +129,7 @@ export function DirectorySearch({
                 listing={listing}
                 viewLabel={t.viewListing}
                 industryLabel={listing.industry ? industryLabels[listing.industry] : undefined}
+                locale={locale}
               />
             ))}
           </div>

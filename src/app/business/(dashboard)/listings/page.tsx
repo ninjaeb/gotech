@@ -4,6 +4,7 @@ import { createListingAction } from "@/app/actions/directory";
 import { listPartnerListings } from "@/lib/directory";
 import { requirePartner } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
+import { directoryListingPath } from "@/lib/directory-i18n";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -50,7 +51,7 @@ export default async function PartnerListingsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => {
-            const publicUrl = listing.publishedSnapshot ? `${siteOrigin}/directory/${listing.slug}` : null;
+            const publicUrl = listing.publishedSnapshot ? `${siteOrigin}${directoryListingPath("en", listing.slug)}` : null;
             return (
               <Card key={listing.id}>
                 <CardBody className="space-y-3">

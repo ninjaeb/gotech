@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requirePartner } from "@/lib/auth/dal";
 import { faqsFromJson, getOwnedListing, operatingHoursFromJson, servicesFromJson, translationsFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
+import { directoryListingPath } from "@/lib/directory-i18n";
 import { isAiConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +27,7 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
   ]);
   const selectedCategoryIds = selectedCategories.map((entry) => entry.categoryId);
 
-  const publicUrl = listing.publishedSnapshot ? `${siteOrigin}/directory/${listing.slug}` : null;
+  const publicUrl = listing.publishedSnapshot ? `${siteOrigin}${directoryListingPath("en", listing.slug)}` : null;
 
   return (
     <div className="space-y-6">

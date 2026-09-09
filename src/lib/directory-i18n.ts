@@ -14,6 +14,25 @@ export const DIRECTORY_LOCALES: { code: DirectoryLocale; label: string }[] = [
   { code: "ms", label: "BM" },
 ];
 
+// Every directory URL carries its language as a leading path segment —
+// /en/directory, /zh/directory/some-company, /ms/directory/signup — English
+// included, rather than a bare default-locale URL, so all three languages
+// are equally real, bookmarkable, crawlable pages (see sitemap.ts) instead
+// of one "canonical" version plus query-param/cookie variants. The bare,
+// unprefixed /directory/* tree still exists (see src/app/directory/) but
+// only as a permanent redirect into here, for old links/bookmarks.
+export function directoryHomePath(locale: DirectoryLocale): string {
+  return `/${locale}/directory`;
+}
+
+export function directorySignupPath(locale: DirectoryLocale): string {
+  return `/${locale}/directory/signup`;
+}
+
+export function directoryListingPath(locale: DirectoryLocale, slug: string): string {
+  return `/${locale}/directory/${slug}`;
+}
+
 export const DEFAULT_DIRECTORY_LOCALE: DirectoryLocale = "en";
 
 export type DirectoryLeadFormErrorCode =

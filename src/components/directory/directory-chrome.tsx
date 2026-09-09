@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
 import { DirectoryNavMenu, type DirectoryViewer } from "@/components/directory/directory-nav-menu";
@@ -7,7 +8,13 @@ import { getSessionPayload } from "@/lib/auth/session";
 import { getBusinessSessionPayload } from "@/lib/business/session";
 import { db } from "@/lib/db";
 import { getDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
+import {
+  DIRECTORY_LOCALES,
+  DIRECTORY_STRINGS,
+  directoryHomePath,
+  directorySignupPath,
+  type DirectoryLocale,
+} from "@/lib/directory-i18n";
 
 // /system and /business each have their own session cookie (src/proxy.ts,
 // src/lib/business/session.ts) — a visitor here can be signed into either,
@@ -38,9 +45,16 @@ async function getDirectoryViewer(): Promise<DirectoryViewer> {
 // same site the whole way through, not dropped onto a bare page.
 export async function DirectoryChrome({
   children,
+  locale: localeProp,
   forceAnonymousNav = false,
 }: {
   children: React.ReactNode;
+  // Every /[locale]/directory/... page passes its own already-validated URL
+  // segment here, so the header renders in exactly that language with no
+  // extra cookie lookup. Omitted by pages outside the locale-prefixed tree
+  // (currently just /business/login, which still shares this same header)
+  // — those fall back to the cookie/Accept-Language guess as before.
+  locale?: DirectoryLocale;
   // /business/login sets this — a staff member's system_session is real,
   // but showing "Go to CRM" / "Sign out" right next to a "Sign in to your
   // business" form reads as if the page thinks you're already signed in
@@ -51,16 +65,23 @@ export async function DirectoryChrome({
   forceAnonymousNav?: boolean;
 }) {
   const [locale, viewer] = await Promise.all([
-    getDirectoryLocale(),
+    localeProp ? Promise.resolve(localeProp) : getDirectoryLocale(),
     forceAnonymousNav ? Promise.resolve(null) : getDirectoryViewer(),
   ]);
   const t = DIRECTORY_STRINGS[locale];
+  // Points into the real /[locale]/directory/... tree when the current
+  // page already knows its locale; otherwise the old bare /directory/*
+  // URL, which now just permanently redirects there anyway (see
+  // src/app/directory/page.tsx) — one extra hop only from a page like
+  // /business/login that isn't part of the locale-prefixed tree itself.
+  const directoryHref = localeProp ? directoryHomePath(localeProp) : "/directory";
+  const signupHref = localeProp ? directorySignupPath(localeProp) : "/directory/signup";
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-neutral-950">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
-          <Link href="/directory" className="flex shrink-0 items-center gap-2">
+          <Link href={directoryHref} className="flex shrink-0 items-center gap-2">
             <img src="/icon-192.png" alt="" className="h-8 w-8 shrink-0" />
             {/* "Gotka" only ever showed the wordmark, not what this page
                 actually is — dropped entirely on mobile to save space
@@ -71,7 +92,24 @@ export async function DirectoryChrome({
             </span>
           </Link>
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            <DirectoryLanguageSwitcher current={locale} />
+            {/* useSearchParams() (see directory-language-switcher.tsx, for
+                preserving the query string across a language swap) requires
+                a Suspense boundary around anything that might otherwise be
+                statically prerendered — the fallback is sized/styled the
+                same as the real switcher so there's no visible flash. */}
+            <Suspense
+              fallback={
+                <div className="flex gap-1" aria-hidden="true">
+                  {DIRECTORY_LOCALES.map((option) => (
+                    <span key={option.code} className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                      {option.label}
+                    </span>
+                  ))}
+                </div>
+              }
+            >
+              <DirectoryLanguageSwitcher current={locale} />
+            </Suspense>
             <ThemeToggle />
             <DirectoryNavMenu
               viewer={viewer}
@@ -82,6 +120,8 @@ export async function DirectoryChrome({
               myBusinessLabel={t.navMyBusiness}
               goToCrmLabel={t.navGoToCrm}
               signOutLabel={t.navSignOut}
+              directoryHref={directoryHref}
+              signupHref={signupHref}
             />
           </div>
         </div>

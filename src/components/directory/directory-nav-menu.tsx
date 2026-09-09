@@ -27,6 +27,8 @@ export function DirectoryNavMenu({
   myBusinessLabel,
   goToCrmLabel,
   signOutLabel,
+  directoryHref,
+  signupHref,
 }: {
   viewer: DirectoryViewer;
   logoutAction: () => void | Promise<void>;
@@ -36,6 +38,12 @@ export function DirectoryNavMenu({
   myBusinessLabel: string;
   goToCrmLabel: string;
   signOutLabel: string;
+  // Locale-aware (see directory-chrome.tsx) — never a bare "/directory" or
+  // "/directory/signup" here, so a click from within the locale-prefixed
+  // tree stays in that same language instead of round-tripping through the
+  // old bare URL's redirect.
+  directoryHref: string;
+  signupHref: string;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,7 +94,7 @@ export function DirectoryNavMenu({
               this is the state that link was missing from: a visitor
               browsing an outside-the-shell page like /directory/signup or
               /business/login had no way back into the directory itself. */}
-              <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+              <Link href={directoryHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <Store className="h-4 w-4 shrink-0 text-slate-400" />
                 {directoryLabel}
               </Link>
@@ -94,7 +102,7 @@ export function DirectoryNavMenu({
                 <LogIn className="h-4 w-4 shrink-0 text-slate-400" />
                 {loginLabel}
               </Link>
-              <Link href="/directory/signup" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+              <Link href={signupHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <Store className="h-4 w-4 shrink-0 text-slate-400" />
                 {listBusinessLabel}
               </Link>
@@ -102,7 +110,7 @@ export function DirectoryNavMenu({
           )}
           {viewer === "business" && (
             <>
-              <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+              <Link href={directoryHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <Store className="h-4 w-4 shrink-0 text-slate-400" />
                 {directoryLabel}
               </Link>

@@ -44,14 +44,18 @@ function isDirectoryLocale(value: unknown): value is DirectoryLocale {
 }
 
 // Called directly from the language switcher's onClick (wrapped in
-// startTransition), not a form submission — see the cookies() docs on
-// Server Functions: setting a cookie here automatically re-renders the
-// current route with the new value in the same round trip.
+// startTransition) alongside a real navigation to the locale-prefixed URL
+// (see directory-language-switcher.tsx) — this just keeps the "last
+// preferred language" cookie current for whenever there's no URL segment
+// to read it from instead: a fresh "/" visit, an old un-prefixed bookmark
+// (src/app/directory/page.tsx's redirect), or /business/login, which
+// shares this same header but isn't part of the locale-prefixed tree.
+// path: "/" (not just "/directory") so it's readable from all of those.
 export async function setDirectoryLocale(locale: string): Promise<void> {
   const value = isDirectoryLocale(locale) ? locale : DEFAULT_DIRECTORY_LOCALE;
   const cookieStore = await cookies();
   cookieStore.set(DIRECTORY_LOCALE_COOKIE, value, {
-    path: "/directory",
+    path: "/",
     maxAge: 60 * 60 * 24 * 365,
     sameSite: "lax",
   });
@@ -113,7 +117,12 @@ export async function submitDirectoryLead(
     return { status: "error", code: "listing_not_found" };
   }
 
-  const locale = (await cookies()).get(DIRECTORY_LOCALE_COOKIE)?.value;
+  // The page's own URL is the source of truth for locale (see
+  // src/app/[locale]/directory/[slug]/page.tsx) — the form carries it
+  // explicitly (see directory-lead-form.tsx); the cookie is only a
+  // fallback for an old cached page that predates that hidden field.
+  const formLocale = formData.get("locale");
+  const locale = isDirectoryLocale(formLocale) ? formLocale : (await cookies()).get(DIRECTORY_LOCALE_COOKIE)?.value;
 
   const lead = await db.directoryLead.create({
     data: {
