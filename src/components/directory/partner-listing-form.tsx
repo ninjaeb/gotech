@@ -168,8 +168,12 @@ export function PartnerListingForm({
     const context = contextFromForm();
     startRewriteDescription(async () => {
       const result = await rewriteListingDescription(description, { ...context, services: servicesContextText(services) });
-      if (result.status === "ok") setDescription(result.data.text);
-      else toast.error(result.message);
+      if (result.status === "ok") {
+        setDescription(result.data.text);
+        setJustSaved(false);
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 
@@ -188,6 +192,7 @@ export function PartnerListingForm({
             price: services[i]?.price ?? "",
           })),
         );
+        setJustSaved(false);
       } else {
         toast.error(result.message);
       }
@@ -200,6 +205,7 @@ export function PartnerListingForm({
       const result = await generateListingFaqs(faqs, { ...context, description, services: servicesContextText(services) });
       if (result.status === "ok") {
         setFaqs(result.data.faqs.map((entry) => ({ question: entry.question, answer: entry.answer })));
+        setJustSaved(false);
       } else {
         toast.error(result.message);
       }
@@ -216,6 +222,7 @@ export function PartnerListingForm({
       if (result.status === "ok") {
         setSeoTitle(result.data.title);
         setSeoDescription(result.data.description);
+        setJustSaved(false);
       } else {
         toast.error(result.message);
       }
@@ -233,14 +240,17 @@ export function PartnerListingForm({
 
   function updateTranslation(locale: TranslationLocale, field: "tagline" | "description", value: string) {
     setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), [field]: value } }));
+    setJustSaved(false);
   }
 
   function updateTranslatedServices(locale: TranslationLocale, newServices: ServiceEntry[]) {
     setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), services: newServices } }));
+    setJustSaved(false);
   }
 
   function updateTranslatedFaqs(locale: TranslationLocale, newFaqs: FaqEntry[]) {
     setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), faqs: newFaqs } }));
+    setJustSaved(false);
   }
 
   // Translates the primary tagline/description/services/faqs together, into
@@ -267,6 +277,7 @@ export function PartnerListingForm({
           zh: { ...result.data.zh, services: attachPrices(result.data.zh.services) },
           ms: { ...result.data.ms, services: attachPrices(result.data.ms.services) },
         });
+        setJustSaved(false);
       } else {
         toast.error(result.message);
       }
@@ -280,9 +291,15 @@ export function PartnerListingForm({
       className="space-y-5"
       // Native change/input events bubble here from any plain field the
       // visitor edits after a save — the signal that "Saved" is stale, so
-      // the button re-enables. Doesn't catch every custom widget's own
-      // button clicks (categories, FAQ/service row add-remove), but those
-      // are rare to touch alone without also editing a plain field nearby.
+      // the button re-enables. Content that changes without a native event
+      // (an AI rewrite/translate/generate response, or a MarkdownLiteEditor
+      // toolbar click, both of which just call a setState setter directly)
+      // clears it explicitly at the point of change instead — see
+      // handleRewriteDescription and friends, and updateTranslation/
+      // updateTranslatedServices/updateTranslatedFaqs above. Doesn't catch
+      // every custom widget's own button clicks (categories, FAQ/service
+      // row add-remove), but those are rare to touch alone without also
+      // editing a plain field nearby.
       onChange={() => setJustSaved(false)}
     >
       <div>
@@ -466,7 +483,10 @@ export function PartnerListingForm({
             listingId={listingId}
             rows={5}
             value={description}
-            onChange={setDescription}
+            onChange={(value) => {
+              setDescription(value);
+              setJustSaved(false);
+            }}
             placeholder="What does your business do?"
           />
           <p className="mt-1 text-xs text-slate-400">
