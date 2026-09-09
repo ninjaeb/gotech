@@ -31,7 +31,12 @@ export default async function EditTaskPage({
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, companyId: true, contactId: true },
     }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    // Assignees/followers (and the @mention list inside the description
+    // field, which also reads this list — see AttachmentField) are staff
+    // only: a Partner has no CRM inbox or task list of their own to see
+    // either one land in, same reasoning as team-member-row.tsx's own
+    // notification toggles.
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   if (!task) notFound();
 

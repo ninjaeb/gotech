@@ -5,6 +5,7 @@ import type { Task } from "@/generated/prisma/client";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
 import { Combobox } from "@/components/ui/combobox";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { AttachmentField } from "@/components/activity/attachment-field";
 import { AttachmentPreview, type AttachmentInfo } from "@/components/activity/attachment-preview";
@@ -170,57 +171,37 @@ export function TaskForm({
         </FieldGroup>
       </div>
 
-      <FieldGroup label="Assignees" htmlFor="assigneeIds-group">
-        {users.length === 0 ? (
-          <p className="text-sm text-slate-400">No users to assign this task to.</p>
-        ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {users.map((user, index) => (
-              <label
-                key={user.id}
-                htmlFor={`assigneeIds-${index}`}
-                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
-              >
-                <input
-                  id={`assigneeIds-${index}`}
-                  type="checkbox"
-                  name="assigneeIds"
-                  value={user.id}
-                  defaultChecked={assigneeIds.includes(user.id)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
-                />
-                {user.name}
-              </label>
-            ))}
-          </div>
-        )}
-      </FieldGroup>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FieldGroup label="Assignees" htmlFor="assigneeIds">
+          {users.length === 0 ? (
+            <p className="text-sm text-slate-400">No users to assign this task to.</p>
+          ) : (
+            <MultiCombobox
+              id="assigneeIds"
+              name="assigneeIds"
+              defaultValue={assigneeIds}
+              placeholder="Search team members…"
+              emptyMessage="No matching team members"
+              options={users.map((user) => ({ value: user.id, label: user.name }))}
+            />
+          )}
+        </FieldGroup>
 
-      <FieldGroup label="Followers" htmlFor="followerIds-group">
-        {users.length === 0 ? (
-          <p className="text-sm text-slate-400">No other users to follow this task.</p>
-        ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {users.map((user, index) => (
-              <label
-                key={user.id}
-                htmlFor={`followerIds-${index}`}
-                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
-              >
-                <input
-                  id={`followerIds-${index}`}
-                  type="checkbox"
-                  name="followerIds"
-                  value={user.id}
-                  defaultChecked={followerIds.includes(user.id)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
-                />
-                {user.name}
-              </label>
-            ))}
-          </div>
-        )}
-      </FieldGroup>
+        <FieldGroup label="Followers" htmlFor="followerIds">
+          {users.length === 0 ? (
+            <p className="text-sm text-slate-400">No other users to follow this task.</p>
+          ) : (
+            <MultiCombobox
+              id="followerIds"
+              name="followerIds"
+              defaultValue={followerIds}
+              placeholder="Search team members…"
+              emptyMessage="No matching team members"
+              options={users.map((user) => ({ value: user.id, label: user.name }))}
+            />
+          )}
+        </FieldGroup>
+      </div>
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit">{submitLabel}</Button>
