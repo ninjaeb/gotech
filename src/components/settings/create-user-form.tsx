@@ -17,11 +17,7 @@ export function CreateUserForm() {
   }, [state]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-3 border-t border-slate-100 pt-4 dark:border-neutral-800"
-    >
+    <form ref={formRef} action={formAction} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor="new-user-name">
