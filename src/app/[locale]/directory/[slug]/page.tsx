@@ -24,6 +24,8 @@ import {
 import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
+import { directoryReferralUrl } from "@/lib/referrals";
+import { getBusinessSessionPayload } from "@/lib/business/session";
 import { cn } from "@/lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,13 +34,36 @@ import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
 import { InquiryProvider, InquiryScrollTarget } from "@/components/directory/listing-inquiry";
 import { ServiceList } from "@/components/directory/service-list";
 import { ShareButton } from "@/components/directory/share-button";
+import { RecommendBar } from "@/components/directory/recommend-bar";
 
 export const dynamic = "force-dynamic";
 
 async function getPublishedListing(slug: string) {
   const listing = await db.partnerListing.findUnique({ where: { slug } });
   if (!listing) return null;
-  return readPublishedSnapshot(listing.publishedSnapshot);
+  const snapshot = readPublishedSnapshot(listing.publishedSnapshot);
+  // id/partnerId ride along with the snapshot so the page can tell whose
+  // listing this is — a partner gets a "Recommend" link for everyone
+  // else's listing, never their own.
+  return snapshot ? { ...snapshot, id: listing.id, partnerId: listing.partnerId } : null;
+}
+
+// Whether the visitor is a signed-in business owner with a referral code
+// — the only visitor who gets the Recommend button. Reads the business
+// session directly (non-redirecting) rather than requirePartner(): this is
+// a public page, and a signed-out visitor is the normal case, not an
+// error. A partner without a code (an account predating the referral
+// program that hasn't opened its portal since) just doesn't get the
+// button, same as anyone else.
+async function getRecommendingPartner(): Promise<{ id: string; referralCode: string } | null> {
+  const session = await getBusinessSessionPayload();
+  if (!session?.userId) return null;
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, role: true, referralCode: true },
+  });
+  if (!user || user.role !== "PARTNER" || !user.referralCode) return null;
+  return { id: user.id, referralCode: user.referralCode };
 }
 
 export async function generateMetadata({
@@ -227,6 +252,12 @@ export default async function DirectoryListingPage({
   const mapAddress = listing.address || listing.location;
   const pageUrl = `${siteOrigin}${directoryListingPath(resolved, slug)}`;
 
+  const recommender = await getRecommendingPartner();
+  const recommendUrl =
+    recommender && recommender.id !== listing.partnerId
+      ? directoryReferralUrl(siteOrigin, recommender.referralCode, slug, resolved)
+      : null;
+
   // The partner's own tagline/description stay the source of truth — a
   // translation only stands in for whichever field it actually covers, so a
   // half-filled translation (tagline only, say) still shows the primary
@@ -236,7 +267,9 @@ export default async function DirectoryListingPage({
   const displayDescription = translation?.description || listing.description;
 
   return (
-    <div className="w-full px-4 py-10 sm:px-8">
+    // Extra bottom padding when the RecommendBar is pinned over the page,
+    // so the inquiry form's submit button never hides behind it.
+    <div className={cn("w-full px-4 py-10 sm:px-8", recommendUrl && "pb-28")}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -289,7 +322,19 @@ export default async function DirectoryListingPage({
               )}
             </div>
           </div>
-          <ShareButton title={listing.companyName} url={pageUrl} />
+          <div className="flex shrink-0 items-center gap-2">
+            <ShareButton title={listing.companyName} url={pageUrl} />
+            {recommendUrl && (
+              <ShareButton
+                title={listing.companyName}
+                url={recommendUrl}
+                label={t.recommendLabel}
+                icon="recommend"
+                variant="primary"
+                className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -430,6 +475,8 @@ export default async function DirectoryListingPage({
           </InquiryScrollTarget>
         </div>
       </InquiryProvider>
+
+      {recommendUrl && <RecommendBar title={listing.companyName} url={recommendUrl} label={t.recommendBusinessCta} />}
     </div>
   );
 }

@@ -78,6 +78,11 @@ export type DirectoryStrings = {
   dayLabels: DirectoryDayLabels;
   websiteLabel: string;
   locationLabel: string;
+  // The listing page's "Recommend" affordances for a signed-in business
+  // owner — the small button beside Share, and the floating bottom-bar
+  // pill (see RecommendBar). Both share one referral-tracking link.
+  recommendLabel: string;
+  recommendBusinessCta: string;
   contactHeading: string;
   contactSubheading: string;
   formNameLabel: string;
@@ -171,6 +176,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     },
     websiteLabel: "Website",
     locationLabel: "Location",
+    recommendLabel: "Recommend",
+    recommendBusinessCta: "Recommend the Business",
     contactHeading: "Get in touch",
     contactSubheading: "Send a message directly to this business — they'll reply to the email address you provide.",
     formNameLabel: "Name",
@@ -271,6 +278,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       sunday: "星期日",
     },
     websiteLabel: "网站",
+    recommendLabel: "推荐",
+    recommendBusinessCta: "推荐这家企业",
     locationLabel: "地点",
     contactHeading: "联系我们",
     contactSubheading: "直接给这家企业发送信息——他们会回复您提供的电子邮件地址。",
@@ -372,6 +381,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       sunday: "Ahad",
     },
     websiteLabel: "Laman web",
+    recommendLabel: "Syorkan",
+    recommendBusinessCta: "Syorkan Perniagaan Ini",
     locationLabel: "Lokasi",
     contactHeading: "Hubungi kami",
     contactSubheading: "Hantar mesej terus kepada perniagaan ini — mereka akan membalas ke alamat e-mel yang anda berikan.",
