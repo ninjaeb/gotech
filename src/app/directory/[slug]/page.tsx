@@ -209,7 +209,7 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(listing.faqs) }}
         />
       )}
-      <div className="sticky top-0 z-10 -mx-4 mb-8 border-b border-slate-200 bg-white px-4 py-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
           <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
           <div className="min-w-0 flex-1">

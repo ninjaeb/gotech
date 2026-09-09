@@ -8,7 +8,7 @@ import { DirectorySearch } from "@/components/directory/directory-search";
 import { getSiteOrigin } from "@/lib/site-url";
 
 const TITLE = "Business Directory";
-const DESCRIPTION = "A directory of trusted partners in the Gotka network.";
+const DESCRIPTION = "A directory of trusted businesses in the Gotka network.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteOrigin = await getSiteOrigin();
