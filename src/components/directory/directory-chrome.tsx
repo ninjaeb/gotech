@@ -36,8 +36,24 @@ async function getDirectoryViewer(): Promise<DirectoryViewer> {
 // minimal centered-card wrapper the CRM's own /system/login and internal
 // forms use. A partner filling in a form should feel like they're on the
 // same site the whole way through, not dropped onto a bare page.
-export async function DirectoryChrome({ children }: { children: React.ReactNode }) {
-  const [locale, viewer] = await Promise.all([getDirectoryLocale(), getDirectoryViewer()]);
+export async function DirectoryChrome({
+  children,
+  forceAnonymousNav = false,
+}: {
+  children: React.ReactNode;
+  // /business/login sets this — a staff member's system_session is real,
+  // but showing "Go to CRM" / "Sign out" right next to a "Sign in to your
+  // business" form reads as if the page thinks you're already signed in
+  // *here*, which you never legitimately are: proxyBusinessRoute already
+  // redirects anyone holding a real business_session away from this page
+  // before it renders, so the only session this page could otherwise show
+  // is a staff one that has nothing to do with what it's asking for.
+  forceAnonymousNav?: boolean;
+}) {
+  const [locale, viewer] = await Promise.all([
+    getDirectoryLocale(),
+    forceAnonymousNav ? Promise.resolve(null) : getDirectoryViewer(),
+  ]);
   const t = DIRECTORY_STRINGS[locale];
 
   return (
