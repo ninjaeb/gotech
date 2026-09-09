@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.66",
+    date: "2026-09-09",
+    title: "Directory nav menu no longer surfaces the internal /system link",
+    changes: [
+      "A staff member browsing the public directory while signed in now gets a \"Go to CRM\" menu link that no longer exposes the CRM's internal /system path directly — it routes through the business portal, which sends them on to the right place",
+    ],
+  },
+  {
     version: "1.65",
     date: "2026-09-09",
     title: "Settings → Team: mobile layout fix, System logins vs Partners",
