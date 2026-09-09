@@ -151,7 +151,9 @@ export function PartnerListingForm({
         setDisplayError({ error: result.error, field: result.field });
       } else {
         setDisplayError(null);
-        toast.success("Submitted — an admin will review it shortly.");
+        toast.success(
+          result?.published ? "Published — your listing is now live." : "Submitted — an admin will review it shortly.",
+        );
       }
     });
   }

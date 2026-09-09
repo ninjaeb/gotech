@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { DEFAULT_WEEKLY_HOURS, parseWeeklyHours, type WeeklyHours } from "@/lib/booking";
+import type { DirectoryApprovalMode } from "@/generated/prisma/client";
 
 const SETTINGS_ID = "singleton";
 
@@ -15,6 +16,7 @@ const DEFAULT_SETTINGS = {
   newsletterSubscribeListId: null as string | null,
   referralCommissionRate: 10,
   referralLandingUrl: "https://gotka.com/landing/new-business/",
+  directoryApprovalMode: "EVERY_SUBMISSION" as DirectoryApprovalMode,
 };
 
 export const getSettings = cache(async () => {
@@ -125,5 +127,21 @@ export async function setReferralSettings(data: { commissionRate: number; landin
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, ...values },
     update: values,
+  });
+}
+
+// Settings → Directory's "Listing approval" control — see
+// DirectoryApprovalMode in schema.prisma for what each value means, and
+// its enforcement in src/app/actions/directory.ts's submitDirectoryListingForReview.
+export async function getDirectoryApprovalMode() {
+  const settings = await getSettings();
+  return settings.directoryApprovalMode;
+}
+
+export async function setDirectoryApprovalMode(mode: DirectoryApprovalMode) {
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, directoryApprovalMode: mode },
+    update: { directoryApprovalMode: mode },
   });
 }

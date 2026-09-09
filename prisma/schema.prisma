@@ -290,6 +290,10 @@ model Settings {
   // appends and passes it back with the submission.
   referralCommissionRate Decimal @default(10) @db.Decimal(5, 2)
   referralLandingUrl     String  @default("https://gotka.com/landing/new-business/")
+
+  // Settings → Directory's "Listing approval" control — see
+  // DirectoryApprovalMode above for what each value means.
+  directoryApprovalMode DirectoryApprovalMode @default(EVERY_SUBMISSION)
 }
 
 enum Industry {
@@ -1549,6 +1553,22 @@ enum PartnerListingStatus {
   PENDING_REVIEW
   PUBLISHED
   REJECTED
+}
+
+// Settings → Directory's "Listing approval" control (see
+// src/lib/settings.ts, src/app/actions/directory.ts) — governs whether a
+// partner's Submit for review goes to the admin queue or straight live.
+// EVERY_SUBMISSION is the original, still-default behavior: every
+// submission, first or not, needs a look. FIRST_SUBMISSION_ONLY checks
+// PartnerListing.publishedAt to tell "never published before" apart from
+// "published at least once" — only the former still goes to PENDING_REVIEW.
+// NONE skips PENDING_REVIEW entirely; every submission publishes itself
+// immediately (see publishListing in actions/directory.ts, shared with the
+// admin's own Approve button).
+enum DirectoryApprovalMode {
+  EVERY_SUBMISSION
+  FIRST_SUBMISSION_ONLY
+  NONE
 }
 
 // A PARTNER user's public profile in the directory (/directory/<slug>).

@@ -33,7 +33,8 @@ import { notifyPartnerOfNewLead, sendDirectoryLeadReply } from "@/lib/directory-
 import { DIRECTORY_LOCALE_COOKIE } from "@/lib/directory-locale";
 import { DEFAULT_DIRECTORY_LOCALE, type DirectoryLeadFormErrorCode, type DirectoryLocale } from "@/lib/directory-i18n";
 import { DIRECTORY_LEAD_STATUSES, INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
-import { Prisma, type DirectoryLeadStatus, type Industry } from "@/generated/prisma/client";
+import { getDirectoryApprovalMode, setDirectoryApprovalMode } from "@/lib/settings";
+import { Prisma, type DirectoryApprovalMode, type DirectoryLeadStatus, type Industry } from "@/generated/prisma/client";
 import { AI_NOT_CONFIGURED, callAi, isAiConfigured, type AiResult } from "@/lib/ai/client";
 
 // ---------------------------------------------------------------------------
@@ -526,7 +527,7 @@ async function saveListingFields(
   partner: { id: string; name: string },
   listingId: string,
   formData: FormData,
-  extraData: { status: "PENDING_REVIEW"; submittedAt: Date } | Record<string, never> = {},
+  extraData: { status: "PENDING_REVIEW"; submittedAt: Date } | { submittedAt: Date } | Record<string, never> = {},
 ): Promise<ListingSaveResult> {
   const values = extractListingFormValues(formData);
   const parsed = listingSchema.safeParse(values);
@@ -664,14 +665,27 @@ export async function updateListingSlug(
 
 export type SubmitListingState =
   | { error: string; field?: ListingFormField }
-  | { success: true }
+  | { success: true; published: boolean }
   | undefined;
 
+// Whether this listing's *next* submission needs an admin's look, per
+// Settings → Directory's approval mode: EVERY_SUBMISSION always does;
+// FIRST_SUBMISSION_ONLY only does before the listing has ever been
+// published (publishedAt is the record of that — set once by publishListing
+// below and never cleared again, unlike status itself, which does reset to
+// DRAFT/PENDING_REVIEW/REJECTED over a listing's life); NONE never does.
+function submissionNeedsReview(mode: DirectoryApprovalMode, publishedBefore: boolean): boolean {
+  if (mode === "NONE") return false;
+  if (mode === "FIRST_SUBMISSION_ONLY") return !publishedBefore;
+  return true;
+}
+
 // Saves the current form contents and, if they include a name and at least
-// one service, asks an admin to review them — an empty shell isn't worth
-// anyone's review time. `listingId` comes from the caller (see
-// handleSubmitForReview in partner-listing-form.tsx), same
-// bound-and-ownership-checked treatment as saveDirectoryListing.
+// one service, either asks an admin to review them or — depending on
+// Settings → Directory's approval mode — publishes them immediately.
+// `listingId` comes from the caller (see handleSubmitForReview in
+// partner-listing-form.tsx), same bound-and-ownership-checked treatment as
+// saveDirectoryListing.
 export async function submitDirectoryListingForReview(
   listingId: string,
   _prevState: SubmitListingState,
@@ -687,17 +701,34 @@ export async function submitDirectoryListingForReview(
     return { error: "List at least one service before submitting.", field: "services" };
   }
 
-  const result = await saveListingFields(partner, listingId, formData, {
-    status: "PENDING_REVIEW",
-    submittedAt: new Date(),
-  });
+  const [existingListing, approvalMode] = await Promise.all([
+    getOwnedListing(listingId, partner.id),
+    getDirectoryApprovalMode(),
+  ]);
+  if (!existingListing) {
+    return { error: "Listing not found." };
+  }
+  const needsReview = submissionNeedsReview(approvalMode, existingListing.publishedAt !== null);
+
+  const result = await saveListingFields(
+    partner,
+    listingId,
+    formData,
+    needsReview ? { status: "PENDING_REVIEW", submittedAt: new Date() } : { submittedAt: new Date() },
+  );
   if (!result.ok) return { error: result.error, field: result.field };
+
+  if (!needsReview) {
+    const published = await publishListing(listingId);
+    revalidatePath("/directory");
+    revalidatePath(`/directory/${published.slug}`);
+  }
 
   revalidatePath("/business");
   revalidatePath("/business/listings");
   revalidatePath(`/business/listings/${listingId}`);
   revalidatePath("/system/settings/directory");
-  return { success: true };
+  return { success: true, published: !needsReview };
 }
 
 async function ownedLeadOrThrow(leadId: string, partnerId: string) {
@@ -819,13 +850,15 @@ export async function replyToDirectoryLead(
 // Admin side
 // ---------------------------------------------------------------------------
 
-export async function approveDirectoryListing(id: string): Promise<void> {
-  await requireAdminAction();
+// Builds and attaches the published snapshot — shared by the admin's own
+// Approve button below and submitDirectoryListingForReview's own
+// self-approval path above, whichever one decides a listing goes live.
+async function publishListing(id: string) {
   const listing = await db.partnerListing.findUniqueOrThrow({
     where: { id },
     include: { categories: { include: { category: true } } },
   });
-  await db.partnerListing.update({
+  return db.partnerListing.update({
     where: { id },
     data: {
       status: "PUBLISHED",
@@ -838,9 +871,37 @@ export async function approveDirectoryListing(id: string): Promise<void> {
       ),
     },
   });
+}
+
+export async function approveDirectoryListing(id: string): Promise<void> {
+  await requireAdminAction();
+  const listing = await publishListing(id);
   revalidatePath("/system/settings/directory");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
+}
+
+export type DirectorySettingsState = { error: string } | { success: true } | undefined;
+
+const approvalModeSchema = z.object({
+  mode: z.enum(["EVERY_SUBMISSION", "FIRST_SUBMISSION_ONLY", "NONE"]),
+});
+
+// Settings → Directory's "Listing approval" control — see
+// DirectoryApprovalMode in schema.prisma and submissionNeedsReview above for
+// what each value actually changes.
+export async function updateDirectoryApprovalMode(
+  _prevState: DirectorySettingsState,
+  formData: FormData,
+): Promise<DirectorySettingsState> {
+  await requireAdminAction();
+  const parsed = approvalModeSchema.safeParse({ mode: formData.get("mode") });
+  if (!parsed.success) {
+    return { error: "Invalid approval mode." };
+  }
+  await setDirectoryApprovalMode(parsed.data.mode);
+  revalidatePath("/system/settings/directory");
+  return { success: true };
 }
 
 const rejectSchema = z.object({

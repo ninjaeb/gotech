@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getDirectoryOverviewStats, groupOperatingHours, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
 import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
-import { getCurrency } from "@/lib/settings";
+import { getCurrency, getDirectoryApprovalMode } from "@/lib/settings";
 import { formatCurrencyExact, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { DirectoryApprovalSettingsForm } from "@/components/directory/directory-approval-settings-form";
 import {
   approveDirectoryListing,
   rejectDirectoryListing,
@@ -45,9 +46,10 @@ function formatOperatingHoursPreview(value: unknown): string[] {
 
 export default async function DirectorySettingsPage() {
   await requireAdmin();
-  const [stats, currency, pendingListings, allListings, businessCategories, recentLeads] = await Promise.all([
+  const [stats, currency, approvalMode, pendingListings, allListings, businessCategories, recentLeads] = await Promise.all([
     getDirectoryOverviewStats(),
     getCurrency(),
+    getDirectoryApprovalMode(),
     db.partnerListing.findMany({
       where: { status: "PENDING_REVIEW" },
       orderBy: { submittedAt: "asc" },
@@ -93,6 +95,15 @@ export default async function DirectorySettingsPage() {
         />
         <StatCard label="Won value" value={formatCurrencyExact(stats.wonValue, currency)} icon={Banknote} accent="indigo" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Listing approval</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <DirectoryApprovalSettingsForm mode={approvalMode} />
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader>
