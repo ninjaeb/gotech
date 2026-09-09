@@ -10,15 +10,25 @@ import { db } from "@/lib/db";
 
 const STATE_COOKIE = "google_oauth_state";
 
-function failure(request: NextRequest, code: string) {
-  const url = new URL("/directory/signup", request.url);
+// `request.url`/`request.nextUrl` reflect the request as cPanel's proxy
+// forwards it to the Node process it's bound to (http://localhost:3000/...)
+// — not the public domain the visitor actually used. getSiteOrigin() reads
+// the X-Forwarded-Host/-Proto headers that proxy sets instead (see
+// src/lib/site-url.ts), the same header-based origin already used a few
+// lines below to build the redirect_uri sent to Google itself — every
+// redirect back to the browser here needs to use that same origin, or the
+// visitor ends up bounced to a URL only the server itself can reach.
+function failure(siteOrigin: string, code: string) {
+  const url = new URL("/directory/signup", siteOrigin);
   url.searchParams.set("error", code);
   return NextResponse.redirect(url);
 }
 
 export async function GET(request: NextRequest) {
+  const siteOrigin = await getSiteOrigin();
+
   if (!isGoogleAuthConfigured()) {
-    return failure(request, "google_unavailable");
+    return failure(siteOrigin, "google_unavailable");
   }
 
   const code = request.nextUrl.searchParams.get("code");
@@ -26,25 +36,24 @@ export async function GET(request: NextRequest) {
   const storedState = request.cookies.get(STATE_COOKIE)?.value;
 
   if (!code || !stateParam || !storedState || stateParam !== storedState) {
-    const res = failure(request, "google_failed");
+    const res = failure(siteOrigin, "google_failed");
     res.cookies.delete(STATE_COOKIE);
     return res;
   }
 
   const state = await verifyGoogleOAuthState(stateParam);
   if (!state) {
-    const res = failure(request, "google_failed");
+    const res = failure(siteOrigin, "google_failed");
     res.cookies.delete(STATE_COOKIE);
     return res;
   }
 
   try {
-    const siteOrigin = await getSiteOrigin();
     const redirectUri = `${siteOrigin}/api/auth/google/callback`;
     const tokens = await exchangeGoogleCode(code, redirectUri);
     const profile = await verifyGoogleIdToken(tokens.id_token);
     if (!profile.emailVerified) {
-      const res = failure(request, "email_unverified");
+      const res = failure(siteOrigin, "email_unverified");
       res.cookies.delete(STATE_COOKIE);
       return res;
     }
@@ -66,11 +75,11 @@ export async function GET(request: NextRequest) {
     // email) — send them to wherever their own role actually lives rather
     // than assuming the partner portal.
     const user = await db.user.findUniqueOrThrow({ where: { id: result.userId }, select: { role: true } });
-    const res = NextResponse.redirect(new URL(homeForRole(user.role), request.url));
+    const res = NextResponse.redirect(new URL(homeForRole(user.role), siteOrigin));
     res.cookies.delete(STATE_COOKIE);
     return res;
   } catch {
-    const res = failure(request, "google_failed");
+    const res = failure(siteOrigin, "google_failed");
     res.cookies.delete(STATE_COOKIE);
     return res;
   }
