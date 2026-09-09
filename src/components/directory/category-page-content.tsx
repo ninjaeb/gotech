@@ -6,7 +6,6 @@ import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE, type D
 import {
   findCategoryBySlug,
   readPublishedSnapshot,
-  slugify,
   buildDirectoryCollectionJsonLd,
   type PublishedListingSnapshot,
 } from "@/lib/directory";
@@ -106,10 +105,6 @@ export async function CategoryPageContent({
         directoryUrl={pageUrl}
         heading={heading}
         subheading={description}
-        categoryLinks={businessCategories.map((row) => ({
-          name: translateCategoryName(row.name, locale),
-          href: categoryPath(slugify(row.name), locale),
-        }))}
       />
     </>
   );

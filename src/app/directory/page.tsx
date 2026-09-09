@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getDirectoryLocale, isDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE } from "@/lib/directory-i18n";
-import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
-import { readPublishedSnapshot, slugify, buildDirectoryCollectionJsonLd, type PublishedListingSnapshot } from "@/lib/directory";
+import { translateCategoryName } from "@/lib/directory-category-labels";
+import { readPublishedSnapshot, buildDirectoryCollectionJsonLd, type PublishedListingSnapshot } from "@/lib/directory";
 import { INDUSTRIES } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -112,10 +112,6 @@ export default async function DirectoryHomePage({
         initialIndustry={industry ?? ""}
         initialCategory={category ?? ""}
         directoryUrl={directoryUrl}
-        categoryLinks={businessCategories.map((row) => ({
-          name: translateCategoryName(row.name, locale),
-          href: categoryPath(slugify(row.name), locale),
-        }))}
       />
     </>
   );

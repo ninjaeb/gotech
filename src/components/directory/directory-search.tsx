@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Search, Handshake } from "lucide-react";
 import { ListingCard } from "@/components/directory/listing-card";
 import { ShareButton } from "@/components/directory/share-button";
@@ -25,7 +24,6 @@ export function DirectorySearch({
   directoryUrl,
   heading,
   subheading,
-  categoryLinks,
 }: {
   listings: ListingRow[];
   industries: Industry[];
@@ -45,11 +43,6 @@ export function DirectorySearch({
   // category); the home page omits these and gets t.heroTitle/heroSubtitle.
   heading?: string;
   subheading?: string;
-  // Real <a href> links to each category's own friendly URL — the category
-  // <Select> above is client-side JS with no href a crawler can follow, so
-  // without this a search engine would only ever discover those pages via
-  // the sitemap, never through the directory's own on-page links.
-  categoryLinks?: { name: string; href: string }[];
 }) {
   // Filters entirely in the browser as the user types — no round trip, no
   // debounce needed. Safe because the whole listing set is fetched once up
@@ -119,20 +112,6 @@ export function DirectorySearch({
               )}
             </div>
           </form>
-
-          {categoryLinks && categoryLinks.length > 0 && (
-            <nav aria-label={t.allCategories} className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-2">
-              {categoryLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-petrol hover:text-petrol dark:border-neutral-700 dark:text-slate-300 dark:hover:border-petrol-light dark:hover:text-petrol-light"
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-          )}
         </div>
       </div>
 
