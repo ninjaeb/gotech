@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/session";
 import { decryptPortalSession } from "@/lib/portal/session";
+import { decryptBusinessSession } from "@/lib/business/session";
 
-// Routes logged-out visitors can reach at all. Two separate login pages —
-// /system for staff, /business for partners — each redirected to below
-// based on which section the visitor was actually headed for, not a
-// single shared login the way this repo used to have one.
-const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login", "/business/login"];
+// Routes logged-out visitors can reach at all. /business/login is handled
+// entirely separately, in proxyBusinessRoute below, since it checks a
+// different cookie.
+const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // Routes that stay public even for a logged-in user — e.g. a shared quote
 // link, which staff previewing it shouldn't get bounced away from.
 // /api/whatsapp/webhook is Meta's server calling in directly (no session
@@ -75,6 +75,31 @@ async function proxyPortalRoute(request: NextRequest, pathname: string) {
   return NextResponse.next();
 }
 
+// The business portal (/business/*) is a third, independent visitor type
+// with its own cookie and signing key (see src/lib/business/session.ts),
+// handled entirely separately before the staff-session logic below — same
+// isolation, same reasoning, as the client portal's own proxyPortalRoute:
+// a staff `session` cookie can't substitute for a `business_session` and
+// is never even inspected for these paths, and vice versa for every other
+// route. This is what lets a browser stay signed into /system and
+// /business at the same time.
+const BUSINESS_AUTH_ONLY_PUBLIC_ROUTES = ["/business/login"];
+
+async function proxyBusinessRoute(request: NextRequest, pathname: string) {
+  const isAuthOnlyPublic = BUSINESS_AUTH_ONLY_PUBLIC_ROUTES.includes(pathname);
+  const session = await decryptBusinessSession(request.cookies.get("business_session")?.value);
+
+  if (!isAuthOnlyPublic && !session?.userId) {
+    return NextResponse.redirect(new URL("/business/login", request.url));
+  }
+
+  if (isAuthOnlyPublic && session?.userId) {
+    return NextResponse.redirect(new URL("/business", request.url));
+  }
+
+  return NextResponse.next();
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -89,24 +114,21 @@ export async function proxy(request: NextRequest) {
     return proxyPortalRoute(request, pathname);
   }
 
+  if (pathname === "/business" || pathname.startsWith("/business/")) {
+    return proxyBusinessRoute(request, pathname);
+  }
+
   const isAuthOnlyPublic = AUTH_ONLY_PUBLIC_ROUTES.includes(pathname);
   const isAlwaysPublic = ALWAYS_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isPublicRoute = isAuthOnlyPublic || isAlwaysPublic;
   const session = await decrypt(request.cookies.get("session")?.value);
-  const isBusinessSection = pathname === "/business" || pathname.startsWith("/business/");
 
   if (!isPublicRoute && !session?.userId) {
-    const loginPath = isBusinessSection ? "/business/login" : "/system/login";
-    return NextResponse.redirect(new URL(loginPath, request.url));
+    return NextResponse.redirect(new URL("/system/login", request.url));
   }
 
   if (isAuthOnlyPublic && session?.userId) {
-    // Proxy only knows a session exists here, not its role (role isn't in
-    // the JWT payload) — landing on the wrong section's home is a harmless
-    // extra hop, since that section's own layout bounces by role anyway
-    // (see homeForRole in src/lib/auth/dal.ts).
-    const target = pathname === "/business/login" ? "/business" : "/system";
-    return NextResponse.redirect(new URL(target, request.url));
+    return NextResponse.redirect(new URL("/system", request.url));
   }
 
   return NextResponse.next();

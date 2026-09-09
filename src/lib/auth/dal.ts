@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionPayload } from "@/lib/auth/session";
+import { getBusinessSessionPayload } from "@/lib/business/session";
 import type { Role } from "@/generated/prisma/client";
 
 export const verifySession = cache(async () => {
@@ -22,6 +23,34 @@ export const getCurrentUser = cache(async () => {
   });
   if (!user) {
     redirect("/system/login");
+  }
+  return user;
+});
+
+// The business portal's own session (src/lib/business/session.ts) — a
+// separate cookie and signing key from the staff session above, so a
+// browser can be signed into /system and /business at once. Mirrors
+// verifySession/getCurrentUser exactly, just sourced from that cookie and
+// redirecting to /business/login instead of /system/login when it's
+// missing. Deliberately doesn't check role === "PARTNER" here (same as
+// getCurrentUser not checking role === "ADMIN") — that's each require*
+// function's own job below.
+export const verifyBusinessSession = cache(async () => {
+  const session = await getBusinessSessionPayload();
+  if (!session?.userId) {
+    redirect("/business/login");
+  }
+  return session;
+});
+
+export const getCurrentBusinessUser = cache(async () => {
+  const session = await verifyBusinessSession();
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true },
+  });
+  if (!user) {
+    redirect("/business/login");
   }
   return user;
 });
@@ -52,12 +81,16 @@ export async function requireAdmin() {
   return user;
 }
 
-// For the business portal's Server Components — the mirror image of
-// requireAdmin: staff of either role get sent back to their own home.
+// For the business portal's Server Components — reads the business
+// session (see getCurrentBusinessUser above), not the staff one. Redirects
+// to /business/login rather than homeForRole on a role mismatch: a valid
+// business_session cookie whose user's role has since changed away from
+// PARTNER needs to sign in again at its own front door, not get bounced
+// into /system where it has no staff session to land on anyway.
 export async function requirePartner() {
-  const user = await getCurrentUser();
+  const user = await getCurrentBusinessUser();
   if (user.role !== "PARTNER") {
-    redirect(homeForRole(user.role));
+    redirect("/business/login");
   }
   return user;
 }
@@ -65,7 +98,7 @@ export async function requirePartner() {
 // For the business portal's Server Actions (same throw-not-redirect
 // convention as requireAdminAction).
 export async function requirePartnerAction() {
-  const user = await getCurrentUser();
+  const user = await getCurrentBusinessUser();
   if (user.role !== "PARTNER") {
     throw new Error("Partners only.");
   }

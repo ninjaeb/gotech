@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
 import { exchangeGoogleCode, isGoogleAuthConfigured, verifyGoogleIdToken, verifyGoogleOAuthState } from "@/lib/auth/google";
 import { hashPassword } from "@/lib/auth/password";
-import { createSession } from "@/lib/auth/session";
+import { createBusinessSession } from "@/lib/business/session";
 import { PARTNER_HOME } from "@/lib/auth/dal";
 import { registerOrSignInPartnerWithGoogle } from "@/lib/partner-signup";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       return res;
     }
 
-    await createSession(result.userId);
+    await createBusinessSession(result.userId);
     const res = NextResponse.redirect(new URL(PARTNER_HOME, siteOrigin));
     res.cookies.delete(STATE_COOKIE);
     return res;

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, deleteSession } from "@/lib/auth/session";
+import { createBusinessSession, deleteBusinessSession } from "@/lib/business/session";
 import { PARTNER_HOME, homeForRole } from "@/lib/auth/dal";
 
 const loginSchema = z.object({
@@ -49,7 +50,10 @@ export async function logout() {
 
 // Business (partner) sign-in, at /business/login — the mirror image of
 // login() above: a staff account's correct password is rejected here too,
-// same reasoning.
+// same reasoning. Creates a business_session (src/lib/business/session.ts)
+// rather than the staff session — a separate cookie and signing key, so
+// this never touches (or gets touched by) a staff login in the same
+// browser.
 export async function businessLogin(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
@@ -68,14 +72,16 @@ export async function businessLogin(_prevState: LoginState, formData: FormData):
     return { error: "This sign-in is for business accounts. Staff sign in at /system/login." };
   }
 
-  await createSession(user.id);
+  await createBusinessSession(user.id);
   redirect(PARTNER_HOME);
 }
 
-// Business sign-out, at /business — redirects back to the business
-// login rather than logout()'s /system/login, so a business owner signing
-// out lands back at their own front door.
+// Business sign-out, at /business — clears only the business_session
+// cookie (never logout()'s own staff session cookie), and redirects back
+// to the business login rather than logout()'s /system/login, so a
+// business owner signing out lands back at their own front door and any
+// simultaneous staff session in the same browser is left untouched.
 export async function businessLogout() {
-  await deleteSession();
+  await deleteBusinessSession();
   redirect("/business/login");
 }

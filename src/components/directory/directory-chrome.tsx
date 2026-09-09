@@ -4,22 +4,29 @@ import { DirectoryLanguageSwitcher } from "@/components/directory/directory-lang
 import { DirectoryNavMenu, type DirectoryViewer } from "@/components/directory/directory-nav-menu";
 import { businessLogout, logout } from "@/app/actions/auth";
 import { getSessionPayload } from "@/lib/auth/session";
+import { getBusinessSessionPayload } from "@/lib/business/session";
 import { db } from "@/lib/db";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
 
-// The directory shares its session cookie with the CRM (see src/proxy.ts —
-// one "session" cookie, no separate directory-visitor auth) — so a signed-in
-// business owner or staff member browsing here is genuinely signed in, and
-// the nav menu should offer their own portal instead of "Login / Register".
-// A DB lookup rather than trusting the cookie's userId alone, since role
-// isn't (and shouldn't be) part of the JWT payload itself.
+// /system and /business each have their own session cookie (src/proxy.ts,
+// src/lib/business/session.ts) — a visitor here can be signed into either,
+// neither, or both at once, so the nav menu needs to check both
+// independently rather than reading one shared session. Checked in this
+// order (business first) since a signed-in business owner is this page's
+// primary audience; a staff member who's also signed into /business would
+// see "My business" here rather than "Go to CRM", but /system is still
+// reachable directly by URL either way. A DB lookup for the staff case
+// rather than trusting the cookie's userId alone, since role isn't (and
+// shouldn't be) part of that JWT payload itself.
 async function getDirectoryViewer(): Promise<DirectoryViewer> {
-  const session = await getSessionPayload();
-  if (!session?.userId) return null;
-  const user = await db.user.findUnique({ where: { id: session.userId }, select: { role: true } });
-  if (!user) return null;
-  return user.role === "PARTNER" ? "business" : "staff";
+  const businessSession = await getBusinessSessionPayload();
+  if (businessSession?.userId) return "business";
+
+  const staffSession = await getSessionPayload();
+  if (!staffSession?.userId) return null;
+  const user = await db.user.findUnique({ where: { id: staffSession.userId }, select: { role: true } });
+  return user && user.role !== "PARTNER" ? "staff" : null;
 }
 
 // The site-like header/footer (sticky nav, language + theme switches,

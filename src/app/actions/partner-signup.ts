@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { hashPassword } from "@/lib/auth/password";
-import { createSession } from "@/lib/auth/session";
+import { createBusinessSession } from "@/lib/business/session";
 import { registerPartnerWithPassword } from "@/lib/partner-signup";
 import { isValidPhoneFormat } from "@/lib/phone";
 import { isRateLimited, isSuspiciouslyFast } from "@/lib/lead-spam-guard";
@@ -69,6 +69,6 @@ export async function signUpPartner(
     return { status: "error", code: result.error };
   }
 
-  await createSession(result.userId);
+  await createBusinessSession(result.userId);
   redirect("/business");
 }
