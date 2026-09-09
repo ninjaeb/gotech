@@ -15,13 +15,13 @@ import {
   ensurePartnerListing,
   normalizeWebsiteUrl,
   parseServicesInput,
-  servicesFromJson,
 } from "@/lib/directory";
 import { notifyPartnerOfNewLead, sendDirectoryLeadReply } from "@/lib/directory-notify";
 import { DIRECTORY_LOCALE_COOKIE } from "@/lib/directory-locale";
 import { DEFAULT_DIRECTORY_LOCALE, type DirectoryLeadFormErrorCode, type DirectoryLocale } from "@/lib/directory-i18n";
-import { DIRECTORY_LEAD_STATUSES, INDUSTRIES } from "@/lib/labels";
+import { DIRECTORY_LEAD_STATUSES, INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import { Prisma, type DirectoryLeadStatus, type Industry } from "@/generated/prisma/client";
+import { AI_NOT_CONFIGURED, callAi, isAiConfigured, type AiResult } from "@/lib/ai/client";
 
 // ---------------------------------------------------------------------------
 // Public
@@ -148,7 +148,15 @@ export type ListingFormValues = {
   location: string;
 };
 
-export type ListingFormState = { error: string; values: ListingFormValues } | { success: true } | undefined;
+// Which field an error belongs to, so the UI can show it right under that
+// field instead of a generic banner. Undefined means it's not about one
+// particular field (e.g. a bad logo upload).
+export type ListingFormField = "companyName" | "services";
+
+export type ListingFormState =
+  | { error: string; field?: ListingFormField; values: ListingFormValues }
+  | { success: true }
+  | undefined;
 
 function stringField(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -185,33 +193,99 @@ async function parseListingLogo(formData: FormData): Promise<{ logoUrl?: string 
   return {};
 }
 
-// Saves the partner's working draft. Never touches the public page by
-// itself — see PartnerListing.publishedSnapshot in schema.prisma — but
-// editing after an approval or rejection resets status back to DRAFT, since
-// whatever an admin last reviewed no longer matches what's on screen; only
-// submitPartnerListingForReview below asks for another look.
-export async function saveDirectoryListing(
-  _prevState: ListingFormState,
+const RewrittenTextSchema = z.object({
+  text: z.string().describe("The rewritten text, ready to use as-is — no surrounding quotes or commentary."),
+});
+
+type ListingRewriteContext = { companyName: string; industry: string; otherField: string };
+
+function listingContextLines(context: ListingRewriteContext, otherFieldLabel: string): string {
+  const industryLabel = context.industry ? (INDUSTRY_LABELS[context.industry as Industry] ?? "") : "";
+  const lines = [`Company: ${context.companyName || "Unnamed company"}`];
+  if (industryLabel) lines.push(`Industry: ${industryLabel}`);
+  if (context.otherField.trim()) lines.push(`${otherFieldLabel}: ${context.otherField.trim()}`);
+  return lines.join("\n");
+}
+
+const LISTING_DESCRIPTION_SYSTEM_PROMPT =
+  "You write short, clear 'About us' business descriptions (2-4 sentences) for a public partner directory that lists services companies. Ground everything only in what's given — never invent client names, numbers, awards, or claims that aren't present. Sound professional and specific, not generic marketing filler.";
+
+// Partner-gated — called from the "Rewrite with AI" button next to the
+// About field on the partner's own listing editor. Mirrors
+// testimonials.ts's rewriteTestimonialText: improves existing text if
+// there's any, otherwise drafts a fresh one from context alone.
+export async function rewriteListingDescription(
+  currentText: string,
+  context: { companyName: string; industry: string; services: string },
+): Promise<AiResult<{ text: string }>> {
+  await requirePartnerAction();
+  if (!isAiConfigured()) return AI_NOT_CONFIGURED;
+
+  const trimmed = currentText.trim();
+  const contextLines = listingContextLines({ ...context, otherField: context.services }, "Services offered");
+  const prompt = trimmed
+    ? `${contextLines}\n\nHere is the current "About us" draft:\n\n${trimmed}\n\nImprove the wording — clearer, more compelling, better flow — without inventing new claims or changing what's actually offered.`
+    : `${contextLines}\n\nWrite a short "About us" description for this company's partner directory listing, based only on the information above.`;
+
+  return callAi(RewrittenTextSchema, LISTING_DESCRIPTION_SYSTEM_PROMPT, prompt);
+}
+
+const LISTING_SERVICES_SYSTEM_PROMPT =
+  "You clean up and organize a list of services or products a business offers, for a directory listing. Respond with one short, clear service name per line — no numbering, no bullets, no explanations, nothing else. Never invent a service that isn't implied by what's given.";
+
+// Same pattern as rewriteListingDescription, for the Services field —
+// output stays newline-per-service so it round-trips through
+// parseServicesInput unchanged.
+export async function rewriteListingServices(
+  currentText: string,
+  context: { companyName: string; industry: string; description: string },
+): Promise<AiResult<{ text: string }>> {
+  await requirePartnerAction();
+  if (!isAiConfigured()) return AI_NOT_CONFIGURED;
+
+  const trimmed = currentText.trim();
+  const contextLines = listingContextLines({ ...context, otherField: context.description }, "About us");
+  const prompt = trimmed
+    ? `${contextLines}\n\nHere is the current services list, one per line:\n\n${trimmed}\n\nClean up the wording and naming — clearer, more specific — without adding services that aren't already there or removing any.`
+    : `${contextLines}\n\nList the services this company likely offers for its partner directory listing, one per line, based only on the information above.`;
+
+  return callAi(RewrittenTextSchema, LISTING_SERVICES_SYSTEM_PROMPT, prompt);
+}
+
+type ListingSaveResult =
+  | { ok: false; error: string; field?: ListingFormField; values: ListingFormValues }
+  | { ok: true; listing: Awaited<ReturnType<typeof db.partnerListing.update>> };
+
+// Shared by saveDirectoryListing and submitDirectoryListingForReview below,
+// so "Submit for review" always validates and saves exactly what's
+// currently in the form — never a stale save from before this edit, which
+// is what made "you have services typed in but it says you don't" possible
+// before this was one step. `extraData` lets the submit flow fold its own
+// status transition into the very same write.
+async function saveListingFields(
+  partner: { id: string; name: string },
   formData: FormData,
-): Promise<ListingFormState> {
-  const partner = await requirePartnerAction();
+  extraData: { status: "PENDING_REVIEW"; submittedAt: Date } | Record<string, never> = {},
+): Promise<ListingSaveResult> {
   const values = extractListingFormValues(formData);
   const parsed = listingSchema.safeParse(values);
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Invalid listing", values };
+    const issue = parsed.error.issues[0];
+    const field = issue?.path[0] === "companyName" ? "companyName" : undefined;
+    return { ok: false, error: issue?.message ?? "Invalid listing", field, values };
   }
 
   let logo: Awaited<ReturnType<typeof parseListingLogo>>;
   try {
     logo = await parseListingLogo(formData);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Invalid logo", values };
+    return { ok: false, error: error instanceof Error ? error.message : "Invalid logo", values };
   }
 
   const listing = await ensurePartnerListing(partner.id, partner.name);
   const resetToDraft = listing.status === "PUBLISHED" || listing.status === "REJECTED";
 
-  await db.partnerListing.update({
+  const updated = await db.partnerListing.update({
     where: { id: listing.id },
     data: {
       companyName: parsed.data.companyName,
@@ -223,30 +297,59 @@ export async function saveDirectoryListing(
       location: parsed.data.location || null,
       ...logo,
       ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
+      ...extraData,
     },
   });
+  return { ok: true, listing: updated };
+}
+
+// Saves the partner's working draft. Never touches the public page by
+// itself — see PartnerListing.publishedSnapshot in schema.prisma — but
+// editing after an approval or rejection resets status back to DRAFT, since
+// whatever an admin last reviewed no longer matches what's on screen; only
+// submitDirectoryListingForReview below asks for another look.
+export async function saveDirectoryListing(
+  _prevState: ListingFormState,
+  formData: FormData,
+): Promise<ListingFormState> {
+  const partner = await requirePartnerAction();
+  const result = await saveListingFields(partner, formData);
+  if (!result.ok) return { error: result.error, field: result.field, values: result.values };
 
   revalidatePath("/partner");
   revalidatePath("/partner/listing");
-  if (listing.publishedSnapshot) revalidatePath(`/directory/${listing.slug}`);
+  if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
   return { success: true };
 }
 
-// Asks an admin to look at the current draft. Requires at least a name and
-// one service — an empty shell isn't worth anyone's review time.
-export async function submitDirectoryListingForReview(): Promise<{ error: string } | { success: true }> {
+export type SubmitListingState =
+  | { error: string; field?: ListingFormField }
+  | { success: true }
+  | undefined;
+
+// Saves the current form contents and, if they include a name and at least
+// one service, asks an admin to review them — an empty shell isn't worth
+// anyone's review time.
+export async function submitDirectoryListingForReview(
+  _prevState: SubmitListingState,
+  formData: FormData,
+): Promise<SubmitListingState> {
   const partner = await requirePartnerAction();
-  const listing = await db.partnerListing.findUnique({ where: { partnerId: partner.id } });
-  if (!listing) return { error: "Save your listing details first." };
-  if (!listing.companyName.trim()) return { error: "Add a company name before submitting." };
-  if (servicesFromJson(listing.services).length === 0) {
-    return { error: "List at least one service before submitting." };
+
+  const values = extractListingFormValues(formData);
+  if (!values.companyName.trim()) {
+    return { error: "Add a company name before submitting.", field: "companyName" };
+  }
+  if (parseServicesInput(values.services).length === 0) {
+    return { error: "List at least one service before submitting.", field: "services" };
   }
 
-  await db.partnerListing.update({
-    where: { id: listing.id },
-    data: { status: "PENDING_REVIEW", submittedAt: new Date(), reviewNote: null },
+  const result = await saveListingFields(partner, formData, {
+    status: "PENDING_REVIEW",
+    submittedAt: new Date(),
   });
+  if (!result.ok) return { error: result.error, field: result.field };
+
   revalidatePath("/partner");
   revalidatePath("/partner/listing");
   revalidatePath("/settings/directory");

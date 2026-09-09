@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { requirePartner } from "@/lib/auth/dal";
 import { ensurePartnerListing, servicesFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
+import { isAiConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,7 @@ export default async function PartnerListingPage() {
           <PartnerListingForm
             status={listing.status}
             logoUrl={listing.logoUrl}
+            aiAvailable={isAiConfigured()}
             values={{
               companyName: listing.companyName,
               tagline: listing.tagline ?? "",

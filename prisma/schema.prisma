@@ -49,7 +49,8 @@ enum ActivityType {
 // and their commissions), never the CRM itself. See src/lib/referrals.ts.
 enum Role {
   ADMIN
-  DEVELOPER
+  TECHNICAL
+  SALES
   PARTNER
 }
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 
 const companyResourceSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
@@ -18,7 +18,7 @@ function normalizeUrl(url: string): string {
 }
 
 export async function addCompanyResource(companyId: string, formData: FormData) {
-  await requireAdminAction();
+  await requireSalesAction();
   const parsed = companyResourceSchema.safeParse({
     title: formData.get("title"),
     url: formData.get("url"),
@@ -39,7 +39,7 @@ export async function addCompanyResource(companyId: string, formData: FormData) 
 }
 
 export async function updateCompanyResource(companyId: string, id: string, formData: FormData) {
-  await requireAdminAction();
+  await requireSalesAction();
   const parsed = companyResourceSchema.safeParse({
     title: formData.get("title"),
     url: formData.get("url"),
@@ -61,7 +61,7 @@ export async function updateCompanyResource(companyId: string, id: string, formD
 
 export async function deleteCompanyResource(companyId: string, id: string, formData: FormData) {
   void formData;
-  await requireAdminAction();
+  await requireSalesAction();
   await db.companyResource.delete({ where: { id, companyId } });
   revalidatePath(`/companies/${companyId}`);
 }

@@ -40,7 +40,9 @@ export default async function TasksPage({
   searchParams: Promise<{ filter?: string; q?: string; assignee?: string }>;
 }) {
   const currentUser = await getCurrentUser();
-  const canManage = currentUser.role === "ADMIN";
+  // Tasks are cross-functional — every real staff role manages its own;
+  // Partner is the only role excluded, and it never reaches this page.
+  const canManage = currentUser.role !== "PARTNER";
   const { filter: rawFilter, q, assignee } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)

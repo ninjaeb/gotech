@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionPayload } from "@/lib/auth/session";
+import type { Role } from "@/generated/prisma/client";
 
 export const verifySession = cache(async () => {
   const session = await getSessionPayload();
@@ -25,19 +26,20 @@ export const getCurrentUser = cache(async () => {
   return user;
 });
 
-// Developers only get Projects, Tasks, and a trimmed-down Settings — this is
-// where a developer landing on a blocked page gets sent instead.
-export const DEVELOPER_HOME = "/tasks";
+// Technical team members only get Projects, Tasks, and a trimmed-down
+// Settings — this is where one landing on a blocked page gets sent instead.
+export const TECHNICAL_HOME = "/tasks";
 // Partners (external referrers) only ever get the partner portal — see
 // src/lib/referrals.ts. The (app) layout bounces them here too, so no CRM
 // page is reachable for that role even without its own explicit gate.
 export const PARTNER_HOME = "/partner";
 
 // Where a given role belongs when it lands somewhere it shouldn't (or right
-// after logging in).
-export function homeForRole(role: "ADMIN" | "DEVELOPER" | "PARTNER") {
+// after logging in). ADMIN and SALES share the dashboard as their home —
+// the sales pipeline overview is exactly what a Sales login wants to land on.
+export function homeForRole(role: Role) {
   if (role === "PARTNER") return PARTNER_HOME;
-  if (role === "DEVELOPER") return DEVELOPER_HOME;
+  if (role === "TECHNICAL") return TECHNICAL_HOME;
   return "/";
 }
 
@@ -77,6 +79,69 @@ export async function requireAdminAction() {
   const user = await getCurrentUser();
   if (user.role !== "ADMIN") {
     throw new Error("Admins only.");
+  }
+  return user;
+}
+
+// Companies/Contacts/Deals/Quotes and the sales-facing dashboard —
+// Admin and Sales alike do this work day to day; Technical and Partner
+// don't.
+const SALES_ROLES: Role[] = ["ADMIN", "SALES"];
+
+export async function requireSales() {
+  const user = await getCurrentUser();
+  if (!SALES_ROLES.includes(user.role)) {
+    redirect(homeForRole(user.role));
+  }
+  return user;
+}
+
+export async function requireSalesAction() {
+  const user = await getCurrentUser();
+  if (!SALES_ROLES.includes(user.role)) {
+    throw new Error("Not allowed.");
+  }
+  return user;
+}
+
+// A project's own status, budget, and timeline — Admin and Technical alike
+// manage these day to day; Sales and Partner don't. Tasks are a separate,
+// broader case (see requireStaff below) even though they're also reached
+// from the Projects page: a project's milestones are still just Tasks.
+const TECHNICAL_ROLES: Role[] = ["ADMIN", "TECHNICAL"];
+
+export async function requireTechnical() {
+  const user = await getCurrentUser();
+  if (!TECHNICAL_ROLES.includes(user.role)) {
+    redirect(homeForRole(user.role));
+  }
+  return user;
+}
+
+export async function requireTechnicalAction() {
+  const user = await getCurrentUser();
+  if (!TECHNICAL_ROLES.includes(user.role)) {
+    throw new Error("Not allowed.");
+  }
+  return user;
+}
+
+// Tasks aren't one team's domain — they're embedded unconditionally on
+// Company/Contact/Deal pages (Sales' own domain) and Project pages
+// (Technical's), so every real staff role manages its own; only Partner
+// (who never reaches any of those pages anyway) is excluded.
+export async function requireStaff() {
+  const user = await getCurrentUser();
+  if (user.role === "PARTNER") {
+    redirect(homeForRole(user.role));
+  }
+  return user;
+}
+
+export async function requireStaffAction() {
+  const user = await getCurrentUser();
+  if (user.role === "PARTNER") {
+    throw new Error("Not allowed.");
   }
   return user;
 }

@@ -10,6 +10,21 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.55",
+    date: "2026-09-09",
+    title: "Sales and Technical team roles",
+    changes: [
+      "Two new login roles alongside Admin and Partner: Sales (Companies, Contacts, Deals, Quotes, and the Leaderboard) and Technical team (Projects and Tasks) — each scoped to just its own area, with no access to Settings or any other admin page",
+      "The Developer role is renamed Technical team; every existing Developer login keeps exactly the same access under the new name",
+      "New-lead WhatsApp alerts now reach opted-in Sales logins too, not just Admins, matching who can actually open a deal",
+      "Partner directory listing: a Rewrite with AI button on the About and Services fields drafts or improves the wording from what's already filled in",
+      "Partner portal: a new Profile page to change your own email, password, and contact phone (used only for WhatsApp lead alerts — never shown on your public listing)",
+      "Submit for review on a partner listing now validates and saves whatever's currently in the form, with the error shown right under the field that needs fixing, instead of an unrelated saved copy from before your last edit",
+      "The public directory and the whole partner portal now use the full page width instead of a centered column",
+      "Fixed a layout bug on a listing's detail page where the contact form's spam-guard field could push the page's scroll area far off to the side",
+    ],
+  },
+  {
     version: "1.54",
     date: "2026-09-09",
     title: "Public partner directory",

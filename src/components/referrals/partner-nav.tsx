@@ -10,6 +10,7 @@ const ITEMS = [
   { href: "/partner/leads", label: "Leads" },
   { href: "/partner/directory-leads", label: "Directory leads" },
   { href: "/partner/commissions", label: "Commissions" },
+  { href: "/partner/profile", label: "Profile" },
 ];
 
 export function PartnerNav() {

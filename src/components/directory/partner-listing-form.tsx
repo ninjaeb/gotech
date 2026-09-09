@@ -1,13 +1,17 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
+import { Sparkles } from "lucide-react";
 import {
+  rewriteListingDescription,
+  rewriteListingServices,
   saveDirectoryListing,
   submitDirectoryListingForReview,
+  type ListingFormField,
   type ListingFormValues,
 } from "@/app/actions/directory";
-import { Button } from "@/components/ui/button";
-import { FieldGroup, Input, Label, Select, Textarea } from "@/components/ui/field";
+import { Button, buttonClasses } from "@/components/ui/button";
+import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
@@ -17,10 +21,12 @@ export function PartnerListingForm({
   values,
   logoUrl,
   status,
+  aiAvailable,
 }: {
   values: ListingFormValues;
   logoUrl: string | null;
   status: PartnerListingStatus;
+  aiAvailable: boolean;
 }) {
   const [state, formAction, pending] = useActionState(saveDirectoryListing, undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
@@ -29,6 +35,36 @@ export function PartnerListingForm({
   const toast = useToast();
 
   const current = state && "values" in state ? state.values : values;
+
+  // Both saveDirectoryListing (via `state` above) and
+  // submitDirectoryListingForReview (via handleSubmitForReview below) can
+  // fail with an error tied to one specific field. useActionState's own
+  // `state` never resets itself when the *other* action runs, so it can't
+  // be read directly here — synced into this instead, so whichever action
+  // most recently resolved is what's actually shown, not a stale leftover
+  // from the other one. Updating state during render (not in an effect)
+  // when `state` has changed since the last render is React's own
+  // documented way to do this without an extra render round-trip.
+  const [displayError, setDisplayError] = useState<{ error: string; field?: ListingFormField } | null>(null);
+  const [lastSyncedState, setLastSyncedState] = useState(state);
+  if (state !== lastSyncedState) {
+    setLastSyncedState(state);
+    if (state && "error" in state) setDisplayError({ error: state.error, field: state.field });
+    else if (state && "success" in state) setDisplayError(null);
+  }
+  const companyNameError = displayError?.field === "companyName" ? displayError.error : null;
+  const servicesError = displayError?.field === "services" ? displayError.error : null;
+  const generalError = displayError && !displayError.field ? displayError.error : null;
+
+  // Company name and industry stay plain defaultValue inputs (unchanged
+  // below) — they're only grounding context for the AI rewrite, never
+  // rewritten themselves, so reading them live off the form via FormData at
+  // rewrite time is enough; they don't need to be controlled state.
+  const formRef = useRef<HTMLFormElement>(null);
+  const [description, setDescription] = useState(current.description);
+  const [services, setServices] = useState(current.services);
+  const [rewritingDescription, startRewriteDescription] = useTransition();
+  const [rewritingServices, startRewriteServices] = useTransition();
 
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -40,15 +76,46 @@ export function PartnerListingForm({
   }
 
   function handleSubmitForReview() {
+    const formData = new FormData(formRef.current ?? undefined);
     startSubmitTransition(async () => {
-      const result = await submitDirectoryListingForReview();
-      if ("error" in result) toast.error(result.error);
-      else toast.success("Submitted — an admin will review it shortly.");
+      const result = await submitDirectoryListingForReview(undefined, formData);
+      if (result && "error" in result) {
+        setDisplayError({ error: result.error, field: result.field });
+      } else {
+        setDisplayError(null);
+        toast.success("Submitted — an admin will review it shortly.");
+      }
+    });
+  }
+
+  function contextFromForm(): { companyName: string; industry: string } {
+    const formData = new FormData(formRef.current ?? undefined);
+    return {
+      companyName: String(formData.get("companyName") || ""),
+      industry: String(formData.get("industry") || ""),
+    };
+  }
+
+  function handleRewriteDescription() {
+    const context = contextFromForm();
+    startRewriteDescription(async () => {
+      const result = await rewriteListingDescription(description, { ...context, services });
+      if (result.status === "ok") setDescription(result.data.text);
+      else toast.error(result.message);
+    });
+  }
+
+  function handleRewriteServices() {
+    const context = contextFromForm();
+    startRewriteServices(async () => {
+      const result = await rewriteListingServices(services, { ...context, description });
+      if (result.status === "ok") setServices(result.data.text);
+      else toast.error(result.message);
     });
   }
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form ref={formRef} action={formAction} className="space-y-5">
       <div>
         <Label htmlFor="logo">Logo</Label>
         <div className="flex items-center gap-4">
@@ -82,6 +149,7 @@ export function PartnerListingForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Company name" htmlFor="companyName" required>
           <Input id="companyName" name="companyName" required defaultValue={current.companyName} />
+          {companyNameError && <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{companyNameError}</p>}
         </FieldGroup>
         <FieldGroup label="Industry" htmlFor="industry">
           <Select id="industry" name="industry" defaultValue={current.industry}>
@@ -108,22 +176,70 @@ export function PartnerListingForm({
         </FieldGroup>
       </div>
 
-      <FieldGroup label="About" htmlFor="description">
-        <Textarea id="description" name="description" rows={5} defaultValue={current.description} placeholder="What does your business do?" />
-      </FieldGroup>
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label htmlFor="description" className="mb-0">
+            About
+          </Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleRewriteDescription}
+              disabled={rewritingDescription}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {rewritingDescription ? "Rewriting…" : "Rewrite with AI"}
+            </button>
+          )}
+        </div>
+        <Textarea
+          id="description"
+          name="description"
+          rows={5}
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+          placeholder="What does your business do?"
+        />
+      </div>
 
-      <FieldGroup label="Services" htmlFor="services">
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label htmlFor="services" className="mb-0">
+            Services
+            <RequiredMark />
+          </Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleRewriteServices}
+              disabled={rewritingServices}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {rewritingServices ? "Rewriting…" : "Rewrite with AI"}
+            </button>
+          )}
+        </div>
         <Textarea
           id="services"
           name="services"
           rows={4}
-          defaultValue={current.services}
+          value={services}
+          onChange={(event) => setServices(event.target.value)}
           placeholder={"One service per line, e.g.\nWeb design\nSEO\nHosting"}
         />
-        <p className="mt-1 text-xs text-slate-400">One per line (or comma-separated) — shown as tags on your listing.</p>
-      </FieldGroup>
+        {servicesError ? (
+          <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{servicesError}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-400">
+            One per line (or comma-separated) — shown as tags on your listing. At least one is required before you
+            can submit for review.
+          </p>
+        )}
+      </div>
 
-      {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
+      {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" disabled={pending}>

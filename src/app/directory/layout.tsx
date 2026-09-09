@@ -16,7 +16,7 @@ export default async function DirectoryLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-neutral-950">
       <header className="border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 sm:px-8">
+        <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
           <Link href="/directory" className="flex shrink-0 items-center gap-2">
             <img src="/icon-192.png" alt="" className="h-8 w-8 shrink-0" />
             <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Gotka</span>
@@ -31,7 +31,7 @@ export default async function DirectoryLayout({ children }: { children: React.Re
       <main className="flex-1">{children}</main>
 
       <footer className="border-t border-slate-200 bg-white py-8 dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto w-full max-w-6xl px-4 text-center text-sm text-slate-500 dark:text-slate-400 sm:px-8">
+        <div className="w-full px-4 text-center text-sm text-slate-500 dark:text-slate-400 sm:px-8">
           <p>{t.footerTagline}</p>
           <p className="mt-1">
             <a

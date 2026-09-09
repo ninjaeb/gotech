@@ -30,7 +30,11 @@ export default async function ProjectDetailPage({
 }) {
   const { id } = await params;
   const currentUser = await getCurrentUser();
+  // Deleting the project and its invoices stays Admin-only — a bigger,
+  // harder-to-reverse action than day-to-day delivery work.
   const canManage = currentUser.role === "ADMIN";
+  // Status and budget/timeline are Technical's delivery work too, alongside Admin.
+  const canManageDelivery = currentUser.role === "ADMIN" || currentUser.role === "TECHNICAL";
 
   const [currency, project, timeLogged, users] = await Promise.all([
     getCurrency(),
@@ -99,7 +103,7 @@ export default async function ProjectDetailPage({
               <div>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Status</p>
                 <div className="mt-1">
-                  {canManage ? (
+                  {canManageDelivery ? (
                     <ProjectStatusSelect projectId={project.id} status={project.status} />
                   ) : (
                     <Badge className={PROJECT_STATUS_BADGE_CLASSES[project.status]}>
@@ -133,7 +137,7 @@ export default async function ProjectDetailPage({
             <CardBody>
               <ProjectBudgetPanel
                 projectId={project.id}
-                canManage={canManage}
+                canManage={canManageDelivery}
                 status={project.status}
                 budgetHours={project.budgetHours}
                 budgetAmount={project.budgetAmount === null ? null : Number(project.budgetAmount)}
@@ -154,10 +158,11 @@ export default async function ProjectDetailPage({
               {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
             </CardHeader>
             <CardBody>
-              <TaskList tasks={project.tasks} users={users} canManage={canManage} emptyMessage="No milestones yet." />
-              {canManage && (
-                <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
-              )}
+              {/* Unconditional, same as the Tasks card on Company/Contact/Deal
+              pages — task management isn't gated by canManage/canManageDelivery
+              above (those are this project's own delete/status/budget). */}
+              <TaskList tasks={project.tasks} users={users} emptyMessage="No milestones yet." />
+              <TaskQuickForm projectId={project.id} users={users} defaultAssigneeId={currentUser.id} />
             </CardBody>
           </Card>
 

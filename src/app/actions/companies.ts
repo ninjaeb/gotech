@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 import type { Industry } from "@/generated/prisma/client";
 
@@ -96,7 +96,7 @@ function parseCompanyForm(formData: FormData): ParsedCompanyForm {
 }
 
 export async function createCompany(_prevState: CompanyFormState, formData: FormData): Promise<CompanyFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   const parsed = parseCompanyForm(formData);
   if (!parsed.success) return { error: parsed.error, values: extractCompanyFormValues(formData) };
   const company = await db.company.create({ data: parsed.data });
@@ -110,7 +110,7 @@ export async function updateCompany(
   _prevState: CompanyFormState,
   formData: FormData,
 ): Promise<CompanyFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   const parsed = parseCompanyForm(formData);
   if (!parsed.success) return { error: parsed.error, values: extractCompanyFormValues(formData) };
   await db.company.update({ where: { id }, data: parsed.data });
@@ -121,7 +121,7 @@ export async function updateCompany(
 
 export async function deleteCompany(id: string, formData: FormData) {
   void formData;
-  await requireAdminAction();
+  await requireSalesAction();
   await db.company.delete({ where: { id } });
   revalidatePath("/companies");
   revalidatePath("/deals");

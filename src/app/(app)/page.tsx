@@ -27,7 +27,7 @@ import { getDefaultPipeline } from "@/lib/pipelines";
 import { computeProjectActuals, budgetSeverity, timelineSeverity } from "@/lib/project-budget";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 
 export default async function DashboardPage() {
   const startOfToday = new Date();
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
   const thirtyDaysAgo = new Date(startOfToday);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const currentUser = await requireAdmin();
+  const currentUser = await requireSales();
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
 
   const [

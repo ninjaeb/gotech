@@ -43,7 +43,7 @@ export default async function DirectoryListingPage({ params }: { params: Promise
   const t = DIRECTORY_STRINGS[locale];
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-8">
+    <div className="w-full px-4 py-10 sm:px-8">
       <div className="mb-8 flex flex-wrap items-start gap-4">
         <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-16 w-16 text-xl" />
         <div className="min-w-0 flex-1">
@@ -103,7 +103,7 @@ export default async function DirectoryListingPage({ params }: { params: Promise
             <CardHeader>
               <CardTitle>{t.contactHeading}</CardTitle>
             </CardHeader>
-            <CardBody className="relative">
+            <CardBody>
               <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
               <DirectoryLeadForm slug={slug} locale={locale} />
             </CardBody>

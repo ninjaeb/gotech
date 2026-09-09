@@ -638,8 +638,8 @@ const NEW_WHATSAPP_MESSAGE_TEMPLATE_LANGUAGE = "en";
 // already carries its own unread-conversation badge (see
 // isWhatsAppConversationUnread), so a second in-app channel here would just
 // double up on a signal that already exists, at chat-inbox volume. Filtered
-// to ADMIN since /whatsapp itself is admin-only — a DEVELOPER opted in
-// would just get pinged with a link they can't open.
+// to ADMIN since /whatsapp itself is admin-only — a Sales or Technical
+// login opted in would just get pinged with a link they can't open.
 export async function notifyNewWhatsAppMessageViaWhatsApp(
   contactName: string,
   excerpt: string,
@@ -684,13 +684,14 @@ const NEW_LEAD_TEMPLATE_LANGUAGE = "en";
 // Fires once per new lead from the public lead-capture form (see
 // createLeadFromSubmission in src/lib/leads.ts) — to every user who's
 // opted in via Settings → Team's "Notify me of new leads" checkbox and set
-// a phone number. Filtered to ADMIN since /deals itself is admin-only.
+// a phone number. Filtered to ADMIN and SALES, the two roles /deals is open
+// to.
 export async function notifyNewLeadViaWhatsApp(leadName: string, companyName: string, path: string): Promise<void> {
   const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
   if (!account) return;
 
   const users = await db.user.findMany({
-    where: { role: "ADMIN", phone: { not: null }, notifyNewLead: true },
+    where: { role: { in: ["ADMIN", "SALES"] }, phone: { not: null }, notifyNewLead: true },
     select: { id: true, phone: true },
   });
   if (users.length === 0) return;

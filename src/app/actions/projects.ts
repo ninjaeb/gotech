@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { ProjectStatus } from "@/generated/prisma/client";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireAdminAction, requireTechnicalAction } from "@/lib/auth/dal";
 
 const MILESTONE_TEMPLATE: { title: string; daysFromNow: number }[] = [
   { title: "Kickoff call", daysFromNow: 3 },
@@ -43,7 +43,7 @@ export async function ensureProjectForWonDeal(deal: { id: string; title: string 
 }
 
 export async function updateProjectStatus(id: string, status: ProjectStatus) {
-  await requireAdminAction();
+  await requireTechnicalAction();
   await db.project.update({ where: { id }, data: { status } });
   revalidatePath("/projects");
   revalidatePath(`/projects/${id}`);
@@ -68,7 +68,7 @@ const projectBudgetSchema = z.object({
 });
 
 export async function updateProjectBudget(id: string, formData: FormData) {
-  await requireAdminAction();
+  await requireTechnicalAction();
   const parsed = projectBudgetSchema.safeParse({
     budgetHours: formData.get("budgetHours"),
     budgetAmount: formData.get("budgetAmount"),

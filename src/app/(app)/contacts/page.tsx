@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { buttonClasses } from "@/components/ui/button";
 import { ContactSearchList } from "@/components/contacts/contact-search-list";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 import { LIFECYCLE_STAGES } from "@/lib/labels";
 import type { LifecycleStage, Prisma } from "@/generated/prisma/client";
 
@@ -13,7 +13,7 @@ export default async function ContactsPage({
 }: {
   searchParams: Promise<{ stage?: string }>;
 }) {
-  await requireAdmin();
+  await requireSales();
   const { stage: rawStage } = await searchParams;
   const stage = rawStage?.trim();
   const isValidStage = (value?: string): value is LifecycleStage =>

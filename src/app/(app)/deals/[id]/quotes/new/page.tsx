@@ -5,14 +5,14 @@ import { QuoteForm } from "@/components/quotes/quote-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { getCurrency } from "@/lib/settings";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 
 export default async function NewQuotePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireSales();
   const { id: dealId } = await params;
 
   const [currency, deal, servicePackages, quoteTemplates] = await Promise.all([

@@ -30,19 +30,25 @@ import { NotificationBell, type NotificationItem } from "@/components/layout/not
 // content type; WhatsApp/Tasks/Leaderboard reuse colors those sections
 // already show elsewhere (WhatsApp send button, unread-count badge, gold
 // rank-1 badge) instead of picking something arbitrary.
+//
+// roles: which logins see this item — omitted means every authenticated
+// staff role (Tasks/Projects/Settings are cross-functional). Sales gets the
+// sales-pipeline cluster (Dashboard/Companies/Contacts/Deals/Leaderboard);
+// Technical gets Projects/Tasks like Admin does; WhatsApp/Newsletters/Lists/
+// Referrals stay Admin-only.
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: true, iconColor: "text-slate-400" },
-  { href: "/companies", label: "Companies", icon: Building2, adminOnly: true, iconColor: "text-sky-400" },
-  { href: "/contacts", label: "Contacts", icon: Users, adminOnly: true, iconColor: "text-cyan-400" },
-  { href: "/lists", label: "Lists", icon: ListFilter, adminOnly: true, iconColor: "text-violet-400" },
-  { href: "/deals", label: "Deals", icon: KanbanSquare, adminOnly: true, iconColor: "text-fuchsia-400" },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, adminOnly: true, iconColor: "text-emerald-400" },
-  { href: "/newsletters", label: "Newsletters", icon: Mail, adminOnly: true, iconColor: "text-blue-400" },
-  { href: "/projects", label: "Projects", icon: FolderKanban, adminOnly: false, iconColor: "text-orange-400" },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, adminOnly: false, iconColor: "text-rose-400" },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, adminOnly: true, iconColor: "text-amber-400" },
-  { href: "/referrals", label: "Referrals", icon: Handshake, adminOnly: true, iconColor: "text-teal-400" },
-  { href: "/settings", label: "Settings", icon: Settings, adminOnly: false, iconColor: "text-slate-400" },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SALES"], iconColor: "text-slate-400" },
+  { href: "/companies", label: "Companies", icon: Building2, roles: ["ADMIN", "SALES"], iconColor: "text-sky-400" },
+  { href: "/contacts", label: "Contacts", icon: Users, roles: ["ADMIN", "SALES"], iconColor: "text-cyan-400" },
+  { href: "/lists", label: "Lists", icon: ListFilter, roles: ["ADMIN"], iconColor: "text-violet-400" },
+  { href: "/deals", label: "Deals", icon: KanbanSquare, roles: ["ADMIN", "SALES"], iconColor: "text-fuchsia-400" },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, roles: ["ADMIN"], iconColor: "text-emerald-400" },
+  { href: "/newsletters", label: "Newsletters", icon: Mail, roles: ["ADMIN"], iconColor: "text-blue-400" },
+  { href: "/projects", label: "Projects", icon: FolderKanban, roles: null, iconColor: "text-orange-400" },
+  { href: "/tasks", label: "Tasks", icon: CheckSquare, roles: null, iconColor: "text-rose-400" },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, roles: ["ADMIN", "SALES"], iconColor: "text-amber-400" },
+  { href: "/referrals", label: "Referrals", icon: Handshake, roles: ["ADMIN"], iconColor: "text-teal-400" },
+  { href: "/settings", label: "Settings", icon: Settings, roles: null, iconColor: "text-slate-400" },
 ];
 
 export function Sidebar({
@@ -59,7 +65,7 @@ export function Sidebar({
   unreadNotificationCount?: number;
 }) {
   const pathname = usePathname();
-  const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || user.role === "ADMIN");
+  const navItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role));
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-800 bg-slate-950 sm:flex">

@@ -1,9 +1,9 @@
 import { PageHeader } from "@/components/ui/page-header";
 import { ImportForm } from "@/components/contacts/import-form";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 
 export default async function ImportContactsPage() {
-  await requireAdmin();
+  await requireSales();
   return (
     <div>
       <PageHeader
