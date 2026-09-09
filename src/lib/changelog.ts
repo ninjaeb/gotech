@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.59",
+    date: "2026-09-09",
+    title: "Simple formatting on the About field",
+    changes: [
+      "A partner's About field now supports simple formatting — bold, bullet and numbered lists, links, and images — via a small toolbar above the field, with a Preview tab to see how it'll look before saving",
+      "A listing's detail page renders this formatting for real (bold text, real lists, clickable links, embedded images); its search-engine and AI-answer-engine description stays plain text either way",
+    ],
+  },
+  {
     version: "1.58",
     date: "2026-09-09",
     title: "Gotka.com branding on the directory and partner portal",

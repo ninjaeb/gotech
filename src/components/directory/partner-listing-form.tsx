@@ -13,6 +13,7 @@ import {
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
@@ -216,14 +217,18 @@ export function PartnerListingForm({
             </button>
           )}
         </div>
-        <Textarea
+        <MarkdownLiteEditor
           id="description"
           name="description"
           rows={5}
           value={description}
-          onChange={(event) => setDescription(event.target.value)}
+          onChange={setDescription}
           placeholder="What does your business do?"
         />
+        <p className="mt-1 text-xs text-slate-400">
+          Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to Preview
+          to see how it&apos;ll look.
+        </p>
       </div>
 
       <div>

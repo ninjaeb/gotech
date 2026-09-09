@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatOpeningHoursSchema, groupOperatingHours, readPublishedSnapshot, type OperatingHours } from "@/lib/directory";
+import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS, type DirectoryStrings } from "@/lib/directory-i18n";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -27,8 +28,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const siteOrigin = await getSiteOrigin();
   const url = `${siteOrigin}/directory/${slug}`;
+  // Meta/OG/Twitter descriptions are plain-text summaries — strip the
+  // About field's own markdown-lite syntax first so a search result or
+  // link preview never shows literal "**"/"[]()" characters.
+  const plainDescription = stripMarkdownLiteToPlainText(listing.description);
   const description =
-    listing.tagline ?? listing.description?.slice(0, 160) ?? `${listing.companyName} on the Gotka partner directory.`;
+    listing.tagline ?? (plainDescription ? plainDescription.slice(0, 160) : undefined) ?? `${listing.companyName} on the Gotka partner directory.`;
   const title = `${listing.companyName} | Gotka Partner Directory`;
 
   return {
@@ -66,7 +71,7 @@ function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublished
     name: listing.companyName,
     url,
   };
-  const description = listing.description || listing.tagline;
+  const description = stripMarkdownLiteToPlainText(listing.description) || listing.tagline;
   if (description) jsonLd.description = description;
   if (listing.logoUrl && /^https?:\/\//.test(listing.logoUrl)) jsonLd.image = listing.logoUrl;
   if (listing.address || listing.location) jsonLd.address = listing.address || listing.location;
@@ -157,8 +162,8 @@ export default async function DirectoryListingPage({ params }: { params: Promise
               <CardHeader>
                 <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
               </CardHeader>
-              <CardBody className="whitespace-pre-wrap text-base text-slate-600 dark:text-slate-300">
-                {listing.description}
+              <CardBody className="text-base text-slate-600 dark:text-slate-300">
+                {renderMarkdownLite(listing.description)}
               </CardBody>
             </Card>
           )}
