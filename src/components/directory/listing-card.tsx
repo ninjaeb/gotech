@@ -4,6 +4,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import type { PublishedListingSnapshot } from "@/lib/directory";
+import { directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 const MAX_VISIBLE_SERVICES = 3;
 
@@ -12,6 +13,7 @@ export function ListingCard({
   listing,
   viewLabel,
   industryLabel,
+  locale,
 }: {
   slug: string;
   listing: PublishedListingSnapshot;
@@ -20,11 +22,12 @@ export function ListingCard({
   // directory-search.tsx) — this component has no locale of its own to
   // look one up with.
   industryLabel?: string;
+  locale: DirectoryLocale;
 }) {
   const extraServices = listing.services.length - MAX_VISIBLE_SERVICES;
 
   return (
-    <Link href={`/directory/${slug}`} className="block h-full">
+    <Link href={directoryListingPath(locale, slug)} className="block h-full">
       <Card className="flex h-full flex-col transition-colors hover:border-petrol/40 dark:hover:border-petrol-light/30">
         <CardBody className="flex flex-1 flex-col gap-3">
           <div className="flex items-center gap-3">

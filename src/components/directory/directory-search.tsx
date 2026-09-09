@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Search, Handshake } from "lucide-react";
 import { ListingCard } from "@/components/directory/listing-card";
 import { ShareButton } from "@/components/directory/share-button";
@@ -9,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
 import type { PublishedListingSnapshot } from "@/lib/directory";
 import type { Industry } from "@/generated/prisma/client";
-import type { DirectoryStrings } from "@/lib/directory-i18n";
+import type { DirectoryLocale, DirectoryStrings } from "@/lib/directory-i18n";
 
 type ListingRow = { slug: string; listing: PublishedListingSnapshot };
 
@@ -19,13 +18,13 @@ export function DirectorySearch({
   industryLabels,
   categories,
   t,
+  locale,
   initialQuery,
   initialIndustry,
   initialCategory,
   directoryUrl,
   heading,
   subheading,
-  categoryLinks,
 }: {
   listings: ListingRow[];
   industries: Industry[];
@@ -36,6 +35,7 @@ export function DirectorySearch({
   // display (see translateCategoryName).
   categories: { value: string; label: string }[];
   t: DirectoryStrings;
+  locale: DirectoryLocale;
   initialQuery: string;
   initialIndustry: string;
   initialCategory: string;
@@ -45,11 +45,6 @@ export function DirectorySearch({
   // category); the home page omits these and gets t.heroTitle/heroSubtitle.
   heading?: string;
   subheading?: string;
-  // Real <a href> links to each category's own friendly URL — the category
-  // <Select> above is client-side JS with no href a crawler can follow, so
-  // without this a search engine would only ever discover those pages via
-  // the sitemap, never through the directory's own on-page links.
-  categoryLinks?: { name: string; href: string }[];
 }) {
   // Filters entirely in the browser as the user types — no round trip, no
   // debounce needed. Safe because the whole listing set is fetched once up
@@ -119,20 +114,6 @@ export function DirectorySearch({
               )}
             </div>
           </form>
-
-          {categoryLinks && categoryLinks.length > 0 && (
-            <nav aria-label={t.allCategories} className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-2">
-              {categoryLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-petrol hover:text-petrol dark:border-neutral-700 dark:text-slate-300 dark:hover:border-petrol-light dark:hover:text-petrol-light"
-                >
-                  {link.name}
-                </Link>
-              ))}
-            </nav>
-          )}
         </div>
       </div>
 
@@ -148,6 +129,7 @@ export function DirectorySearch({
                 listing={listing}
                 viewLabel={t.viewListing}
                 industryLabel={listing.industry ? industryLabels[listing.industry] : undefined}
+                locale={locale}
               />
             ))}
           </div>

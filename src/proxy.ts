@@ -22,9 +22,12 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // which a <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
 // referral link (src/app/r/[code]/route.ts) — followed by strangers, who
 // then land on the marketing site, never here. /directory is the public
-// partner directory (src/app/directory) — browsed and its lead form
-// submitted by visitors with no login at all. /api/directory-images/ serves
-// a listing's About-field images, embedded on that same public page.
+// partner directory — a bare, un-prefixed URL there is just a permanent
+// redirect now (src/app/directory/page.tsx); the real content lives under
+// its own locale prefix, /en|/zh|/ms/directory (src/app/[locale]/directory)
+// — browsed and its lead form submitted by visitors with no login at all.
+// /api/directory-images/ serves a listing's About-field images, embedded on
+// that same public page.
 // /api/auth/google is the "Continue with Google" redirect-out-and-back
 // (src/app/api/auth/google, .../callback) kicked off from both
 // /directory/signup and /business/login — the visitor has no session yet
@@ -38,6 +41,9 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/book",
   "/subscribe",
   "/directory",
+  "/en/directory",
+  "/zh/directory",
+  "/ms/directory",
   "/testimonial/",
   "/embed/",
   "/unsubscribe/",
@@ -100,14 +106,35 @@ async function proxyBusinessRoute(request: NextRequest, pathname: string) {
   return NextResponse.next();
 }
 
+// Mirrors getDirectoryLocale (src/lib/directory-locale.ts) exactly — same
+// cookie name/priority, same Accept-Language fallback — but reads off a
+// NextRequest directly instead of next/headers' cookies()/headers(), which
+// aren't available in middleware. Only used for the bare "/" redirect
+// below; every /[locale]/directory/... page resolves its own locale from
+// the URL itself once it gets there.
+function resolveDirectoryLocaleFromRequest(request: NextRequest): "en" | "zh" | "ms" {
+  const cookieValue = request.cookies.get("directory_locale")?.value;
+  if (cookieValue === "en" || cookieValue === "zh" || cookieValue === "ms") return cookieValue;
+
+  const acceptLanguage = request.headers.get("accept-language") ?? "";
+  if (/\bzh\b/i.test(acceptLanguage)) return "zh";
+  if (/\bms\b/i.test(acceptLanguage)) return "ms";
+  return "en";
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // The public business directory is the site's front door now — the CRM
   // itself lives at /system (see below), so a bare "/" has nothing of its
-  // own to render and always hands off to the directory instead.
+  // own to render and always hands off to the directory instead. Resolved
+  // straight to a locale-prefixed URL here (same cookie/Accept-Language
+  // guess as getDirectoryLocale, reimplemented rather than imported since
+  // that one calls next/headers' cookies()/headers(), not available on a
+  // NextRequest in middleware) rather than bouncing through the bare
+  // /directory redirect stub (src/app/directory/page.tsx) a second time.
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/directory", request.url));
+    return NextResponse.redirect(new URL(`/${resolveDirectoryLocaleFromRequest(request)}/directory`, request.url));
   }
 
   if (pathname === "/portal" || pathname.startsWith("/portal/")) {

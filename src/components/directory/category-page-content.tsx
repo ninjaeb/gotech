@@ -6,7 +6,6 @@ import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE, type D
 import {
   findCategoryBySlug,
   readPublishedSnapshot,
-  slugify,
   buildDirectoryCollectionJsonLd,
   type PublishedListingSnapshot,
 } from "@/lib/directory";
@@ -15,10 +14,9 @@ import { INDUSTRIES } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
 
 // Shared by every locale variant of the friendly category route (see
-// src/app/directory/category/[categorySlug]/page.tsx for English and
-// .../[locale]/page.tsx for /zh, /ms) so the fetch/render logic — and the
-// metadata it produces — exists exactly once regardless of which URL a
-// visitor lands on.
+// src/app/[locale]/directory/category/[categorySlug]/page.tsx) so the
+// fetch/render logic — and the metadata it produces — exists exactly once
+// regardless of which language a visitor lands on.
 export async function buildCategoryMetadata(categorySlug: string, locale: DirectoryLocale): Promise<Metadata> {
   const category = await findCategoryBySlug(categorySlug);
   if (!category) return {};
@@ -100,16 +98,13 @@ export async function CategoryPageContent({
         industryLabels={INDUSTRY_LABELS_BY_LOCALE[locale]}
         categories={businessCategories.map((row) => ({ value: row.name, label: translateCategoryName(row.name, locale) }))}
         t={t}
+        locale={locale}
         initialQuery={q}
         initialIndustry=""
         initialCategory={category}
         directoryUrl={pageUrl}
         heading={heading}
         subheading={description}
-        categoryLinks={businessCategories.map((row) => ({
-          name: translateCategoryName(row.name, locale),
-          href: categoryPath(slugify(row.name), locale),
-        }))}
       />
     </>
   );

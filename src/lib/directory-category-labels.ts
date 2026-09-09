@@ -103,16 +103,13 @@ export function translateCategoryName(name: string, locale: DirectoryLocale): st
   return CATEGORY_TRANSLATIONS[name]?.[locale] ?? name;
 }
 
-// A friendly category page's own URL — the language lives in the path
-// itself (a trailing /zh or /ms segment) rather than a ?lang= query param,
-// since this route only ever exists to be a clean, single-purpose landing
-// page for one category; English (the default a bare category URL already
-// meant before either language existed) carries no suffix. Relative — the
-// caller prepends siteOrigin for anything that needs an absolute URL
-// (metadata, JSON-LD); an on-page <Link> uses it as-is.
+// A friendly category page's own URL — the language lives in the path as
+// a leading segment (see directoryHomePath in directory-i18n.ts), same as
+// every other directory URL, English included. Relative — the caller
+// prepends siteOrigin for anything that needs an absolute URL (metadata,
+// JSON-LD); an on-page <Link> uses it as-is.
 export function categoryPath(categorySlug: string, locale: DirectoryLocale): string {
-  const base = `/directory/category/${categorySlug}`;
-  return locale === "en" ? base : `${base}/${locale}`;
+  return `/${locale}/directory/category/${categorySlug}`;
 }
 
 // Category-page copy templates — kept beside translateCategoryName since
