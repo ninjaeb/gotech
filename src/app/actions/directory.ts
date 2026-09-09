@@ -13,8 +13,10 @@ import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo"
 import {
   buildPublishedSnapshot,
   ensurePartnerListing,
+  isValidSlugFormat,
   normalizeWebsiteUrl,
   parseServicesInput,
+  slugify,
 } from "@/lib/directory";
 import { notifyPartnerOfNewLead, sendDirectoryLeadReply } from "@/lib/directory-notify";
 import { DIRECTORY_LOCALE_COOKIE } from "@/lib/directory-locale";
@@ -136,6 +138,8 @@ const listingSchema = z.object({
     .refine((value) => !value || INDUSTRIES.includes(value as Industry), { message: "Invalid industry" }),
   website: z.string().trim().optional(),
   location: z.string().trim().optional(),
+  address: z.string().trim().optional(),
+  operatingHours: z.string().trim().optional(),
 });
 
 export type ListingFormValues = {
@@ -146,6 +150,8 @@ export type ListingFormValues = {
   industry: string;
   website: string;
   location: string;
+  address: string;
+  operatingHours: string;
 };
 
 // Which field an error belongs to, so the UI can show it right under that
@@ -172,6 +178,8 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     industry: stringField(formData, "industry"),
     website: stringField(formData, "website"),
     location: stringField(formData, "location"),
+    address: stringField(formData, "address"),
+    operatingHours: stringField(formData, "operatingHours"),
   };
 }
 
@@ -295,6 +303,8 @@ async function saveListingFields(
       industry: (parsed.data.industry || null) as Industry | null,
       website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
       location: parsed.data.location || null,
+      address: parsed.data.address || null,
+      operatingHours: parsed.data.operatingHours || null,
       ...logo,
       ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
       ...extraData,
@@ -320,6 +330,43 @@ export async function saveDirectoryListing(
   revalidatePath("/partner/listing");
   if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
   return { success: true };
+}
+
+export type UpdateSlugState = { error: string; slug: string } | { success: true; slug: string } | undefined;
+
+// Separate from saveDirectoryListing on purpose: the slug is the address a
+// visitor's link points at, not part of what an admin reviews — changing
+// it takes effect immediately regardless of DRAFT/PENDING_REVIEW/PUBLISHED
+// status, and never resets that status the way editing content does.
+// Whoever had the old link gets a 404; nothing else about the listing
+// changes.
+export async function updateListingSlug(
+  _prevState: UpdateSlugState,
+  formData: FormData,
+): Promise<UpdateSlugState> {
+  const partner = await requirePartnerAction();
+  const raw = String(formData.get("slug") || "");
+  const normalized = slugify(raw);
+  if (!isValidSlugFormat(normalized)) {
+    return { error: "Enter at least 3 letters, numbers, or hyphens.", slug: raw };
+  }
+
+  const listing = await ensurePartnerListing(partner.id, partner.name);
+  if (normalized === listing.slug) {
+    return { success: true, slug: normalized };
+  }
+
+  const existing = await db.partnerListing.findUnique({ where: { slug: normalized }, select: { id: true } });
+  if (existing) {
+    return { error: "That URL is already taken — try a different one.", slug: raw };
+  }
+
+  await db.partnerListing.update({ where: { id: listing.id }, data: { slug: normalized } });
+  revalidatePath("/partner/listing");
+  revalidatePath("/directory");
+  revalidatePath(`/directory/${listing.slug}`);
+  revalidatePath(`/directory/${normalized}`);
+  return { success: true, slug: normalized };
 }
 
 export type SubmitListingState =

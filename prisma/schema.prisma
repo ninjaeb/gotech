@@ -1560,7 +1560,9 @@ model PartnerListing {
   services    Json // string[] — free-text service/product names
   industry    Industry?
   website     String?
-  location    String?
+  location    String? // short display text, e.g. "Kuala Lumpur, Malaysia"
+  address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
+  operatingHours String? @db.Text // free text, one line per day/range — shown as-is, not machine-parsed
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
 
   reviewNote        String?   @db.Text

@@ -105,6 +105,14 @@ export default async function DirectorySettingsPage() {
                     {listing.location && <span>{listing.location}</span>}
                     {listing.website && <span>{listing.website}</span>}
                   </div>
+                  {listing.address && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{listing.address}</p>
+                  )}
+                  {listing.operatingHours && (
+                    <p className="whitespace-pre-wrap text-xs text-slate-500 dark:text-slate-400">
+                      {listing.operatingHours}
+                    </p>
+                  )}
                   {servicesFromJson(listing.services).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {servicesFromJson(listing.services).map((service) => (
