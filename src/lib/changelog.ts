@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.64",
+    date: "2026-09-09",
+    title: "Pick multiple products & services for one inquiry",
+    changes: [
+      "A visitor can now pick more than one product/service on a listing's detail page — each shows a clear, persistent checkbox-style marker (not just a hover effect) so it's obvious they're clickable, and picking several builds one inquiry listing everything they're interested in instead of only the last thing clicked",
+    ],
+  },
+  {
     version: "1.63",
     date: "2026-09-09",
     title: "Editor layout cleanup, a list-editing bug fix, and clickable products",
