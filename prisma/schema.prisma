@@ -161,6 +161,8 @@ model User {
   assignedPendingAssignmentNotifications PendingTaskAssignmentNotification[] @relation("PendingAssignmentAssigner")
   newsletters                            Newsletter[]
   whatsAppBroadcasts                     WhatsAppBroadcast[]
+  partnerListing                         PartnerListing?
+  directoryLeadReplies                   DirectoryLeadReply[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -1524,4 +1526,125 @@ model ReferralWithdrawal {
   commissions ReferralCommission[]
 
   @@index([partnerId, status])
+}
+
+// Review state of a partner's *draft* directory listing (see
+// PartnerListing) — deliberately separate from whether anything is live,
+// which is "publishedSnapshot is set". DRAFT covers both never-submitted and
+// "edited since it was last approved"; REJECTED keeps the admin's note so
+// the partner can fix and resubmit.
+enum PartnerListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+}
+
+// A PARTNER user's public profile in the directory (/directory/<slug>).
+// The editable fields are the partner's working draft; publishedSnapshot is
+// a JSON copy of the public fields as they were the last time an admin
+// approved them, and is the only thing the public directory ever renders —
+// so a partner can edit freely while their last-approved version stays up,
+// and nothing unreviewed is ever visible. The partner's own User.email /
+// User.phone are never part of the snapshot: visitors reach a partner only
+// through the lead form (DirectoryLead), never directly.
+model PartnerListing {
+  id     String               @id @default(cuid())
+  slug   String               @unique
+  status PartnerListingStatus @default(DRAFT)
+
+  companyName String
+  tagline     String?
+  description String?   @db.Text
+  services    Json // string[] — free-text service/product names
+  industry    Industry?
+  website     String?
+  location    String?
+  logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
+
+  reviewNote        String?   @db.Text
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  publishedAt       DateTime?
+  publishedSnapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String @unique
+
+  leads DirectoryLead[]
+
+  @@index([status])
+}
+
+// Declared in workflow order so the partner-facing status picker can list
+// them as-is. NEW → PICKED_UP is the partner claiming it; the rest is up to
+// them to keep current. WON/LOST close it.
+enum DirectoryLeadStatus {
+  NEW
+  PICKED_UP
+  CONTACTED
+  QUOTED
+  WON
+  LOST
+}
+
+// A visitor's inquiry sent through a listing's contact form. Not a Deal:
+// this lead belongs to the partner to work (status/value/replies are theirs
+// to set from the partner portal), whereas a Deal is Gotka's own pipeline
+// and a partner can't see or change its stages by design. Admins get a
+// read-only overview from Settings → Directory.
+model DirectoryLead {
+  id     String              @id @default(cuid())
+  status DirectoryLeadStatus @default(NEW)
+
+  name    String
+  email   String
+  phone   String?
+  company String?
+  message String  @db.Text
+  // Which language the visitor had the directory in when they wrote this —
+  // shown to the partner so they can reply in kind.
+  locale  String  @default("en")
+
+  // Set by the partner: what this lead is (or ended up being) worth to them.
+  value Decimal? @db.Decimal(12, 2)
+  notes String?  @db.Text
+
+  pickedUpAt     DateTime?
+  firstRepliedAt DateTime?
+  closedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  listing   PartnerListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  replies DirectoryLeadReply[]
+
+  @@index([listingId, status])
+  @@index([createdAt])
+}
+
+// One message from the partner to the visitor, written in the partner
+// portal and delivered by email from the system sender (never from the
+// partner's own address — see src/lib/directory-notify.ts). sentAt/sendError
+// record whether that email actually went out; the reply row is kept either
+// way so the thread the partner sees is complete.
+model DirectoryLeadReply {
+  id        String    @id @default(cuid())
+  body      String    @db.Text
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+  sendError String?   @db.Text
+
+  lead   DirectoryLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  leadId String
+
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+
+  @@index([leadId])
 }

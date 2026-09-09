@@ -50,6 +50,11 @@ export default async function SettingsPage() {
             description="Partner commission rate and the landing page referral links send visitors to."
           />
           <SettingsLinkCard
+            href="/settings/directory"
+            title="Directory"
+            description="Review partner listing submissions and see how their inquiries are going."
+          />
+          <SettingsLinkCard
             href="/settings/integrations"
             title="Integrations"
             description="Connect email and the shared WhatsApp Business number."

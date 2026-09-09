@@ -42,7 +42,18 @@ export async function testNewsletterSmtp(config: NewsletterSmtpConfig) {
 // reuse.
 export async function sendNewsletterEmail(
   sender: NewsletterSender,
-  message: { to: string; subject: string; text: string; html: string },
+  message: {
+    to: string;
+    subject: string;
+    text: string;
+    html: string;
+    // Overrides the sender's own configured name for this one send — e.g.
+    // a partner directory reply shows the partner's company name rather
+    // than Gotka's, even though the address underneath is still this one
+    // shared mailbox. The address itself never changes: it's what actually
+    // has to accept a bounce/reply.
+    fromName?: string;
+  },
 ) {
   const transport = nodemailer.createTransport({
     host: sender.smtpHost,
@@ -51,7 +62,7 @@ export async function sendNewsletterEmail(
     auth: { user: sender.username, pass: decryptSecret(sender.encryptedPassword) },
   });
   await transport.sendMail({
-    from: { name: sender.fromName, address: sender.fromEmail },
+    from: { name: message.fromName ?? sender.fromName, address: sender.fromEmail },
     to: message.to,
     subject: message.subject,
     text: message.text,

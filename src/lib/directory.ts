@@ -1,0 +1,182 @@
+import { db } from "@/lib/db";
+import type { Industry, PartnerListing } from "@/generated/prisma/client";
+
+// The only shape the public directory ever reads — a snapshot of a
+// listing's public fields as they were the last time an admin approved
+// them (see PartnerListing.publishedSnapshot in schema.prisma). Nothing a
+// partner is still editing, and nothing that's never been approved, is ever
+// visible here. Deliberately excludes the partner's own User.email/phone —
+// a visitor only ever reaches a partner through the lead form.
+export type PublishedListingSnapshot = {
+  companyName: string;
+  tagline: string | null;
+  description: string | null;
+  services: string[];
+  industry: Industry | null;
+  website: string | null;
+  location: string | null;
+  logoUrl: string | null;
+};
+
+export function servicesFromJson(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+// One service per line (or comma-separated) in the editor's textarea —
+// whichever the partner finds natural. Capped well above what any real
+// listing needs, just to keep a pasted wall of text from ballooning the
+// stored JSON and the card grid it renders into.
+const MAX_SERVICES = 20;
+const MAX_SERVICE_LENGTH = 80;
+
+export function parseServicesInput(raw: string): string[] {
+  return raw
+    .split(/\r?\n|,/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => entry.slice(0, MAX_SERVICE_LENGTH))
+    .slice(0, MAX_SERVICES);
+}
+
+// The inverse of buildPublishedSnapshot — reads the stored JSON back into a
+// typed snapshot, tolerating a missing/malformed value (never trust a JSON
+// column's shape at the type level) by treating it as "not published".
+export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.companyName !== "string") return null;
+  return {
+    companyName: raw.companyName,
+    tagline: typeof raw.tagline === "string" ? raw.tagline : null,
+    description: typeof raw.description === "string" ? raw.description : null,
+    services: servicesFromJson(raw.services),
+    industry: typeof raw.industry === "string" ? (raw.industry as Industry) : null,
+    website: typeof raw.website === "string" ? raw.website : null,
+    location: typeof raw.location === "string" ? raw.location : null,
+    logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : null,
+  };
+}
+
+export function buildPublishedSnapshot(listing: PartnerListing): PublishedListingSnapshot {
+  return {
+    companyName: listing.companyName,
+    tagline: listing.tagline,
+    description: listing.description,
+    services: servicesFromJson(listing.services),
+    industry: listing.industry,
+    website: listing.website,
+    location: listing.location,
+    logoUrl: listing.logoUrl,
+  };
+}
+
+// A "Visit website" link needs a real absolute URL, not just a bare domain
+// — contrast Company.domain (src/lib/companies.ts), which deliberately
+// strips down to the bare form for internal matching. A partner typing
+// "acme.com" with no scheme still needs to link somewhere that isn't
+// resolved relative to this app's own origin.
+export function normalizeWebsiteUrl(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "") // strip combining accents so "Jose" -> "jose"
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+// Generated once, from whatever the partner is called at the time (their
+// User.name — companyName isn't set yet on a brand-new draft) — and never
+// changed after, same reasoning as referralCode in src/lib/referrals.ts:
+// it's the stable half of a public URL (/directory/<slug>) that may already
+// be shared once published, so editing the listing later must never move
+// it. Falls back to "partner" for a name with no latinizable characters at
+// all (e.g. fully CJK), then disambiguates with a short suffix either way.
+export async function generateListingSlug(name: string): Promise<string> {
+  const base = slugify(name) || "partner";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const candidate = attempt === 0 ? base : `${base}-${Math.random().toString(36).slice(2, 6)}`;
+    const existing = await db.partnerListing.findUnique({ where: { slug: candidate }, select: { id: true } });
+    if (!existing) return candidate;
+  }
+  throw new Error("Could not generate a unique listing slug — please try again.");
+}
+
+// A partner's listing row is created lazily, the first time they open the
+// editor — unlike referralCode (generated the moment the account becomes a
+// PARTNER, see src/app/actions/users.ts), a listing needs real content
+// before it means anything, so there's nothing worth creating any earlier.
+export async function ensurePartnerListing(partnerId: string, partnerName: string): Promise<PartnerListing> {
+  const existing = await db.partnerListing.findUnique({ where: { partnerId } });
+  if (existing) return existing;
+  const slug = await generateListingSlug(partnerName);
+  return db.partnerListing.create({
+    data: { partnerId, slug, companyName: partnerName, services: [] },
+  });
+}
+
+export type DirectoryLeadStats = {
+  total: number;
+  new: number;
+  open: number;
+  won: number;
+  lost: number;
+  wonValue: number;
+};
+
+export async function getDirectoryLeadStats(listingId: string): Promise<DirectoryLeadStats> {
+  const [total, byStatus, wonAgg] = await Promise.all([
+    db.directoryLead.count({ where: { listingId } }),
+    db.directoryLead.groupBy({ by: ["status"], where: { listingId }, _count: { _all: true } }),
+    db.directoryLead.aggregate({ where: { listingId, status: "WON" }, _sum: { value: true } }),
+  ]);
+  const counts = new Map<string, number>(byStatus.map((row) => [row.status, row._count._all]));
+  const won = counts.get("WON") ?? 0;
+  const lost = counts.get("LOST") ?? 0;
+  return {
+    total,
+    new: counts.get("NEW") ?? 0,
+    open: total - won - lost,
+    won,
+    lost,
+    wonValue: Number(wonAgg._sum.value ?? 0),
+  };
+}
+
+export type DirectoryOverviewStats = {
+  publishedListings: number;
+  pendingListings: number;
+  totalLeads: number;
+  leadsLast30Days: number;
+  wonValue: number;
+};
+
+// For Settings → Directory (admin) — across every partner's listing, not
+// scoped to one.
+export async function getDirectoryOverviewStats(): Promise<DirectoryOverviewStats> {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const [publishedListings, pendingListings, totalLeads, leadsLast30Days, wonAgg] = await Promise.all([
+    db.partnerListing.count({ where: { status: "PUBLISHED" } }),
+    db.partnerListing.count({ where: { status: "PENDING_REVIEW" } }),
+    db.directoryLead.count(),
+    db.directoryLead.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    db.directoryLead.aggregate({ where: { status: "WON" }, _sum: { value: true } }),
+  ]);
+
+  return {
+    publishedListings,
+    pendingListings,
+    totalLeads,
+    leadsLast30Days,
+    wonValue: Number(wonAgg._sum.value ?? 0),
+  };
+}

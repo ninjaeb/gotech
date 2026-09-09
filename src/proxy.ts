@@ -18,13 +18,16 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // /login instead of serving JS / accepting the cross-origin POST, which a
 // <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
 // referral link (src/app/r/[code]/route.ts) — followed by strangers, who
-// then land on the marketing site, never here.
+// then land on the marketing site, never here. /directory is the public
+// partner directory (src/app/directory) — browsed and its lead form
+// submitted by visitors with no login at all.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
   "/r/",
   "/lead",
   "/book",
   "/subscribe",
+  "/directory",
   "/testimonial/",
   "/embed/",
   "/unsubscribe/",

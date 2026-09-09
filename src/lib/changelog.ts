@@ -10,6 +10,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.54",
+    date: "2026-09-09",
+    title: "Public partner directory",
+    changes: [
+      "A public, trilingual (EN / 中文 / BM) partner directory at /directory, styled after gotka.com — browse partners by company, services, and industry, then view a detail page and send an inquiry with no login required",
+      "A visitor's contact form never exposes the partner's own phone or email — the inquiry lands as a lead the partner replies to from inside the CRM, which the visitor receives from a Gotka system address",
+      "Partner portal: a My listing page to edit and submit your directory profile for review, and a Directory leads page to pick up, reply to, and track each inquiry's status and value, with new stats on the Overview page",
+      "A partner is alerted by WhatsApp and email as soon as a new directory inquiry comes in",
+      "Settings → Directory (admin): approve or reject submitted listings, unpublish a live one, and see directory-wide stats and recent leads",
+    ],
+  },
+  {
     version: "1.53",
     date: "2026-09-08",
     title: "Partner referral program",
