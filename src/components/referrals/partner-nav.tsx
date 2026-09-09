@@ -5,49 +5,19 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const ITEMS = [
-  { href: "/business", label: "Overview" },
-  { href: "/business/listing", label: "My listing" },
-  { href: "/business/leads", label: "Leads" },
-  { href: "/business/directory-leads", label: "Directory leads" },
-  { href: "/business/commissions", label: "Commissions" },
-  { href: "/business/profile", label: "Profile" },
-];
+import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/business" ? pathname === "/business" : pathname.startsWith(href);
 }
 
-// The business portal's own page nav, shown inline in the sticky header on
-// wider screens — PartnerNavMenu takes over at the same breakpoint this
-// hides at, collapsing the same items (plus Sign out) into a hamburger.
-export function PartnerNav() {
-  const pathname = usePathname();
-  return (
-    <nav className="hidden items-center gap-1 sm:flex">
-      {ITEMS.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-            isActive(pathname, item.href)
-              ? "bg-led-soft text-petrol-ink dark:bg-led-soft-dark dark:text-petrol-light"
-              : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200",
-          )}
-        >
-          {item.label}
-        </Link>
-      ))}
-    </nav>
-  );
-}
-
-// The same nav items plus Sign out, tucked behind one hamburger button for
-// screens too narrow for PartnerNav's inline row. Same click-outside +
+// The business portal's own nav — always a hamburger (there's no inline
+// row on wide screens the way this used to split), same click-outside +
 // Escape + dropdown-panel pattern as DirectoryNavMenu (src/components/
 // directory/directory-nav-menu.tsx), ShareButton, and NotificationBell.
+// Grouped to match how a partner thinks about the two sites they can move
+// between: a link out to the public directory, then every portal page
+// nested under "My Business", then sign out.
 export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -75,7 +45,7 @@ export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | 
     "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-neutral-800";
 
   return (
-    <div ref={containerRef} className="relative sm:hidden">
+    <div ref={containerRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -92,17 +62,25 @@ export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | 
           role="menu"
           className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
         >
-          {ITEMS.map((item) => (
+          <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+            Business Directory
+          </Link>
+
+          <div className="border-t border-slate-100 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-neutral-800 dark:text-slate-500">
+            My Business
+          </div>
+          {BUSINESS_NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className={cn(itemClasses, isActive(pathname, item.href) && "text-petrol dark:text-petrol-light")}
+              className={cn(itemClasses, "pl-5", isActive(pathname, item.href) && "text-petrol dark:text-petrol-light")}
             >
               {item.label}
             </Link>
           ))}
+
           <form action={signOutAction}>
             <button
               type="submit"

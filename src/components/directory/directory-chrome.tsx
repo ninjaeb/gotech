@@ -62,6 +62,7 @@ export async function DirectoryChrome({ children }: { children: React.ReactNode 
               logoutAction={viewer === "business" ? businessLogout : logout}
               loginLabel={t.navLoginRegister}
               listBusinessLabel={t.listBusinessCta}
+              directoryLabel={t.brandName}
               myBusinessLabel={t.navMyBusiness}
               goToCrmLabel={t.navGoToCrm}
               signOutLabel={t.navSignOut}
