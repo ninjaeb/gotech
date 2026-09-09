@@ -46,7 +46,11 @@ export type DirectoryStrings = {
   servicesHeading: string;
   aboutHeading: string;
   visitHeading: string;
+  hoursHeading: string;
+  hoursOpenLabel: string;
+  hoursOpenTodayLabel: string;
   hoursClosedLabel: string;
+  hoursClosedTodayLabel: string;
   dayLabels: DirectoryDayLabels;
   websiteLabel: string;
   locationLabel: string;
@@ -83,7 +87,11 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "Services",
     aboutHeading: "About",
     visitHeading: "Visit us",
+    hoursHeading: "Hours",
+    hoursOpenLabel: "Open",
+    hoursOpenTodayLabel: "Open today",
     hoursClosedLabel: "Closed",
+    hoursClosedTodayLabel: "Closed today",
     dayLabels: {
       monday: "Monday",
       tuesday: "Tuesday",
@@ -137,7 +145,11 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "服务项目",
     aboutHeading: "关于",
     visitHeading: "联系地址",
+    hoursHeading: "营业时间",
+    hoursOpenLabel: "营业",
+    hoursOpenTodayLabel: "今日营业",
     hoursClosedLabel: "休息",
+    hoursClosedTodayLabel: "今日休息",
     dayLabels: {
       monday: "星期一",
       tuesday: "星期二",
@@ -191,7 +203,11 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "Perkhidmatan",
     aboutHeading: "Tentang",
     visitHeading: "Lawati kami",
+    hoursHeading: "Waktu Operasi",
+    hoursOpenLabel: "Buka",
+    hoursOpenTodayLabel: "Buka hari ini",
     hoursClosedLabel: "Tutup",
+    hoursClosedTodayLabel: "Tutup hari ini",
     dayLabels: {
       monday: "Isnin",
       tuesday: "Selasa",

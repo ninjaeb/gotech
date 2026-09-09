@@ -9,14 +9,22 @@ import { cn } from "@/lib/utils";
 // component's live preview, same reasoning as src/lib/operating-hours.ts.
 
 const SAFE_URL_PATTERN = /^https?:\/\//i;
+// A root-relative path ("/api/directory-images/xyz") is same-origin and
+// safe — this is how an uploaded image (see markdown-lite-editor.tsx's
+// Image button, backed by uploadDirectoryListingImage) gets embedded.
+// Deliberately excludes a protocol-relative path ("//evil.com/x"), which a
+// browser resolves to that host's own https:// URL — not same-origin at all.
+const SAFE_RELATIVE_PATTERN = /^\/(?!\/)/;
 
 // Applies to both link and image targets — same http(s)-only rule the rest
 // of the directory already uses for a partner's website (see
-// normalizeWebsiteUrl in src/lib/directory.ts). A `javascript:`/`data:`
-// target is rendered as inert literal text instead of a live link/image
-// rather than dropped, so a partner sees exactly what they typed.
+// normalizeWebsiteUrl in src/lib/directory.ts), plus same-origin relative
+// paths. A `javascript:`/`data:` target is rendered as inert literal text
+// instead of a live link/image rather than dropped, so a partner sees
+// exactly what they typed.
 function isSafeUrl(url: string): boolean {
-  return SAFE_URL_PATTERN.test(url.trim());
+  const trimmed = url.trim();
+  return SAFE_URL_PATTERN.test(trimmed) || SAFE_RELATIVE_PATTERN.test(trimmed);
 }
 
 // Image before link (its leading "!" is what tells them apart — trying

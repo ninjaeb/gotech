@@ -1577,9 +1577,29 @@ model PartnerListing {
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId String @unique
 
-  leads DirectoryLead[]
+  leads  DirectoryLead[]
+  images DirectoryListingImage[]
 
   @@index([status])
+}
+
+// An image a partner uploaded and embedded inline in their About field
+// (via the toolbar's Image button — see markdown-lite-editor.tsx), served
+// back through /api/directory-images/[id]. A dedicated table rather than a
+// data: URL inline in `description` itself, same reasoning as
+// NewsletterImage: keeps the text column small regardless of how many
+// images end up embedded, and gives each image real cache headers.
+model DirectoryListingImage {
+  id       String @id @default(cuid())
+  mimeType String
+  data     String @db.LongText
+
+  createdAt DateTime @default(now())
+
+  listing   PartnerListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  listingId String
+
+  @@index([listingId])
 }
 
 // Declared in workflow order so the partner-facing status picker can list

@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
-import { formatOpeningHoursSchema, groupOperatingHours, readPublishedSnapshot, type OperatingHours } from "@/lib/directory";
+import { DAYS_OF_WEEK, formatOpeningHoursSchema, readPublishedSnapshot, type OperatingHours } from "@/lib/directory";
 import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS, type DirectoryStrings } from "@/lib/directory-i18n";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
+import { cn } from "@/lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
@@ -94,16 +95,24 @@ function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublished
   return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 }
 
-// Groups consecutive days sharing identical hours (see groupOperatingHours)
-// into display lines like "Monday – Friday: 09:00 – 18:00", in whichever
-// locale's day names and "Closed" label the visitor is reading in.
-function formatOperatingHoursLines(hours: OperatingHours, t: DirectoryStrings): string[] {
-  return groupOperatingHours(hours).map((group) => {
-    const first = t.dayLabels[group.days[0]];
-    const last = t.dayLabels[group.days[group.days.length - 1]];
-    const dayRange = group.days.length > 1 ? `${first} – ${last}` : first;
-    const hoursText = group.hours ? `${group.hours.open} – ${group.hours.close}` : t.hoursClosedLabel;
-    return `${dayRange}: ${hoursText}`;
+type HoursRow = { day: string; label: string; status: string; isToday: boolean };
+
+// One row per day of the week (Monday–Sunday, always all seven) rather than
+// collapsing consecutive matching days into a range — this is the display
+// table on the detail page; buildJsonLd's own openingHours still uses the
+// compact grouped form, which is what schema.org actually wants.
+function buildHoursRows(hours: OperatingHours, t: DirectoryStrings): HoursRow[] {
+  const jsDay = new Date().getDay(); // 0 (Sun) .. 6 (Sat)
+  const todayKey = DAYS_OF_WEEK[(jsDay + 6) % 7]; // rotate to our Monday-first order
+  return DAYS_OF_WEEK.map((day) => {
+    const isToday = day === todayKey;
+    const dayHours = hours[day];
+    const status = dayHours
+      ? `${isToday ? t.hoursOpenTodayLabel : t.hoursOpenLabel}: ${dayHours.open} – ${dayHours.close}`
+      : isToday
+        ? t.hoursClosedTodayLabel
+        : t.hoursClosedLabel;
+    return { day, label: t.dayLabels[day], status, isToday };
   });
 }
 
@@ -157,32 +166,36 @@ export default async function DirectoryListingPage({ params }: { params: Promise
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {listing.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
-              </CardHeader>
-              <CardBody className="text-base text-slate-600 dark:text-slate-300">
-                {renderMarkdownLite(listing.description)}
-              </CardBody>
-            </Card>
-          )}
-          {listing.services.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
-              </CardHeader>
-              <CardBody className="flex flex-wrap gap-2.5">
-                {listing.services.map((service) => (
-                  <Badge
-                    key={service}
-                    className="bg-led-soft px-4 py-2 text-base text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20"
-                  >
-                    {service}
-                  </Badge>
-                ))}
-              </CardBody>
-            </Card>
+          {(listing.description || listing.services.length > 0) && (
+            <div className={cn("grid gap-6", listing.description && listing.services.length > 0 ? "sm:grid-cols-2" : "")}>
+              {listing.description && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
+                  </CardHeader>
+                  <CardBody className="text-base text-slate-600 dark:text-slate-300">
+                    {renderMarkdownLite(listing.description)}
+                  </CardBody>
+                </Card>
+              )}
+              {listing.services.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
+                  </CardHeader>
+                  <CardBody className="flex flex-wrap content-start gap-2.5">
+                    {listing.services.map((service) => (
+                      <Badge
+                        key={service}
+                        className="bg-led-soft px-4 py-2 text-base text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20"
+                      >
+                        {service}
+                      </Badge>
+                    ))}
+                  </CardBody>
+                </Card>
+              )}
+            </div>
           )}
           {(mapAddress || listing.operatingHours) && (
             <Card>
@@ -196,24 +209,58 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                     <span className="whitespace-pre-wrap">{listing.address}</span>
                   </p>
                 )}
-                {listing.operatingHours && (
-                  <div className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
-                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                    <ul>
-                      {formatOperatingHoursLines(listing.operatingHours, t).map((line) => (
-                        <li key={line}>{line}</li>
-                      ))}
-                    </ul>
+                {(listing.operatingHours || mapAddress) && (
+                  <div className={cn("grid gap-4", listing.operatingHours && mapAddress ? "sm:grid-cols-2" : "")}>
+                    {listing.operatingHours && (
+                      <div>
+                        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          <Clock className="h-4 w-4 text-slate-400" />
+                          {t.hoursHeading}
+                        </h3>
+                        <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
+                          <table className="w-full text-sm">
+                            <tbody>
+                              {buildHoursRows(listing.operatingHours, t).map((row) => (
+                                <tr
+                                  key={row.day}
+                                  className={cn(
+                                    "border-b border-slate-200 last:border-b-0 dark:border-neutral-800",
+                                    row.isToday && "bg-led-soft dark:bg-led-soft-dark",
+                                  )}
+                                >
+                                  <td
+                                    className={cn(
+                                      "px-3 py-2 font-semibold text-slate-700 dark:text-slate-300",
+                                      row.isToday && "text-petrol-ink dark:text-petrol-light",
+                                    )}
+                                  >
+                                    {row.label}
+                                  </td>
+                                  <td
+                                    className={cn(
+                                      "px-3 py-2 text-slate-600 dark:text-slate-300",
+                                      row.isToday && "font-semibold text-petrol-ink dark:text-petrol-light",
+                                    )}
+                                  >
+                                    {row.status}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    {mapAddress && (
+                      <iframe
+                        title={`${listing.companyName} on the map`}
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
+                        className="h-64 w-full rounded-md border-0 sm:h-auto sm:min-h-[14rem]"
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    )}
                   </div>
-                )}
-                {mapAddress && (
-                  <iframe
-                    title={`${listing.companyName} on the map`}
-                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
-                    className="h-64 w-full rounded-md border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
                 )}
               </CardBody>
             </Card>

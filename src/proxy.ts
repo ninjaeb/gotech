@@ -20,7 +20,8 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/login"];
 // referral link (src/app/r/[code]/route.ts) — followed by strangers, who
 // then land on the marketing site, never here. /directory is the public
 // partner directory (src/app/directory) — browsed and its lead form
-// submitted by visitors with no login at all.
+// submitted by visitors with no login at all. /api/directory-images/ serves
+// a listing's About-field images, embedded on that same public page.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
   "/r/",
@@ -36,6 +37,7 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/api/public/lead",
   "/api/public/newsletter-subscribe",
   "/api/newsletter-images/",
+  "/api/directory-images/",
 ];
 
 // The client portal (/portal/*) is a second, independent visitor type with

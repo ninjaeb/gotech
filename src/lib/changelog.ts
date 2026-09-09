@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.60",
+    date: "2026-09-09",
+    title: "Photo uploads, a proper hours table, and a tidier layout",
+    changes: [
+      "The About field's Image button now uploads a photo directly, instead of only accepting a pasted image URL",
+      "A listing's detail page shows a proper day-by-day hours table (today highlighted), side by side with the map, and About/Services now sit side by side too — on both the detail page and the partner's own editor, which now makes better use of the full-width layout",
+    ],
+  },
+  {
     version: "1.59",
     date: "2026-09-09",
     title: "Simple formatting on the About field",
