@@ -3,6 +3,7 @@
 import { useActionState, useRef, useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import {
+  generateListingFaqs,
   generateListingSeoMeta,
   rewriteListingDescription,
   rewriteListingServices,
@@ -13,6 +14,7 @@ import {
 } from "@/app/actions/directory";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
+import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
@@ -21,7 +23,7 @@ import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
 import type { OperatingHours } from "@/lib/operating-hours";
-import type { ServiceEntry } from "@/lib/directory";
+import type { FaqEntry, ServiceEntry } from "@/lib/directory";
 
 // The other two AI actions (description rewrite, SEO meta) just want a
 // readable summary of what services exist for grounding — not the
@@ -82,10 +84,12 @@ export function PartnerListingForm({
   const formRef = useRef<HTMLFormElement>(null);
   const [description, setDescription] = useState(current.description);
   const [services, setServices] = useState<ServiceEntry[]>(current.services);
+  const [faqs, setFaqs] = useState<FaqEntry[]>(current.faqs);
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [rewritingDescription, startRewriteDescription] = useTransition();
   const [rewritingServices, startRewriteServices] = useTransition();
+  const [generatingFaqs, startGenerateFaqs] = useTransition();
   const [generatingSeoMeta, startGenerateSeoMeta] = useTransition();
 
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -142,6 +146,18 @@ export function PartnerListingForm({
             price: services[i]?.price ?? "",
           })),
         );
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleGenerateFaqs() {
+    const context = contextFromForm();
+    startGenerateFaqs(async () => {
+      const result = await generateListingFaqs(faqs, { ...context, description, services: servicesContextText(services) });
+      if (result.status === "ok") {
+        setFaqs(result.data.faqs.map((entry) => ({ question: entry.question, answer: entry.answer })));
       } else {
         toast.error(result.message);
       }
@@ -347,6 +363,27 @@ export function PartnerListingForm({
         </div>
         <p className="mt-1 text-xs text-slate-400">
           Optional — leave blank to use your tagline and About text automatically.
+        </p>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label className="mb-0">FAQ</Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleGenerateFaqs}
+              disabled={generatingFaqs}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {generatingFaqs ? "Generating…" : "Generate with AI"}
+            </button>
+          )}
+        </div>
+        <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
+        <p className="mt-1 text-xs text-slate-400">
+          Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
         </p>
       </div>
 

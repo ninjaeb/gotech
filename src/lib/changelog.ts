@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.62",
+    date: "2026-09-09",
+    title: "SEO/GEO-optimized About rewrites, and a listing FAQ section",
+    changes: [
+      "The About field's Rewrite with AI button now optimizes for AI answer engines as well as search engines, and always expands rather than shortens — it'll never trim your draft down, only add relevant detail",
+      "A listing can now have an FAQ section — a partner can add, edit, and reorder question-and-answer entries from My listing, with a Generate with AI button that drafts or improves them from the rest of the listing",
+      "A listing's detail page shows its FAQ as an expandable Q&A list, with schema.org FAQPage structured data for search-result rich snippets and AI answer engines",
+    ],
+  },
+  {
     version: "1.61",
     date: "2026-09-09",
     title: "AI-written SEO, service pricing, and a few listing refinements",

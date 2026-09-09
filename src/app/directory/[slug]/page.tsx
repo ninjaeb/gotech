@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { Clock, Globe, MapPin } from "lucide-react";
+import { ChevronDown, Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
-import { DAYS_OF_WEEK, formatOpeningHoursSchema, readPublishedSnapshot, type OperatingHours } from "@/lib/directory";
+import { DAYS_OF_WEEK, formatOpeningHoursSchema, readPublishedSnapshot, type FaqEntry, type OperatingHours } from "@/lib/directory";
 import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS, type DirectoryStrings } from "@/lib/directory-i18n";
@@ -128,6 +128,26 @@ function buildJsonLd(
   return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 }
 
+// FAQPage is normally its own top-level JSON-LD entity rather than nested
+// inside LocalBusiness — a separate <script> block, same escaping as
+// buildJsonLd above. Rich snippets are the SEO payoff; being directly
+// quotable Q&A is the GEO one.
+function buildFaqJsonLd(faqs: FaqEntry[]): string {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
+
 type HoursRow = { day: string; label: string; status: string; isToday: boolean };
 
 // One row per day of the week (Monday–Sunday, always all seven) rather than
@@ -172,6 +192,12 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           __html: buildJsonLd(listing, pageUrl, buildListingLogoUrl(listing, siteOrigin, slug)),
         }}
       />
+      {listing.faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(listing.faqs) }}
+        />
+      )}
       <div className="mb-8 flex flex-wrap items-start gap-4">
         <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
         <div className="min-w-0 flex-1">
@@ -314,6 +340,28 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 />
+              </CardBody>
+            </Card>
+          )}
+
+          {listing.faqs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">{t.faqHeading}</CardTitle>
+              </CardHeader>
+              <CardBody className="space-y-2">
+                {listing.faqs.map((faq, index) => (
+                  <details
+                    key={index}
+                    className="group rounded-md border border-slate-200 px-3 py-2 dark:border-neutral-800"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-slate-900 marker:content-none dark:text-slate-100">
+                      {faq.question}
+                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <p className="mt-2 text-base text-slate-600 dark:text-slate-300">{faq.answer}</p>
+                  </details>
+                ))}
               </CardBody>
             </Card>
           )}

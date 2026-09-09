@@ -35,6 +35,7 @@ export type PublishedListingSnapshot = {
   location: string | null;
   address: string | null;
   operatingHours: OperatingHours | null;
+  faqs: FaqEntry[];
   logoUrl: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
@@ -94,6 +95,46 @@ export function parseServicesJson(raw: string): ServiceEntry[] {
   return servicesFromJson(parsed);
 }
 
+// A listing's FAQ entries — see FaqEditor. Shown on the detail page and
+// emitted as FAQPage JSON-LD (see buildFaqJsonLd in
+// src/app/directory/[slug]/page.tsx), which is a straightforward, high-value
+// win for both SEO (rich snippets) and GEO (an AI answer engine can quote a
+// clearly-marked question/answer pair directly).
+export type FaqEntry = { question: string; answer: string };
+
+const MAX_FAQS = 20;
+const MAX_FAQ_QUESTION_LENGTH = 150;
+const MAX_FAQ_ANSWER_LENGTH = 500;
+
+function sanitizeFaqEntry(entry: unknown): FaqEntry | null {
+  if (!entry || typeof entry !== "object") return null;
+  const raw = entry as Record<string, unknown>;
+  const question = typeof raw.question === "string" ? raw.question.trim().slice(0, MAX_FAQ_QUESTION_LENGTH) : "";
+  const answer = typeof raw.answer === "string" ? raw.answer.trim().slice(0, MAX_FAQ_ANSWER_LENGTH) : "";
+  if (!question || !answer) return null;
+  return { question, answer };
+}
+
+export function faqsFromJson(value: unknown): FaqEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map(sanitizeFaqEntry)
+    .filter((entry): entry is FaqEntry => entry !== null)
+    .slice(0, MAX_FAQS);
+}
+
+// Parses the editor's serialized JSON (see FaqEditor's hidden input)
+// permissively, same spirit as parseServicesJson.
+export function parseFaqsJson(raw: string): FaqEntry[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  return faqsFromJson(parsed);
+}
+
 // The inverse of buildPublishedSnapshot — reads the stored JSON back into a
 // typed snapshot, tolerating a missing/malformed value (never trust a JSON
 // column's shape at the type level) by treating it as "not published".
@@ -111,6 +152,7 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     location: typeof raw.location === "string" ? raw.location : null,
     address: typeof raw.address === "string" ? raw.address : null,
     operatingHours: operatingHoursFromJson(raw.operatingHours),
+    faqs: faqsFromJson(raw.faqs),
     logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : null,
     seoTitle: typeof raw.seoTitle === "string" ? raw.seoTitle : null,
     seoDescription: typeof raw.seoDescription === "string" ? raw.seoDescription : null,
@@ -128,6 +170,7 @@ export function buildPublishedSnapshot(listing: PartnerListing): PublishedListin
     location: listing.location,
     address: listing.address,
     operatingHours: operatingHoursFromJson(listing.operatingHours),
+    faqs: faqsFromJson(listing.faqs),
     logoUrl: listing.logoUrl,
     seoTitle: listing.seoTitle,
     seoDescription: listing.seoDescription,
