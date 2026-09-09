@@ -3,10 +3,9 @@ import { randomBytes } from "node:crypto";
 import { exchangeGoogleCode, isGoogleAuthConfigured, verifyGoogleIdToken, verifyGoogleOAuthState } from "@/lib/auth/google";
 import { hashPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
-import { homeForRole } from "@/lib/auth/dal";
+import { PARTNER_HOME } from "@/lib/auth/dal";
 import { registerOrSignInPartnerWithGoogle } from "@/lib/partner-signup";
 import { getSiteOrigin } from "@/lib/site-url";
-import { db } from "@/lib/db";
 
 const STATE_COOKIE = "google_oauth_state";
 
@@ -69,14 +68,14 @@ export async function GET(request: NextRequest) {
       passwordHash: await hashPassword(randomBytes(24).toString("hex")),
     });
 
-    await createSession(result.userId);
+    if (!result.ok) {
+      const res = failure(siteOrigin, result.error, state.returnTo);
+      res.cookies.delete(STATE_COOKIE);
+      return res;
+    }
 
-    // A returning user matched by email might not be a PARTNER at all
-    // (e.g. an admin who happened to sign the form with their own work
-    // email) — send them to wherever their own role actually lives rather
-    // than assuming the partner portal.
-    const user = await db.user.findUniqueOrThrow({ where: { id: result.userId }, select: { role: true } });
-    const res = NextResponse.redirect(new URL(homeForRole(user.role), siteOrigin));
+    await createSession(result.userId);
+    const res = NextResponse.redirect(new URL(PARTNER_HOME, siteOrigin));
     res.cookies.delete(STATE_COOKIE);
     return res;
   } catch {

@@ -116,7 +116,8 @@ export type PartnerSignupErrorCode =
   | "generic"
   | "google_failed"
   | "google_unavailable"
-  | "email_unverified";
+  | "email_unverified"
+  | "wrong_role";
 
 export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
   en: {
@@ -217,6 +218,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       google_failed: "Google sign-in failed. Please try again.",
       google_unavailable: "Google sign-in isn't available right now.",
       email_unverified: "Your Google account's email isn't verified.",
+      wrong_role: "That Google account belongs to a staff member. Staff sign in at /system/login.",
     },
   },
   zh: {
@@ -317,6 +319,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       google_failed: "Google 登录失败，请重试。",
       google_unavailable: "Google 登录目前不可用。",
       email_unverified: "您的 Google 账户电子邮件尚未验证。",
+      wrong_role: "该 Google 账户属于员工账号。员工请在 /system/login 登录。",
     },
   },
   ms: {
@@ -417,6 +420,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       google_failed: "Log masuk Google gagal. Sila cuba lagi.",
       google_unavailable: "Log masuk Google tidak tersedia sekarang.",
       email_unverified: "E-mel akaun Google anda belum disahkan.",
+      wrong_role: "Akaun Google itu milik kakitangan. Kakitangan log masuk di /system/login.",
     },
   },
 };

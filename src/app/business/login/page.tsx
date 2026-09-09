@@ -5,6 +5,7 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   google_unavailable: "Google sign-in is not available right now.",
   google_failed: "Google sign-in failed. Please try again.",
   email_unverified: "That Google account's email address isn't verified.",
+  wrong_role: "That Google account belongs to a staff member. Staff sign in at /system/login.",
 };
 
 export default async function BusinessLoginPage({
