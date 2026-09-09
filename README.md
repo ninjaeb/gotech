@@ -30,6 +30,7 @@ A CRM built with Next.js (App Router), TypeScript, Tailwind CSS, and Prisma on M
 - **Newsletter subscribe form** (`/subscribe`, configured in *Settings → Newsletter*) — a public, unauthenticated form (name, email, and phone, all required) that adds a contact straight to whichever list you designate as the subscriber list, same "finds or creates a Contact" behavior as the lead-capture form. Visitors choose email, WhatsApp, or both — each channel's consent flag (`emailOptOut`/`whatsappMarketingOptIn`) is cleared independently based on that choice, and the form states the no-spam/unsubscribe-anytime policy up front. Same two embed options as the lead-capture form too: a ready-to-paste `<iframe>` snippet, or a JS widget (`/embed/newsletter-form.js`) that adopts the host site's own fonts/colors/input styling instead of looking like a dropped-in box
 - **WhatsApp broadcasts** (`/newsletters` → *New WhatsApp broadcast*) — a one-off marketing update (headline + link) sent via an approved WhatsApp template to every contact who opted into WhatsApp updates through the subscribe form above and still has a phone on file. See *WhatsApp broadcasts* further down for the required Meta template and cron job
 - **Partner referral program** (`/referrals`, defaults in *Settings → Referrals*) — a third login role, **Partner**, for external referrers. Each partner gets a share link (`/r/<code>`) that counts the click and sends the visitor on to your marketing landing page; the lead-capture widget there passes the code back, so the resulting Deal is marked *Referred by* that partner (source *Referral*). When that deal is won, a commission (deal value × the default rate, or the partner's own override) is created for an admin to approve; the partner sees their clicks, leads and each one's progress, commissions, and available balance in their own portal (`/partner`) and requests withdrawals there, which an admin pays out by hand and marks paid. Partners never see the CRM itself. See *Partner referral program* further down
+- **Partner directory** (`/directory`, styled like gotka.com) — a public, trilingual (English / 中文 / Bahasa Malaysia) listing of your Partner-role users: company name, tagline, services, industry, and website, with a detail page per partner. A visitor's inquiry goes in through a spam-guarded contact form and never sees the partner's own phone or email — it's stored as a `DirectoryLead` and shows up in that partner's portal (`/partner/directory-leads`) for them to pick up, reply to (sent from a Gotka system address), and track through its own status/value pipeline, separate from the referral commissions above. A partner edits their own listing (`/partner/listing`) and submits it for review; an admin approves, rejects with a note, or unpublishes from *Settings → Directory*, which also has directory-wide stats and a feed of recent leads. See *Public partner directory* further down for the one-time WhatsApp template setup
 - **Task notifications** — the dashboard's "My Tasks" card and stat cards only show tasks assigned to you, and the Tasks nav item gets a red badge counting how many are due today or overdue. Optionally enable a daily digest email of that same list per mailbox, via a cron job (see *Deploying on cPanel* below)
 
 ## Stack
@@ -352,6 +353,28 @@ Lets external partners bring you leads in exchange for a cut of the deals those 
 6. **Payout**: approved commissions form the partner's available balance. From their portal they request a withdrawal of the whole balance, typing in how they want to be paid (this app doesn't move money). The request shows on the **Referrals** page; an admin pays by hand and clicks *Mark paid* (optionally noting a reference), which marks every commission in it paid too — or *Reject*, which releases them back into the partner's balance. One open request per partner at a time.
 
 Deleting a deal keeps its commission record (with the deal's title snapshotted) so the money trail survives; deleting a partner login deletes their clicks, commissions, and withdrawals with it.
+
+### 20. Public partner directory (optional)
+
+Publishes a Partner-role user's own profile to a public, trilingual directory at `/directory`. Nothing to enable to see the pages — they render as soon as a listing exists — but a partner is only alerted to a new inquiry by WhatsApp once its own template is approved, same as the other proactive notifications above.
+
+1. **A partner fills in their listing** from their portal (*My listing*, `/partner/listing`): company name, tagline, description, services (one per line), industry, website, and a logo, then submits it for review.
+2. **An admin approves it** from *Settings → Directory*. Approving snapshots the current draft onto the public page — the partner can keep editing afterwards without taking the live listing down; only submitting for review again (or an admin unpublishing it) changes what's public.
+3. **Create the WhatsApp template** so a partner is pinged the moment someone contacts them, the same way as *WhatsApp new-lead notifications* above:
+   - Name: `new_directory_lead_notification` (must match exactly — this app hard-codes it)
+   - Category: `Utility`
+   - Language: `English`
+   - Header (optional, static text only — no variable): anything you like, e.g. "New directory inquiry"
+   - Body: `New directory inquiry from {{1}} ({{2}})` on its own line, then a blank line, then `Reply here: {{3}}`
+   - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
+   - No buttons — the link is the body's own `{{3}}` variable. Sample values Meta asks for: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/partner/directory-leads/abc123`.
+
+   Submit for review, same as the other templates above.
+4. **Nothing to opt in** — a partner with a phone number on file gets the WhatsApp ping automatically once the template's approved; without WhatsApp Business connected, or without a phone number, the lead is still created and still emailed (if a system mailbox is configured in *Settings → Newsletter*) — only the WhatsApp half is silently skipped.
+
+`{{1}}` is the visitor's name, `{{2}}` their company (or "No company given"), `{{3}}` a full link to the lead in that partner's portal, built from your `SITE_URL` env var.
+
+A visitor's inquiry never carries the partner's phone or email to the outside world both ways: the public listing itself omits them, and a partner's reply sends from Gotka's own system mailbox rather than their personal one.
 
 ## Deploying on cPanel
 

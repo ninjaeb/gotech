@@ -714,6 +714,47 @@ export async function notifyNewLeadViaWhatsApp(leadName: string, companyName: st
 
 // Must match an approved template in Meta Business Manager exactly — see
 // the README's WhatsApp section for the exact text to submit. A template,
+// not plain text, for the same reason as every other proactive notification
+// above: a visitor's inquiry through a partner's directory listing is very
+// unlikely to arrive within that partner's own 24h WhatsApp reply window.
+export const NEW_DIRECTORY_LEAD_TEMPLATE_NAME = "new_directory_lead_notification";
+const NEW_DIRECTORY_LEAD_TEMPLATE_LANGUAGE = "en";
+
+// Unlike notifyNewLeadViaWhatsApp (every opted-in ADMIN), this has exactly
+// one recipient — the partner whose listing the inquiry came through — so
+// it gates purely on that partner having a phone number set, the same
+// convention as notifyMentionsViaWhatsApp/notifyTaskAssignmentViaWhatsApp
+// use for "this specifically involves you" pings, rather than a separate
+// opt-in boolean like the admin-wide notifyNewLead.
+export async function notifyDirectoryLeadViaWhatsApp(
+  partnerId: string,
+  leadName: string,
+  companyName: string,
+  path: string,
+): Promise<void> {
+  const account = await db.whatsAppAccount.findUnique({ where: { id: WHATSAPP_ACCOUNT_ID } });
+  if (!account) return;
+
+  const partner = await db.user.findUnique({ where: { id: partnerId }, select: { phone: true } });
+  if (!partner?.phone) return;
+
+  const link = `${await getSiteOrigin()}${path}`;
+  await sendWhatsAppTemplateMessage(
+    account,
+    partner.phone,
+    NEW_DIRECTORY_LEAD_TEMPLATE_NAME,
+    NEW_DIRECTORY_LEAD_TEMPLATE_LANGUAGE,
+    [leadName, companyName || "No company given", link],
+  ).catch((error) => {
+    console.error(
+      `New directory lead WhatsApp notification failed for partner ${partnerId}:`,
+      error instanceof Error ? error.message : error,
+    );
+  });
+}
+
+// Must match an approved template in Meta Business Manager exactly — see
+// the README's WhatsApp section for the exact text to submit. A template,
 // not plain text, for the same reason as the other proactive notifications
 // above: whoever changed the task's status is very unlikely to be within a
 // follower's own 24h WhatsApp reply window.

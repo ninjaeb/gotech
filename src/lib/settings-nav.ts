@@ -11,6 +11,7 @@ export const SETTINGS_SUB_ITEMS = [
   { href: "/settings/team", label: "Team", adminOnly: true },
   { href: "/settings/forms", label: "Forms & Booking", adminOnly: true },
   { href: "/settings/referrals", label: "Referrals", adminOnly: true },
+  { href: "/settings/directory", label: "Directory", adminOnly: true },
   { href: "/settings/integrations", label: "Integrations", adminOnly: true },
   { href: "/settings/changelog", label: "Changelog", adminOnly: false },
 ];

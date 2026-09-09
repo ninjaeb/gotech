@@ -1,18 +1,21 @@
 import Link from "next/link";
-import { Banknote, Handshake, MousePointerClick, Trophy, UserPlus, Wallet } from "lucide-react";
+import { Banknote, Handshake, Inbox, MousePointerClick, Store, Trophy, UserPlus, Wallet } from "lucide-react";
 import { requirePartner } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { generateReferralCode, getPartnerStats, referredDealStatus } from "@/lib/referrals";
+import { ensurePartnerListing, getDirectoryLeadStats } from "@/lib/directory";
 import { getCurrency, getReferralSettings } from "@/lib/settings";
 import { getSiteOrigin } from "@/lib/site-url";
 import { formatCurrencyExact, formatDate, fullName } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input, Label } from "@/components/ui/field";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ReferredDealStatusBadge } from "@/components/referrals/referral-status-badge";
+import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } from "@/lib/labels";
 
 // A partner account normally gets its code the moment it's created (or its
 // role is switched) — see src/app/actions/users.ts — but an account that
@@ -27,7 +30,7 @@ async function ensureReferralCode(userId: string, name: string): Promise<string>
 
 export default async function PartnerOverviewPage() {
   const user = await requirePartner();
-  const [code, stats, currency, settings, siteOrigin, recentLeads] = await Promise.all([
+  const [code, stats, currency, settings, siteOrigin, recentLeads, listing] = await Promise.all([
     ensureReferralCode(user.id, user.name),
     getPartnerStats(user.id),
     getCurrency(),
@@ -45,7 +48,9 @@ export default async function PartnerOverviewPage() {
         pipelineStage: { select: { isWon: true, isLost: true } },
       },
     }),
+    ensurePartnerListing(user.id, user.name),
   ]);
+  const directoryStats = await getDirectoryLeadStats(listing.id);
 
   const referralLink = `${siteOrigin}/r/${code}`;
   const partnerRate = await db.user
@@ -160,6 +165,41 @@ export default async function PartnerOverviewPage() {
               </Link>
             </p>
           )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Directory listing</CardTitle>
+          <Link href="/partner/listing" className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+            Edit listing
+          </Link>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className={PARTNER_LISTING_STATUS_BADGE_CLASSES[listing.status]}>
+              {PARTNER_LISTING_STATUS_LABELS[listing.status]}
+            </Badge>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {listing.publishedSnapshot ? "Live on the partner directory" : "Not published yet"}
+            </span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard
+              label="New leads"
+              value={directoryStats.new.toString()}
+              icon={Inbox}
+              accent="sky"
+              href="/partner/directory-leads"
+            />
+            <StatCard label="Won" value={directoryStats.won.toString()} icon={Store} accent="emerald" />
+            <StatCard
+              label="Won value"
+              value={formatCurrencyExact(directoryStats.wonValue, currency)}
+              icon={Wallet}
+              accent="indigo"
+            />
+          </div>
         </CardBody>
       </Card>
     </div>
