@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import { getReferralSettings } from "@/lib/settings";
+import type { DirectoryLeadStatus } from "@/generated/prisma/client";
 
 // The referral program's shared logic — see the comment block above
 // ReferralClick in prisma/schema.prisma for the end-to-end flow. Everything
@@ -13,6 +14,24 @@ import { getReferralSettings } from "@/lib/settings";
 // this shape back (see public/embed/lead-form.js) so a stray value in the
 // URL can't smuggle anything odd into a submission.
 export const REFERRAL_CODE_PATTERN = /^[a-z0-9-]{3,40}$/;
+
+// Set by /r/<code>?l=<slug> (a "Recommend this business" link) on the way
+// into a directory listing, and read back by submitDirectoryLead so an
+// inquiry sent from that listing is credited to the recommender. A cookie
+// rather than a ?ref= query param like the marketing-site path uses: the
+// visitor may browse a few directory pages before writing in, and a URL
+// param wouldn't survive that. Thirty days, matching the usual attribution
+// window for this kind of link.
+export const DIRECTORY_REFERRAL_COOKIE = "directory_ref";
+export const DIRECTORY_REFERRAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
+// The link a partner hands out when recommending someone else's listing —
+// see src/app/r/[code]/route.ts for what it does on the way through. Carries
+// the recommender's current directory language so the visitor lands in
+// the same one they were shown.
+export function directoryReferralUrl(siteOrigin: string, code: string, slug: string, locale: string): string {
+  return `${siteOrigin}/r/${encodeURIComponent(code)}?l=${encodeURIComponent(slug)}&lang=${encodeURIComponent(locale)}`;
+}
 
 // "jane-x7k2": the partner's first name for recognizability (a partner is
 // going to paste this link into messages, so it shouldn't look like a
@@ -114,6 +133,15 @@ export type PartnerStats = {
   clicksLast30Days: number;
   leads: number;
   wonDeals: number;
+  // The "Recommend" side of the program (see src/app/r/[code]/route.ts):
+  // clicks on this partner's recommend-a-listing links, and directory
+  // inquiries those visitors went on to send. Tracked separately from
+  // `leads`/`wonDeals` above, which are marketing-site referrals that
+  // became CRM deals — a recommended-listing inquiry goes to the listed
+  // business, not into the CRM pipeline, so it's a different kind of lead.
+  recommendationClicks: number;
+  recommendedLeads: number;
+  recommendedLeadsWon: number;
   // Everything ever earned that wasn't voided (PENDING + APPROVED + PAID).
   earned: number;
   // Won but not yet approved by an admin.
@@ -130,22 +158,29 @@ export type PartnerStats = {
 // Referrals page's per-partner table, so both always agree on the numbers.
 export async function getPartnerStats(partnerId: string): Promise<PartnerStats> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const [clicks, clicksLast30Days, leads, wonDeals, commissions] = await Promise.all([
-    db.referralClick.count({ where: { partnerId } }),
-    db.referralClick.count({ where: { partnerId, createdAt: { gte: since } } }),
-    db.deal.count({ where: { referredById: partnerId } }),
-    db.deal.count({ where: { referredById: partnerId, pipelineStage: { isWon: true } } }),
-    db.referralCommission.findMany({
-      where: { partnerId, status: { not: "VOID" } },
-      select: { amount: true, status: true, withdrawalId: true },
-    }),
-  ]);
+  const [clicks, clicksLast30Days, leads, wonDeals, recommendationClicks, recommendedLeads, recommendedLeadsWon, commissions] =
+    await Promise.all([
+      db.referralClick.count({ where: { partnerId } }),
+      db.referralClick.count({ where: { partnerId, createdAt: { gte: since } } }),
+      db.deal.count({ where: { referredById: partnerId } }),
+      db.deal.count({ where: { referredById: partnerId, pipelineStage: { isWon: true } } }),
+      db.referralClick.count({ where: { partnerId, listingId: { not: null } } }),
+      db.directoryLead.count({ where: { referredById: partnerId } }),
+      db.directoryLead.count({ where: { referredById: partnerId, status: "WON" } }),
+      db.referralCommission.findMany({
+        where: { partnerId, status: { not: "VOID" } },
+        select: { amount: true, status: true, withdrawalId: true },
+      }),
+    ]);
 
   const stats: PartnerStats = {
     clicks,
     clicksLast30Days,
     leads,
     wonDeals,
+    recommendationClicks,
+    recommendedLeads,
+    recommendedLeadsWon,
     earned: 0,
     pending: 0,
     available: 0,
@@ -163,6 +198,80 @@ export async function getPartnerStats(partnerId: string): Promise<PartnerStats> 
     }
   }
   return stats;
+}
+
+export type RecommendationRow = {
+  listingId: string;
+  slug: string;
+  companyName: string;
+  clicks: number;
+  leads: number;
+  // The most recent inquiry's status, as the recommended business has
+  // been updating it — null while nobody's written in yet.
+  latestLeadStatus: DirectoryLeadStatus | null;
+  lastActivityAt: Date;
+};
+
+// One row per business this partner has recommended (see the business
+// portal's overview): how many times their link for it was opened, how
+// many inquiries that produced, and how the latest of those is going.
+// Newest activity first, so the business they most recently pushed sits
+// at the top.
+export async function getRecommendationBreakdown(partnerId: string): Promise<RecommendationRow[]> {
+  const [clickGroups, referredLeads] = await Promise.all([
+    db.referralClick.groupBy({
+      by: ["listingId"],
+      where: { partnerId, listingId: { not: null } },
+      _count: { _all: true },
+      _max: { createdAt: true },
+    }),
+    db.directoryLead.findMany({
+      where: { referredById: partnerId },
+      orderBy: { createdAt: "desc" },
+      select: { listingId: true, status: true, createdAt: true },
+    }),
+  ]);
+
+  const rows = new Map<string, Omit<RecommendationRow, "slug" | "companyName">>();
+  for (const group of clickGroups) {
+    if (!group.listingId) continue;
+    rows.set(group.listingId, {
+      listingId: group.listingId,
+      clicks: group._count._all,
+      leads: 0,
+      latestLeadStatus: null,
+      lastActivityAt: group._max.createdAt ?? new Date(0),
+    });
+  }
+  for (const lead of referredLeads) {
+    const row = rows.get(lead.listingId) ?? {
+      listingId: lead.listingId,
+      clicks: 0,
+      leads: 0,
+      latestLeadStatus: null,
+      lastActivityAt: new Date(0),
+    };
+    row.leads += 1;
+    // referredLeads is newest-first, so the first one seen per listing is
+    // the latest.
+    if (row.latestLeadStatus === null) row.latestLeadStatus = lead.status;
+    if (lead.createdAt > row.lastActivityAt) row.lastActivityAt = lead.createdAt;
+    rows.set(lead.listingId, row);
+  }
+  if (rows.size === 0) return [];
+
+  const listings = await db.partnerListing.findMany({
+    where: { id: { in: Array.from(rows.keys()) } },
+    select: { id: true, slug: true, companyName: true },
+  });
+  const listingById = new Map(listings.map((listing) => [listing.id, listing]));
+
+  return Array.from(rows.values())
+    .flatMap((row) => {
+      const listing = listingById.get(row.listingId);
+      return listing ? [{ ...row, slug: listing.slug, companyName: listing.companyName }] : [];
+    })
+    .sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime());
 }
 
 // Same idea as the partner status badge on the deal list: a referred deal

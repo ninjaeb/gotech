@@ -147,6 +147,7 @@ model User {
   emailAccount                           EmailAccount?
   deals                                  Deal[]
   referredDeals                          Deal[]                              @relation("DealReferredBy")
+  referredDirectoryLeads                 DirectoryLead[]                     @relation("DirectoryLeadReferredBy")
   referralClicks                         ReferralClick[]
   referralCommissions                    ReferralCommission[]
   referralWithdrawals                    ReferralWithdrawal[]
@@ -1453,7 +1454,16 @@ model ReferralClick {
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId String
 
+  // Set when the click came through a "Recommend" link for one specific
+  // directory listing (/r/<code>?l=<slug>, see src/app/r/[code]/route.ts)
+  // rather than the partner's plain marketing-site link — what lets the
+  // business portal show clicks per recommended business. Nulled, not
+  // cascaded, if that listing is later deleted: the click still happened.
+  listing   PartnerListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  listingId String?
+
   @@index([partnerId, createdAt])
+  @@index([listingId])
 }
 
 enum ReferralCommissionStatus {
@@ -1588,9 +1598,10 @@ model PartnerListing {
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   partnerId String
 
-  leads      DirectoryLead[]
-  images     DirectoryListingImage[]
-  categories PartnerListingCategory[]
+  leads          DirectoryLead[]
+  images         DirectoryListingImage[]
+  categories     PartnerListingCategory[]
+  referralClicks ReferralClick[]
 
   @@index([status])
   @@index([partnerId])
@@ -1690,10 +1701,19 @@ model DirectoryLead {
   listing   PartnerListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   listingId String
 
+  // The partner who recommended this listing to the visitor, when the
+  // visitor arrived via that partner's /r/<code>?l=<slug> link (carried on
+  // the directory_ref cookie — see submitDirectoryLead). Never the
+  // listing's own partner. Nulled if that account is deleted so the lead
+  // itself survives.
+  referredBy   User?   @relation("DirectoryLeadReferredBy", fields: [referredById], references: [id], onDelete: SetNull)
+  referredById String?
+
   replies DirectoryLeadReply[]
 
   @@index([listingId, status])
   @@index([createdAt])
+  @@index([referredById, createdAt])
 }
 
 // One message from the partner to the visitor, written in the partner

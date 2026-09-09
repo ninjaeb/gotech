@@ -244,6 +244,13 @@ export function MarkdownLiteEditor({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         hidden={mode === "preview"}
+        // The `rows` attribute only sets an initial size — the auto-grow
+        // effect above immediately overrides it with the content's own
+        // scrollHeight, which collapses to a single line while empty (e.g.
+        // a listing's zh/ms About before it's been translated yet). A CSS
+        // min-height keeps it at a full `rows`-tall box either way; the JS
+        // effect still grows `height` past this once there's enough text.
+        style={{ minHeight: `${rows * 1.5 + 1}rem` }}
         className="block w-full resize-none overflow-hidden border-0 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:bg-neutral-900 dark:text-slate-100 dark:placeholder:text-slate-500"
       />
       {mode === "preview" && (

@@ -58,7 +58,12 @@ export function OperatingHoursEditor({ initialHours }: { initialHours: Operating
               <option value="open">Open</option>
             </Select>
             {isOpen && (
-              <>
+              // Grouped in their own flex container so flex-wrap on the row
+              // above moves the whole "09:00 to 18:00" block down together
+              // on a narrow screen, instead of splitting mid-range — the
+              // open time staying on one line while "to" and the close time
+              // land alone on the next, with no indent to explain why.
+              <div className="flex items-center gap-2">
                 <input
                   type="time"
                   name={`hours-${day}-open`}
@@ -72,7 +77,7 @@ export function OperatingHoursEditor({ initialHours }: { initialHours: Operating
                   defaultValue={dayHours?.close ?? DEFAULT_CLOSE}
                   className={timeInputClasses}
                 />
-              </>
+              </div>
             )}
           </div>
         );
