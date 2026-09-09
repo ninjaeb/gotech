@@ -5,12 +5,35 @@ import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
 import { readPublishedSnapshot, type PublishedListingSnapshot } from "@/lib/directory";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
+import { getSiteOrigin } from "@/lib/site-url";
 
-export const metadata: Metadata = {
-  title: "Partner Directory | Gotka",
-  description: "Browse trusted partner businesses in the Gotka network.",
-  robots: { index: true, follow: true },
-};
+const TITLE = "Business Directory";
+const DESCRIPTION = "A directory of trusted partners in the Gotka network.";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const siteOrigin = await getSiteOrigin();
+  const imageUrl = `${siteOrigin}/icon-512.png`;
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    alternates: { canonical: `${siteOrigin}/directory` },
+    robots: { index: true, follow: true },
+    openGraph: {
+      title: TITLE,
+      description: DESCRIPTION,
+      url: `${siteOrigin}/directory`,
+      siteName: TITLE,
+      type: "website",
+      images: [{ url: imageUrl }],
+    },
+    twitter: {
+      card: "summary",
+      title: TITLE,
+      description: DESCRIPTION,
+      images: [imageUrl],
+    },
+  };
+}
 
 // Listings are approved by hand and change rarely, but a plain Prisma read
 // carries no dynamic signal of its own — without this the page would get
@@ -24,7 +47,7 @@ export default async function DirectoryHomePage({
   searchParams: Promise<{ q?: string; industry?: string }>;
 }) {
   const { q, industry } = await searchParams;
-  const locale = await getDirectoryLocale();
+  const [locale, siteOrigin] = await Promise.all([getDirectoryLocale(), getSiteOrigin()]);
   const t = DIRECTORY_STRINGS[locale];
 
   // Fetched whole and handed to a client component that filters live as
@@ -49,6 +72,7 @@ export default async function DirectoryHomePage({
       t={t}
       initialQuery={q ?? ""}
       initialIndustry={industry ?? ""}
+      directoryUrl={`${siteOrigin}/directory`}
     />
   );
 }

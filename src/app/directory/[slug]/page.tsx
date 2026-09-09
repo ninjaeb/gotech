@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     listing.seoDescription?.trim() ||
     listing.tagline ||
     (plainDescription ? plainDescription.slice(0, 160) : undefined) ||
-    `${listing.companyName} on the Gotka partner directory.`;
-  const title = listing.seoTitle?.trim() || `${listing.companyName} | Gotka Partner Directory`;
+    `${listing.companyName} on the business directory.`;
+  const title = listing.seoTitle?.trim() || `${listing.companyName} | Business Directory`;
   const imageUrl = buildListingLogoUrl(listing, siteOrigin, slug) ?? `${siteOrigin}/icon-192.png`;
 
   return {
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title,
       description,
       url,
-      siteName: "Gotka Partner Directory",
+      siteName: "Business Directory",
       type: "website",
       images: [{ url: imageUrl }],
     },

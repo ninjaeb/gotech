@@ -24,7 +24,7 @@ export default async function PartnerListingPage() {
     <div className="space-y-6">
       <PageHeader
         title="My listing"
-        description="What visitors see on the Gotka partner directory, and the form they use to reach you."
+        description="What visitors see on the business directory, and the form they use to reach you."
       />
 
       <Card>

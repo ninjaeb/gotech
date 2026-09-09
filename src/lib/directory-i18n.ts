@@ -73,7 +73,43 @@ export type DirectoryStrings = {
   errors: Record<DirectoryLeadFormErrorCode, string>;
   footerTagline: string;
   backToDirectory: string;
+  listBusinessCta: string;
+  signupHeading: string;
+  signupSubheading: string;
+  signupCompanyLabel: string;
+  signupCompanyPlaceholder: string;
+  signupNameLabel: string;
+  signupNamePlaceholder: string;
+  signupEmailLabel: string;
+  signupEmailPlaceholder: string;
+  signupPhoneLabel: string;
+  signupPhonePlaceholder: string;
+  signupPhoneHint: string;
+  signupPasswordLabel: string;
+  signupPasswordHint: string;
+  signupSubmit: string;
+  signupSubmitting: string;
+  signupOrDivider: string;
+  signupGoogleCta: string;
+  signupAlreadyPartner: string;
+  signupSignInLink: string;
+  signupErrors: Record<PartnerSignupErrorCode, string>;
 };
+
+export type PartnerSignupErrorCode =
+  | "company_required"
+  | "name_required"
+  | "email_required"
+  | "email_invalid"
+  | "phone_invalid"
+  | "password_length"
+  | "email_taken"
+  | "rate_limited"
+  | "invalid_submission"
+  | "generic"
+  | "google_failed"
+  | "google_unavailable"
+  | "email_unverified";
 
 export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
   en: {
@@ -133,6 +169,41 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     },
     footerTagline: "A directory of trusted partners in the Gotka network.",
     backToDirectory: "Back to directory",
+    listBusinessCta: "List your business",
+    signupHeading: "List your business",
+    signupSubheading: "Join the business directory and start receiving inquiries directly from visitors.",
+    signupCompanyLabel: "Business name",
+    signupCompanyPlaceholder: "Acme Sdn Bhd",
+    signupNameLabel: "Your name",
+    signupNamePlaceholder: "Jane Smith",
+    signupEmailLabel: "Email",
+    signupEmailPlaceholder: "jane@company.com",
+    signupPhoneLabel: "Phone",
+    signupPhonePlaceholder: "+60 12 345 6789",
+    signupPhoneHint: "Include the country code with a + sign, e.g. +60 12 345 6789.",
+    signupPasswordLabel: "Password",
+    signupPasswordHint: "At least 8 characters.",
+    signupSubmit: "Create account",
+    signupSubmitting: "Creating account…",
+    signupOrDivider: "or",
+    signupGoogleCta: "Continue with Google",
+    signupAlreadyPartner: "Already a partner?",
+    signupSignInLink: "Sign in",
+    signupErrors: {
+      company_required: "Business name is required",
+      name_required: "Your name is required",
+      email_required: "Email is required",
+      email_invalid: "Enter a valid email",
+      phone_invalid: "Include the country code with a + sign, e.g. +60 12 345 6789.",
+      password_length: "Password must be at least 8 characters",
+      email_taken: "An account with that email already exists. Try signing in instead.",
+      rate_limited: "Too many attempts — please wait a few minutes and try again.",
+      invalid_submission: "Please check the form and try again.",
+      generic: "Something went wrong. Please try again.",
+      google_failed: "Google sign-in failed. Please try again.",
+      google_unavailable: "Google sign-in isn't available right now.",
+      email_unverified: "Your Google account's email isn't verified.",
+    },
   },
   zh: {
     heroTitle: "为您的项目寻找合适的合作伙伴",
@@ -191,6 +262,41 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     },
     footerTagline: "Gotka 合作伙伴网络中值得信赖的企业目录。",
     backToDirectory: "返回目录",
+    listBusinessCta: "登录您的企业",
+    signupHeading: "登录您的企业",
+    signupSubheading: "加入企业目录，直接从访客那里获得咨询。",
+    signupCompanyLabel: "企业名称",
+    signupCompanyPlaceholder: "Acme Sdn Bhd",
+    signupNameLabel: "您的姓名",
+    signupNamePlaceholder: "Jane Smith",
+    signupEmailLabel: "电子邮件",
+    signupEmailPlaceholder: "jane@company.com",
+    signupPhoneLabel: "电话号码",
+    signupPhonePlaceholder: "+60 12 345 6789",
+    signupPhoneHint: "请附上国家代码及 + 号，例如 +60 12 345 6789。",
+    signupPasswordLabel: "密码",
+    signupPasswordHint: "至少 8 个字符。",
+    signupSubmit: "创建账户",
+    signupSubmitting: "正在创建账户…",
+    signupOrDivider: "或",
+    signupGoogleCta: "使用 Google 继续",
+    signupAlreadyPartner: "已经是合作伙伴？",
+    signupSignInLink: "登录",
+    signupErrors: {
+      company_required: "请填写企业名称",
+      name_required: "请填写您的姓名",
+      email_required: "请填写电子邮件",
+      email_invalid: "请输入有效的电子邮件地址",
+      phone_invalid: "请附上国家代码及 + 号，例如 +60 12 345 6789。",
+      password_length: "密码至少需要 8 个字符",
+      email_taken: "该电子邮件已注册账户，请尝试登录。",
+      rate_limited: "尝试次数过多，请稍等几分钟后再试。",
+      invalid_submission: "请检查表单内容后重试。",
+      generic: "出现错误，请重试。",
+      google_failed: "Google 登录失败，请重试。",
+      google_unavailable: "Google 登录目前不可用。",
+      email_unverified: "您的 Google 账户电子邮件尚未验证。",
+    },
   },
   ms: {
     heroTitle: "Cari rakan kongsi yang sesuai untuk projek anda",
@@ -249,5 +355,40 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     },
     footerTagline: "Direktori perniagaan yang dipercayai dalam rangkaian Gotka.",
     backToDirectory: "Kembali ke direktori",
+    listBusinessCta: "Senaraikan perniagaan anda",
+    signupHeading: "Senaraikan perniagaan anda",
+    signupSubheading: "Sertai direktori perniagaan dan mula menerima pertanyaan terus daripada pelawat.",
+    signupCompanyLabel: "Nama perniagaan",
+    signupCompanyPlaceholder: "Acme Sdn Bhd",
+    signupNameLabel: "Nama anda",
+    signupNamePlaceholder: "Jane Smith",
+    signupEmailLabel: "E-mel",
+    signupEmailPlaceholder: "jane@company.com",
+    signupPhoneLabel: "Nombor Telefon",
+    signupPhonePlaceholder: "+60 12 345 6789",
+    signupPhoneHint: "Sertakan kod negara dengan tanda +, contohnya +60 12 345 6789.",
+    signupPasswordLabel: "Kata laluan",
+    signupPasswordHint: "Sekurang-kurangnya 8 aksara.",
+    signupSubmit: "Cipta akaun",
+    signupSubmitting: "Mencipta akaun…",
+    signupOrDivider: "atau",
+    signupGoogleCta: "Teruskan dengan Google",
+    signupAlreadyPartner: "Sudah menjadi rakan kongsi?",
+    signupSignInLink: "Log masuk",
+    signupErrors: {
+      company_required: "Nama perniagaan diperlukan",
+      name_required: "Nama anda diperlukan",
+      email_required: "E-mel diperlukan",
+      email_invalid: "Sila masukkan e-mel yang sah",
+      phone_invalid: "Sertakan kod negara dengan tanda +, contohnya +60 12 345 6789.",
+      password_length: "Kata laluan mesti sekurang-kurangnya 8 aksara",
+      email_taken: "Akaun dengan e-mel itu sudah wujud. Cuba log masuk sebaliknya.",
+      rate_limited: "Terlalu banyak percubaan — sila tunggu beberapa minit dan cuba lagi.",
+      invalid_submission: "Sila semak borang dan cuba lagi.",
+      generic: "Berlaku ralat. Sila cuba lagi.",
+      google_failed: "Log masuk Google gagal. Sila cuba lagi.",
+      google_unavailable: "Log masuk Google tidak tersedia sekarang.",
+      email_unverified: "E-mel akaun Google anda belum disahkan.",
+    },
   },
 };
