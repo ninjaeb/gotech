@@ -7,11 +7,10 @@ import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
 import { cn } from "@/lib/utils";
 
 // Who's currently browsing, as far as the hamburger menu cares — a signed-
-// out visitor gets the sign-up funnel (Login/Register, List your
+// out visitor gets the sign-up funnel (Business Login, List your
 // business); a signed-in business owner gets a shortcut back to their own
 // portal instead of being asked to sign up again; a signed-in staff member
-// (their CRM session is the same cookie, so it's just as valid here) gets a
-// shortcut back to the CRM. Either signed-in case adds Sign out.
+// gets a shortcut back to the CRM. Either signed-in case adds Sign out.
 export type DirectoryViewer = "business" | "staff" | null;
 
 // The directory header's real destinations — sign in, start listing a
@@ -82,6 +81,15 @@ export function DirectoryNavMenu({
         >
           {viewer === null && (
             <>
+              {/* Same directoryLabel/Store combination the signed-in
+              business viewer's own "back to directory" link uses below —
+              this is the state that link was missing from: a visitor
+              browsing an outside-the-shell page like /directory/signup or
+              /business/login had no way back into the directory itself. */}
+              <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+                <Store className="h-4 w-4 shrink-0 text-slate-400" />
+                {directoryLabel}
+              </Link>
               <Link href="/business/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <LogIn className="h-4 w-4 shrink-0 text-slate-400" />
                 {loginLabel}
