@@ -102,3 +102,40 @@ export function translateCategoryName(name: string, locale: DirectoryLocale): st
   if (locale === "en") return name;
   return CATEGORY_TRANSLATIONS[name]?.[locale] ?? name;
 }
+
+// A friendly category page's own URL — the language lives in the path
+// itself (a trailing /zh or /ms segment) rather than a ?lang= query param,
+// since this route only ever exists to be a clean, single-purpose landing
+// page for one category; English (the default a bare category URL already
+// meant before either language existed) carries no suffix. Relative — the
+// caller prepends siteOrigin for anything that needs an absolute URL
+// (metadata, JSON-LD); an on-page <Link> uses it as-is.
+export function categoryPath(categorySlug: string, locale: DirectoryLocale): string {
+  const base = `/directory/category/${categorySlug}`;
+  return locale === "en" ? base : `${base}/${locale}`;
+}
+
+// Category-page copy templates — kept beside translateCategoryName since
+// they all key off the same per-locale category label it produces, rather
+// than in directory-i18n.ts's DIRECTORY_STRINGS (which has no per-category
+// slot to interpolate into).
+export function categoryPageTitle(name: string, locale: DirectoryLocale): string {
+  const label = translateCategoryName(name, locale);
+  if (locale === "zh") return `${label} 企业 | 企业目录`;
+  if (locale === "ms") return `Perniagaan ${label} | Direktori Perniagaan`;
+  return `${label} Businesses | Business Directory`;
+}
+
+export function categoryPageHeading(name: string, locale: DirectoryLocale): string {
+  const label = translateCategoryName(name, locale);
+  if (locale === "zh") return `${label} 企业`;
+  if (locale === "ms") return `Perniagaan ${label}`;
+  return `${label} businesses`;
+}
+
+export function categoryPageDescription(name: string, locale: DirectoryLocale): string {
+  const label = translateCategoryName(name, locale);
+  if (locale === "zh") return `浏览 Gotka 网络中值得信赖的 ${label} 企业，并直接联系他们。`;
+  if (locale === "ms") return `Semak imbas perniagaan ${label} yang dipercayai dalam rangkaian Gotka dan hubungi terus.`;
+  return `Browse trusted ${label} businesses in the Gotka network and reach out directly.`;
+}

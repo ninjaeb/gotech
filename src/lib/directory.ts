@@ -262,6 +262,43 @@ export function isValidSlugFormat(value: string): boolean {
   return value.length >= MIN_SLUG_LENGTH && value.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(value);
 }
 
+// Schema.org CollectionPage/ItemList markup for the directory's own listing
+// pages (the home page and each friendly category page) — the collection-
+// level counterpart to a single listing's own LocalBusiness markup (see
+// buildJsonLd in src/app/directory/[slug]/page.tsx). Read by both search
+// engines (SEO) and AI answer engines that crawl the page (GEO), same
+// reasoning as that one. Shared here since both pages build the same shape
+// from the same ListingRow[] they already fetch.
+export function buildDirectoryCollectionJsonLd(
+  listings: { slug: string; listing: PublishedListingSnapshot }[],
+  url: string,
+  siteOrigin: string,
+  name: string,
+  description?: string,
+): string {
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    url,
+  };
+  if (description) jsonLd.description = description;
+  jsonLd.mainEntity = {
+    "@type": "ItemList",
+    numberOfItems: listings.length,
+    itemListElement: listings.map(({ slug, listing }, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      url: `${siteOrigin}/directory/${slug}`,
+      name: listing.companyName,
+    })),
+  };
+  // Same reasoning as buildJsonLd's own escape: JSON.stringify doesn't
+  // escape "</script>", so a company name containing that literal string
+  // could otherwise break out of the script tag.
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
+
 // Generated once, from whatever the partner is called at the time (their
 // User.name — companyName isn't set yet on a brand-new draft) — same
 // reasoning as referralCode in src/lib/referrals.ts for why it exists at
@@ -277,6 +314,16 @@ export async function generateListingSlug(name: string): Promise<string> {
     if (!existing) return candidate;
   }
   throw new Error("Could not generate a unique listing slug — please try again.");
+}
+
+// A BusinessCategory row only ever stores an English name (see
+// prisma/migrations/20260909170000_seed_business_categories) — there's no
+// separate slug column, so a friendly category URL (see
+// src/app/directory/category) matches by slugifying that name at request
+// time rather than a stored value that could drift out of sync with it.
+export async function findCategoryBySlug(categorySlug: string): Promise<string | null> {
+  const categories = await db.businessCategory.findMany({ select: { name: true } });
+  return categories.find((row) => slugify(row.name) === categorySlug)?.name ?? null;
 }
 
 // A partner account can list more than one business (see

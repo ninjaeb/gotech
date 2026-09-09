@@ -3,11 +3,18 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronDown, Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
-import { DAYS_OF_WEEK, formatOpeningHoursSchema, readPublishedSnapshot, type FaqEntry, type OperatingHours } from "@/lib/directory";
+import {
+  DAYS_OF_WEEK,
+  formatOpeningHoursSchema,
+  readPublishedSnapshot,
+  slugify,
+  type FaqEntry,
+  type OperatingHours,
+} from "@/lib/directory";
 import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
-import { getDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS, INDUSTRY_LABELS_BY_LOCALE, type DirectoryStrings } from "@/lib/directory-i18n";
-import { translateCategoryName } from "@/lib/directory-category-labels";
+import { getDirectoryLocale, isDirectoryLocale } from "@/lib/directory-locale";
+import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE, type DirectoryStrings } from "@/lib/directory-i18n";
+import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -52,7 +59,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: {
+      canonical: url,
+      // The page body itself does vary by language (see the translation
+      // lookup below, in the page component) even though this title/
+      // description stay the partner's own single-language SEO fields.
+      languages: Object.fromEntries(
+        DIRECTORY_LOCALES.map(({ code }) => [code, code === "en" ? url : `${url}?lang=${code}`]),
+      ),
+    },
     robots: { index: true, follow: true },
     openGraph: {
       title,
@@ -176,7 +191,13 @@ function buildHoursRows(hours: OperatingHours, t: DirectoryStrings): HoursRow[] 
   });
 }
 
-export default async function DirectoryListingPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function DirectoryListingPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ lang?: string }>;
+}) {
   const { slug } = await params;
   // Reads the approved snapshot only — never the partner's live-editing
   // draft — same invariant the listing grid enforces (see
@@ -186,7 +207,11 @@ export default async function DirectoryListingPage({ params }: { params: Promise
   const listing = await getPublishedListing(slug);
   if (!listing) notFound();
 
-  const [locale, siteOrigin] = await Promise.all([getDirectoryLocale(), getSiteOrigin()]);
+  const [{ lang }, cookieLocale, siteOrigin] = await Promise.all([searchParams, getDirectoryLocale(), getSiteOrigin()]);
+  // ?lang= overrides the cookie/Accept-Language guess — see this page's own
+  // generateMetadata: a crawler carries no directory_locale cookie, so this
+  // is what actually makes each hreflang alternate URL render distinctly.
+  const locale = isDirectoryLocale(lang) ? lang : cookieLocale;
   const t = DIRECTORY_STRINGS[locale];
   const mapAddress = listing.address || listing.location;
   const pageUrl = `${siteOrigin}/directory/${slug}`;
@@ -228,7 +253,7 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                 </Link>
               )}
               {listing.categories.map((category) => (
-                <Link key={category} href={`/directory?category=${encodeURIComponent(category)}`}>
+                <Link key={category} href={categoryPath(slugify(category), locale)}>
                   <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
                     {translateCategoryName(category, locale)}
                   </Badge>

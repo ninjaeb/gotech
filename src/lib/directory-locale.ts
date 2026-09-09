@@ -7,7 +7,12 @@ import { DEFAULT_DIRECTORY_LOCALE, type DirectoryLocale } from "@/lib/directory-
 // English first the way the plain /lead form's client-only locale does.
 export const DIRECTORY_LOCALE_COOKIE = "directory_locale";
 
-function isDirectoryLocale(value: string | undefined): value is DirectoryLocale {
+// Exported for pages that carry a friendly, per-language URL (a category
+// page's own trailing /zh or /ms segment, or a ?lang= override elsewhere) —
+// a crawler never sends the directory_locale cookie, so this is how those
+// URLs actually render in a specific language rather than always falling
+// back to English or an Accept-Language guess.
+export function isDirectoryLocale(value: string | undefined): value is DirectoryLocale {
   return value === "en" || value === "zh" || value === "ms";
 }
 

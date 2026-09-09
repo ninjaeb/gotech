@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, Handshake } from "lucide-react";
 import { ListingCard } from "@/components/directory/listing-card";
 import { ShareButton } from "@/components/directory/share-button";
@@ -22,6 +23,9 @@ export function DirectorySearch({
   initialIndustry,
   initialCategory,
   directoryUrl,
+  heading,
+  subheading,
+  categoryLinks,
 }: {
   listings: ListingRow[];
   industries: Industry[];
@@ -36,6 +40,16 @@ export function DirectorySearch({
   initialIndustry: string;
   initialCategory: string;
   directoryUrl: string;
+  // A category page passes its own category-specific H1/subtitle (better
+  // on-page SEO than the generic homepage copy repeated under every
+  // category); the home page omits these and gets t.heroTitle/heroSubtitle.
+  heading?: string;
+  subheading?: string;
+  // Real <a href> links to each category's own friendly URL — the category
+  // <Select> above is client-side JS with no href a crawler can follow, so
+  // without this a search engine would only ever discover those pages via
+  // the sitemap, never through the directory's own on-page links.
+  categoryLinks?: { name: string; href: string }[];
 }) {
   // Filters entirely in the browser as the user types — no round trip, no
   // debounce needed. Safe because the whole listing set is fetched once up
@@ -65,17 +79,16 @@ export function DirectorySearch({
     <>
       <div className="border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <div className="w-full px-4 py-14 text-center sm:px-8">
-          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">{t.heroTitle}</h1>
-          <p className="mx-auto mt-3 max-w-xl text-slate-500 dark:text-slate-400">{t.heroSubtitle}</p>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">
+            {heading ?? t.heroTitle}
+          </h1>
+          <p className="mx-auto mt-3 max-w-xl text-slate-500 dark:text-slate-400">{subheading ?? t.heroSubtitle}</p>
           <div className="mt-4 flex justify-center">
-            <ShareButton title={t.heroTitle} url={directoryUrl} />
+            <ShareButton title={heading ?? t.heroTitle} url={directoryUrl} />
           </div>
 
-          <form
-            onSubmit={(event) => event.preventDefault()}
-            className="mx-auto mt-6 flex max-w-xl flex-col flex-wrap gap-2 sm:flex-row"
-          >
-            <div className="relative flex-1">
+          <form onSubmit={(event) => event.preventDefault()} className="mx-auto mt-6 max-w-2xl">
+            <div className="relative mx-auto w-full sm:w-4/5">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 type="text"
@@ -85,25 +98,41 @@ export function DirectorySearch({
                 className="pl-9"
               />
             </div>
-            <Select value={industry} onChange={(event) => setIndustry(event.target.value)} className="sm:w-56">
-              <option value="">{t.allIndustries}</option>
-              {industries.map((code) => (
-                <option key={code} value={code}>
-                  {industryLabels[code]}
-                </option>
-              ))}
-            </Select>
-            {categories.length > 0 && (
-              <Select value={category} onChange={(event) => setCategory(event.target.value)} className="sm:w-56">
-                <option value="">{t.allCategories}</option>
-                {categories.map((cat) => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.label}
+            <div className="mt-3 flex flex-col flex-wrap justify-center gap-2 sm:flex-row">
+              <Select value={industry} onChange={(event) => setIndustry(event.target.value)} className="sm:w-56">
+                <option value="">{t.allIndustries}</option>
+                {industries.map((code) => (
+                  <option key={code} value={code}>
+                    {industryLabels[code]}
                   </option>
                 ))}
               </Select>
-            )}
+              {categories.length > 0 && (
+                <Select value={category} onChange={(event) => setCategory(event.target.value)} className="sm:w-56">
+                  <option value="">{t.allCategories}</option>
+                  {categories.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </div>
           </form>
+
+          {categoryLinks && categoryLinks.length > 0 && (
+            <nav aria-label={t.allCategories} className="mx-auto mt-6 flex max-w-2xl flex-wrap justify-center gap-2">
+              {categoryLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-petrol hover:text-petrol dark:border-neutral-700 dark:text-slate-300 dark:hover:border-petrol-light dark:hover:text-petrol-light"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </div>
 
