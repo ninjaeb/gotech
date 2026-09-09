@@ -1562,7 +1562,7 @@ model PartnerListing {
   website     String?
   location    String? // short display text, e.g. "Kuala Lumpur, Malaysia"
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
-  operatingHours String? @db.Text // free text, one line per day/range — shown as-is, not machine-parsed
+  operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
 
   reviewNote        String?   @db.Text

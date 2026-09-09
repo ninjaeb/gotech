@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
-import { readPublishedSnapshot } from "@/lib/directory";
+import { formatOpeningHoursSchema, groupOperatingHours, readPublishedSnapshot, type OperatingHours } from "@/lib/directory";
 import { getDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, type DirectoryStrings } from "@/lib/directory-i18n";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,6 +72,10 @@ function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublished
   if (listing.address || listing.location) jsonLd.address = listing.address || listing.location;
   if (listing.website) jsonLd.sameAs = [listing.website];
   if (listing.industry) jsonLd.additionalType = INDUSTRY_LABELS[listing.industry];
+  if (listing.operatingHours) {
+    const openingHours = formatOpeningHoursSchema(listing.operatingHours);
+    if (openingHours.length > 0) jsonLd.openingHours = openingHours;
+  }
   if (listing.services.length > 0) {
     jsonLd.makesOffer = listing.services.map((service) => ({
       "@type": "Offer",
@@ -83,6 +87,19 @@ function buildJsonLd(listing: NonNullable<Awaited<ReturnType<typeof getPublished
   // the script tag. < is invisible to JSON parsing but not to an HTML
   // tokenizer, so this neutralizes it either way.
   return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
+
+// Groups consecutive days sharing identical hours (see groupOperatingHours)
+// into display lines like "Monday – Friday: 09:00 – 18:00", in whichever
+// locale's day names and "Closed" label the visitor is reading in.
+function formatOperatingHoursLines(hours: OperatingHours, t: DirectoryStrings): string[] {
+  return groupOperatingHours(hours).map((group) => {
+    const first = t.dayLabels[group.days[0]];
+    const last = t.dayLabels[group.days[group.days.length - 1]];
+    const dayRange = group.days.length > 1 ? `${first} – ${last}` : first;
+    const hoursText = group.hours ? `${group.hours.open} – ${group.hours.close}` : t.hoursClosedLabel;
+    return `${dayRange}: ${hoursText}`;
+  });
 }
 
 export default async function DirectoryListingPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -150,9 +167,11 @@ export default async function DirectoryListingPage({ params }: { params: Promise
               <CardHeader>
                 <CardTitle>{t.servicesHeading}</CardTitle>
               </CardHeader>
-              <CardBody className="flex flex-wrap gap-2">
+              <CardBody className="flex flex-wrap gap-2.5">
                 {listing.services.map((service) => (
-                  <Badge key={service}>{service}</Badge>
+                  <Badge key={service} className="px-3.5 py-1.5 text-sm">
+                    {service}
+                  </Badge>
                 ))}
               </CardBody>
             </Card>
@@ -170,10 +189,14 @@ export default async function DirectoryListingPage({ params }: { params: Promise
                   </p>
                 )}
                 {listing.operatingHours && (
-                  <p className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
                     <Clock className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                    <span className="whitespace-pre-wrap">{listing.operatingHours}</span>
-                  </p>
+                    <ul>
+                      {formatOperatingHoursLines(listing.operatingHours, t).map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {mapAddress && (
                   <iframe

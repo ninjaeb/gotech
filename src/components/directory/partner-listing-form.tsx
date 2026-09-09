@@ -13,18 +13,22 @@ import {
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
+import type { OperatingHours } from "@/lib/operating-hours";
 
 export function PartnerListingForm({
   values,
   logoUrl,
+  operatingHours,
   status,
   aiAvailable,
 }: {
   values: ListingFormValues;
   logoUrl: string | null;
+  operatingHours: OperatingHours | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
 }) {
@@ -189,16 +193,11 @@ export function PartnerListingForm({
         </p>
       </FieldGroup>
 
-      <FieldGroup label="Operating hours" htmlFor="operatingHours">
-        <Textarea
-          id="operatingHours"
-          name="operatingHours"
-          rows={3}
-          defaultValue={current.operatingHours}
-          placeholder={"Monday – Friday: 9:00 AM – 6:00 PM\nSaturday: 10:00 AM – 2:00 PM\nSunday: Closed"}
-        />
-        <p className="mt-1 text-xs text-slate-400">One line per day or range — shown on your listing as written.</p>
-      </FieldGroup>
+      <div>
+        <Label>Operating hours</Label>
+        <OperatingHoursEditor initialHours={operatingHours} />
+        <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
+      </div>
 
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">

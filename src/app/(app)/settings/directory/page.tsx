@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Banknote, Handshake, Inbox, Store } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
-import { getDirectoryOverviewStats, servicesFromJson } from "@/lib/directory";
+import { getDirectoryOverviewStats, groupOperatingHours, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
+import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
 import { getCurrency } from "@/lib/settings";
 import { formatCurrencyExact, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
@@ -25,6 +26,21 @@ import {
   PARTNER_LISTING_STATUS_BADGE_CLASSES,
   PARTNER_LISTING_STATUS_LABELS,
 } from "@/lib/labels";
+
+// Admin-only preview, so English day names/labels are fine unconditionally
+// — this page isn't trilingual like the public directory itself.
+function formatOperatingHoursPreview(value: unknown): string[] {
+  const hours = operatingHoursFromJson(value);
+  if (!hours) return [];
+  const t = DIRECTORY_STRINGS.en;
+  return groupOperatingHours(hours).map((group) => {
+    const first = t.dayLabels[group.days[0]];
+    const last = t.dayLabels[group.days[group.days.length - 1]];
+    const dayRange = group.days.length > 1 ? `${first}–${last}` : first;
+    const hoursText = group.hours ? `${group.hours.open}–${group.hours.close}` : t.hoursClosedLabel;
+    return `${dayRange}: ${hoursText}`;
+  });
+}
 
 export default async function DirectorySettingsPage() {
   await requireAdmin();
@@ -108,11 +124,11 @@ export default async function DirectorySettingsPage() {
                   {listing.address && (
                     <p className="text-xs text-slate-500 dark:text-slate-400">{listing.address}</p>
                   )}
-                  {listing.operatingHours && (
-                    <p className="whitespace-pre-wrap text-xs text-slate-500 dark:text-slate-400">
-                      {listing.operatingHours}
+                  {formatOperatingHoursPreview(listing.operatingHours).map((line) => (
+                    <p key={line} className="text-xs text-slate-500 dark:text-slate-400">
+                      {line}
                     </p>
-                  )}
+                  ))}
                   {servicesFromJson(listing.services).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {servicesFromJson(listing.services).map((service) => (

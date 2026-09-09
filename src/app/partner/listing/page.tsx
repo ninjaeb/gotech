@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { requirePartner } from "@/lib/auth/dal";
-import { ensurePartnerListing, servicesFromJson } from "@/lib/directory";
+import { ensurePartnerListing, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
 import { isAiConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -70,6 +70,7 @@ export default async function PartnerListingPage() {
           <PartnerListingForm
             status={listing.status}
             logoUrl={listing.logoUrl}
+            operatingHours={operatingHoursFromJson(listing.operatingHours)}
             aiAvailable={isAiConfigured()}
             values={{
               companyName: listing.companyName,
@@ -80,7 +81,6 @@ export default async function PartnerListingPage() {
               website: listing.website ?? "",
               location: listing.location ?? "",
               address: listing.address ?? "",
-              operatingHours: listing.operatingHours ?? "",
             }}
           />
         </CardBody>
