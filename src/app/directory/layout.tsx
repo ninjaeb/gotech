@@ -17,12 +17,12 @@ export default async function DirectoryLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-neutral-950">
       <header className="border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
+        <div className="flex w-full flex-wrap items-center gap-3 px-4 py-3 sm:px-8">
           <Link href="/directory" className="flex shrink-0 items-center gap-2">
             <img src="/icon-192.png" alt="" className="h-8 w-8 shrink-0" />
             <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Gotka</span>
           </Link>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <Link href="/directory/signup" className={buttonClasses("secondary", "sm")}>
               {t.listBusinessCta}
             </Link>
