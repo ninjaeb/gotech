@@ -176,6 +176,30 @@ export function PartnerListingForm({
         </FieldGroup>
       </div>
 
+      <FieldGroup label="Address" htmlFor="address">
+        <Textarea
+          id="address"
+          name="address"
+          rows={2}
+          defaultValue={current.address}
+          placeholder={"123 Jalan Bukit Bintang\n50200 Kuala Lumpur, Malaysia"}
+        />
+        <p className="mt-1 text-xs text-slate-400">
+          Shown on your listing with a map. Leave blank to skip the map — Location above still shows either way.
+        </p>
+      </FieldGroup>
+
+      <FieldGroup label="Operating hours" htmlFor="operatingHours">
+        <Textarea
+          id="operatingHours"
+          name="operatingHours"
+          rows={3}
+          defaultValue={current.operatingHours}
+          placeholder={"Monday – Friday: 9:00 AM – 6:00 PM\nSaturday: 10:00 AM – 2:00 PM\nSunday: Closed"}
+        />
+        <p className="mt-1 text-xs text-slate-400">One line per day or range — shown on your listing as written.</p>
+      </FieldGroup>
+
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
           <Label htmlFor="description" className="mb-0">

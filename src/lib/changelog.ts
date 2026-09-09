@@ -10,6 +10,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.56",
+    date: "2026-09-09",
+    title: "Directory SEO, editable web address, and live search",
+    changes: [
+      "A partner can now change their listing's web address (the /directory/<slug> part of the link) from My listing — the old link stops working the moment the new one takes effect",
+      "A listing's detail page now carries proper SEO metadata (Open Graph, Twitter card, canonical URL) and schema.org structured data for search engines and AI answer engines — never including the partner's own phone or email, which stay internal either way",
+      "New Address, Operating hours, and an embedded map on a listing's detail page — set from My listing, shown only when filled in",
+      "/directory and /sitemap.xml/robots.txt are now included for search engines; every other page stays out of it, same as before",
+      "The directory's search box now filters as you type — no more pressing Enter or waiting for a page reload",
+    ],
+  },
+  {
     version: "1.55",
     date: "2026-09-09",
     title: "Sales and Technical team roles",

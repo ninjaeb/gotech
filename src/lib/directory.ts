@@ -15,6 +15,8 @@ export type PublishedListingSnapshot = {
   industry: Industry | null;
   website: string | null;
   location: string | null;
+  address: string | null;
+  operatingHours: string | null;
   logoUrl: string | null;
 };
 
@@ -54,6 +56,8 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     industry: typeof raw.industry === "string" ? (raw.industry as Industry) : null,
     website: typeof raw.website === "string" ? raw.website : null,
     location: typeof raw.location === "string" ? raw.location : null,
+    address: typeof raw.address === "string" ? raw.address : null,
+    operatingHours: typeof raw.operatingHours === "string" ? raw.operatingHours : null,
     logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : null,
   };
 }
@@ -67,6 +71,8 @@ export function buildPublishedSnapshot(listing: PartnerListing): PublishedListin
     industry: listing.industry,
     website: listing.website,
     location: listing.location,
+    address: listing.address,
+    operatingHours: listing.operatingHours,
     logoUrl: listing.logoUrl,
   };
 }
@@ -82,23 +88,35 @@ export function normalizeWebsiteUrl(value: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
-function slugify(value: string): string {
+const MIN_SLUG_LENGTH = 3;
+const MAX_SLUG_LENGTH = 60;
+const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// Exported so both generateListingSlug below and a partner's own slug edit
+// (see updateListingSlug in src/app/actions/directory.ts) normalize the
+// same way — typing "My Company!!" becomes "my-company" either way, rather
+// than rejecting it and making the partner figure out valid syntax by hand.
+export function slugify(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "") // strip combining accents so "Jose" -> "jose"
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
+    .slice(0, MAX_SLUG_LENGTH);
+}
+
+export function isValidSlugFormat(value: string): boolean {
+  return value.length >= MIN_SLUG_LENGTH && value.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(value);
 }
 
 // Generated once, from whatever the partner is called at the time (their
-// User.name — companyName isn't set yet on a brand-new draft) — and never
-// changed after, same reasoning as referralCode in src/lib/referrals.ts:
-// it's the stable half of a public URL (/directory/<slug>) that may already
-// be shared once published, so editing the listing later must never move
-// it. Falls back to "partner" for a name with no latinizable characters at
-// all (e.g. fully CJK), then disambiguates with a short suffix either way.
+// User.name — companyName isn't set yet on a brand-new draft) — same
+// reasoning as referralCode in src/lib/referrals.ts for why it exists at
+// all. Unlike a referral code, a partner CAN move it later (see
+// updateListingSlug) — this is only ever the starting point. Falls back to
+// "partner" for a name with no latinizable characters at all (e.g. fully
+// CJK), then disambiguates with a short suffix either way.
 export async function generateListingSlug(name: string): Promise<string> {
   const base = slugify(name) || "partner";
   for (let attempt = 0; attempt < 20; attempt++) {

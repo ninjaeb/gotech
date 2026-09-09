@@ -35,6 +35,7 @@ export type DirectoryStrings = {
   viewListing: string;
   servicesHeading: string;
   aboutHeading: string;
+  visitHeading: string;
   websiteLabel: string;
   locationLabel: string;
   contactHeading: string;
@@ -69,6 +70,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     viewListing: "View details",
     servicesHeading: "Services",
     aboutHeading: "About",
+    visitHeading: "Visit us",
     websiteLabel: "Website",
     locationLabel: "Location",
     contactHeading: "Get in touch",
@@ -112,6 +114,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     viewListing: "查看详情",
     servicesHeading: "服务项目",
     aboutHeading: "关于",
+    visitHeading: "联系地址",
     websiteLabel: "网站",
     locationLabel: "地点",
     contactHeading: "联系我们",
@@ -155,6 +158,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     viewListing: "Lihat butiran",
     servicesHeading: "Perkhidmatan",
     aboutHeading: "Tentang",
+    visitHeading: "Lawati kami",
     websiteLabel: "Laman web",
     locationLabel: "Lokasi",
     contactHeading: "Hubungi kami",
