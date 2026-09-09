@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { ActivityType, type LeadSource } from "@/generated/prisma/client";
 import { stageGateError } from "@/lib/deal-hygiene";
 import { ensureProjectForWonDeal } from "@/app/actions/projects";
+import { ensureTestimonialRequestForWonDeal } from "@/app/actions/testimonials";
 import { requireSalesAction } from "@/lib/auth/dal";
 import { syncReferralCommissionForDeal } from "@/lib/referrals";
 
@@ -161,6 +162,7 @@ export async function updateDeal(
   if (targetStage.isWon) {
     await ensureProjectForWonDeal({ id, title: data.title });
     await markContactAsCustomer(data.contactId);
+    await ensureTestimonialRequestForWonDeal(data.contactId);
   }
   // Every edit, not just a stage change: a won deal's value is often filled
   // in after the fact, and a still-pending commission re-prices from it.
@@ -204,6 +206,7 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
   if (targetStage.isWon) {
     await ensureProjectForWonDeal({ id, title: previous.title });
     await markContactAsCustomer(previous.contactId);
+    await ensureTestimonialRequestForWonDeal(previous.contactId);
   }
   await syncReferralCommissionForDeal(id, targetStage.isWon);
 
