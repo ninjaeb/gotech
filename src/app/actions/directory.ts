@@ -238,7 +238,7 @@ function listingContextLines(context: ListingRewriteContext, otherFieldLabel: st
 }
 
 const LISTING_DESCRIPTION_SYSTEM_PROMPT =
-  "You write short, clear 'About us' business descriptions (2-4 sentences) for a public partner directory that lists services companies. Ground everything only in what's given — never invent client names, numbers, awards, or claims that aren't present. Sound professional and specific, not generic marketing filler.";
+  "You write short, clear 'About us' business descriptions (2-4 sentences) for a public partner directory that lists services companies. Ground everything only in what's given — never invent client names, numbers, awards, or claims that aren't present. Sound professional and specific, not generic marketing filler. The field supports a small formatting syntax: **bold** for emphasis and [link text](https://example.com) for a link — plain paragraphs otherwise, no headings. Use it sparingly, only where it clearly helps (e.g. bolding the company's core specialty); never invent a link that wasn't already present. If the current draft already uses this syntax, preserve it rather than stripping it out.";
 
 // Partner-gated — called from the "Rewrite with AI" button next to the
 // About field on the partner's own listing editor. Mirrors
