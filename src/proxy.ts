@@ -53,9 +53,9 @@ const ALWAYS_PUBLIC_PREFIXES = [
 // The client portal (/portal/*) is a second, independent visitor type with
 // its own cookie and signing key (see src/lib/portal/session.ts) — it's
 // handled entirely separately, before any of the staff-session logic below,
-// so the two auth systems never interact: a staff `session` cookie can't
-// substitute for a `portal_session` and is never even inspected for these
-// paths, and vice versa for every other route.
+// so the two auth systems never interact: a staff `system_session` cookie
+// can't substitute for a `portal_session` and is never even inspected for
+// these paths, and vice versa for every other route.
 const PORTAL_AUTH_ONLY_PUBLIC_ROUTES = ["/portal/login"];
 const PORTAL_ALWAYS_PUBLIC_PREFIXES = ["/portal/accept-invite/"];
 
@@ -79,9 +79,9 @@ async function proxyPortalRoute(request: NextRequest, pathname: string) {
 // with its own cookie and signing key (see src/lib/business/session.ts),
 // handled entirely separately before the staff-session logic below — same
 // isolation, same reasoning, as the client portal's own proxyPortalRoute:
-// a staff `session` cookie can't substitute for a `business_session` and
-// is never even inspected for these paths, and vice versa for every other
-// route. This is what lets a browser stay signed into /system and
+// a staff `system_session` cookie can't substitute for a `business_session`
+// and is never even inspected for these paths, and vice versa for every
+// other route. This is what lets a browser stay signed into /system and
 // /business at the same time.
 const BUSINESS_AUTH_ONLY_PUBLIC_ROUTES = ["/business/login"];
 
@@ -121,7 +121,7 @@ export async function proxy(request: NextRequest) {
   const isAuthOnlyPublic = AUTH_ONLY_PUBLIC_ROUTES.includes(pathname);
   const isAlwaysPublic = ALWAYS_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isPublicRoute = isAuthOnlyPublic || isAlwaysPublic;
-  const session = await decrypt(request.cookies.get("session")?.value);
+  const session = await decrypt(request.cookies.get("system_session")?.value);
 
   if (!isPublicRoute && !session?.userId) {
     return NextResponse.redirect(new URL("/system/login", request.url));
