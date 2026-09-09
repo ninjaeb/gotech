@@ -3,19 +3,17 @@ import { Banknote, Handshake, Inbox, MousePointerClick, Store, Trophy, UserPlus,
 import { requirePartner } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { generateReferralCode, getPartnerStats, referredDealStatus } from "@/lib/referrals";
-import { ensurePartnerListing, getDirectoryLeadStats } from "@/lib/directory";
+import { getDirectoryLeadStatsForPartner, listPartnerListings } from "@/lib/directory";
 import { getCurrency, getReferralSettings } from "@/lib/settings";
 import { getSiteOrigin } from "@/lib/site-url";
 import { formatCurrencyExact, formatDate, fullName } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input, Label } from "@/components/ui/field";
 import { CopyLinkButton } from "@/components/ui/copy-link-button";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ReferredDealStatusBadge } from "@/components/referrals/referral-status-badge";
-import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } from "@/lib/labels";
 
 // A partner account normally gets its code the moment it's created (or its
 // role is switched) — see src/app/actions/users.ts — but an account that
@@ -30,7 +28,7 @@ async function ensureReferralCode(userId: string, name: string): Promise<string>
 
 export default async function PartnerOverviewPage() {
   const user = await requirePartner();
-  const [code, stats, currency, settings, siteOrigin, recentLeads, listing] = await Promise.all([
+  const [code, stats, currency, settings, siteOrigin, recentLeads, listings] = await Promise.all([
     ensureReferralCode(user.id, user.name),
     getPartnerStats(user.id),
     getCurrency(),
@@ -48,9 +46,10 @@ export default async function PartnerOverviewPage() {
         pipelineStage: { select: { isWon: true, isLost: true } },
       },
     }),
-    ensurePartnerListing(user.id, user.name),
+    listPartnerListings(user.id),
   ]);
-  const directoryStats = await getDirectoryLeadStats(listing.id);
+  const directoryStats = await getDirectoryLeadStatsForPartner(user.id);
+  const publishedListingCount = listings.filter((listing) => listing.publishedSnapshot).length;
 
   const referralLink = `${siteOrigin}/r/${code}`;
   const partnerRate = await db.user
@@ -170,20 +169,27 @@ export default async function PartnerOverviewPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Directory listing</CardTitle>
-          <Link href="/business/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
-            Edit listing
+          <CardTitle>Directory listings</CardTitle>
+          <Link href="/business/listings" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
+            Manage listings
           </Link>
         </CardHeader>
         <CardBody className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge className={PARTNER_LISTING_STATUS_BADGE_CLASSES[listing.status]}>
-              {PARTNER_LISTING_STATUS_LABELS[listing.status]}
-            </Badge>
-            <span className="text-sm text-slate-500 dark:text-slate-400">
-              {listing.publishedSnapshot ? "Live on the partner directory" : "Not published yet"}
-            </span>
-          </div>
+          {listings.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              You haven&apos;t created a listing yet —{" "}
+              <Link href="/business/listings" className="text-petrol hover:underline dark:text-petrol-light">
+                create one
+              </Link>{" "}
+              to get on the public directory.
+            </p>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {listings.length} listing{listings.length === 1 ? "" : "s"}
+              {publishedListingCount > 0 &&
+                ` · ${publishedListingCount} live on the partner directory`}
+            </p>
+          )}
           <div className="grid gap-4 sm:grid-cols-3">
             <StatCard
               label="New leads"

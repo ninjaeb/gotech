@@ -30,6 +30,7 @@ export function MarkdownLiteEditor({
   name,
   value,
   onChange,
+  listingId,
   rows = 5,
   placeholder,
 }: {
@@ -37,6 +38,7 @@ export function MarkdownLiteEditor({
   name: string;
   value: string;
   onChange: (value: string) => void;
+  listingId: string;
   rows?: number;
   placeholder?: string;
 }) {
@@ -175,7 +177,7 @@ export function MarkdownLiteEditor({
     const compressed = await compressImage(file);
     const formData = new FormData();
     formData.set("image", compressed);
-    const result = await uploadDirectoryListingImage(formData);
+    const result = await uploadDirectoryListingImage(listingId, formData);
     setUploading(false);
 
     if (result.status !== "ok") {

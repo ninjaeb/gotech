@@ -54,6 +54,7 @@ function servicesContextText(services: ServiceEntry[]): string {
 }
 
 export function PartnerListingForm({
+  listingId,
   values,
   logoUrl,
   operatingHours,
@@ -61,6 +62,7 @@ export function PartnerListingForm({
   aiAvailable,
   categories,
 }: {
+  listingId: string;
   values: ListingFormValues;
   logoUrl: string | null;
   operatingHours: OperatingHours | null;
@@ -68,7 +70,7 @@ export function PartnerListingForm({
   aiAvailable: boolean;
   categories: { id: string; name: string }[];
 }) {
-  const [state, formAction, pending] = useActionState(saveDirectoryListing, undefined);
+  const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [submitPending, startSubmitTransition] = useTransition();
@@ -126,7 +128,7 @@ export function PartnerListingForm({
   function handleSubmitForReview() {
     const formData = new FormData(formRef.current ?? undefined);
     startSubmitTransition(async () => {
-      const result = await submitDirectoryListingForReview(undefined, formData);
+      const result = await submitDirectoryListingForReview(listingId, undefined, formData);
       if (result && "error" in result) {
         setDisplayError({ error: result.error, field: result.field });
       } else {
@@ -395,6 +397,7 @@ export function PartnerListingForm({
           <MarkdownLiteEditor
             id="description"
             name="description"
+            listingId={listingId}
             rows={5}
             value={description}
             onChange={setDescription}
@@ -410,6 +413,7 @@ export function PartnerListingForm({
           <MarkdownLiteEditor
             id="zhDescription"
             name="zhDescription"
+            listingId={listingId}
             rows={5}
             value={translations.zh?.description ?? ""}
             onChange={(value) => updateTranslation("zh", "description", value)}
@@ -420,6 +424,7 @@ export function PartnerListingForm({
           <MarkdownLiteEditor
             id="msDescription"
             name="msDescription"
+            listingId={listingId}
             rows={5}
             value={translations.ms?.description ?? ""}
             onChange={(value) => updateTranslation("ms", "description", value)}

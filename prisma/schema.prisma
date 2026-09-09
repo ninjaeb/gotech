@@ -162,7 +162,7 @@ model User {
   assignedPendingAssignmentNotifications PendingTaskAssignmentNotification[] @relation("PendingAssignmentAssigner")
   newsletters                            Newsletter[]
   whatsAppBroadcasts                     WhatsAppBroadcast[]
-  partnerListing                         PartnerListing?
+  partnerListings                        PartnerListing[]
   directoryLeadReplies                   DirectoryLeadReply[]
 }
 
@@ -1582,14 +1582,18 @@ model PartnerListing {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Not unique — a partner account can list more than one business (see
+  // src/app/business/(dashboard)/listings). Each listing's own slug is
+  // still globally unique, since that's what the public URL is keyed on.
   partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  partnerId String @unique
+  partnerId String
 
   leads      DirectoryLead[]
   images     DirectoryListingImage[]
   categories PartnerListingCategory[]
 
   @@index([status])
+  @@index([partnerId])
 }
 
 // Fixed vocabulary a partner can pick multiple of for their listing — e.g.

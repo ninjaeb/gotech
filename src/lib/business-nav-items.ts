@@ -5,7 +5,7 @@
 // so the two always list the same pages in the same order.
 export const BUSINESS_NAV_ITEMS = [
   { href: "/business", label: "Overview" },
-  { href: "/business/listing", label: "My listing" },
+  { href: "/business/listings", label: "My listings" },
   { href: "/business/leads", label: "Leads" },
   { href: "/business/directory-leads", label: "Directory leads" },
   { href: "/business/commissions", label: "Commissions" },

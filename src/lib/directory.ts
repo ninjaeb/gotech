@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { Industry, PartnerListing } from "@/generated/prisma/client";
+import type { Industry, PartnerListing, Prisma } from "@/generated/prisma/client";
 import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
 import type { DirectoryLocale } from "@/lib/directory-i18n";
 
@@ -279,13 +279,30 @@ export async function generateListingSlug(name: string): Promise<string> {
   throw new Error("Could not generate a unique listing slug — please try again.");
 }
 
-// A partner's listing row is created lazily, the first time they open the
-// editor — unlike referralCode (generated the moment the account becomes a
-// PARTNER, see src/app/actions/users.ts), a listing needs real content
-// before it means anything, so there's nothing worth creating any earlier.
-export async function ensurePartnerListing(partnerId: string, partnerName: string): Promise<PartnerListing> {
-  const existing = await db.partnerListing.findUnique({ where: { partnerId } });
-  if (existing) return existing;
+// A partner account can list more than one business (see
+// src/app/business/(dashboard)/listings) — every listing row belongs to
+// exactly one partner, but a partner can own several. Ordered oldest-first
+// so a partner's listings stay in a stable, predictable order across visits
+// rather than reshuffling as they're edited (updatedAt would do that).
+export async function listPartnerListings(partnerId: string): Promise<PartnerListing[]> {
+  return db.partnerListing.findMany({ where: { partnerId }, orderBy: { createdAt: "asc" } });
+}
+
+// Ownership-scoped lookup for a single listing — every partner-facing read
+// or write on a specific listing goes through this (or the equivalent
+// inline findFirst) rather than a bare findUnique({where:{id}}), since an
+// id alone doesn't prove the requesting partner is the one who owns it.
+export async function getOwnedListing(listingId: string, partnerId: string): Promise<PartnerListing | null> {
+  return db.partnerListing.findFirst({ where: { id: listingId, partnerId } });
+}
+
+// Explicit creation — unlike the old single-listing ensurePartnerListing
+// (which silently created one the first time any listing page was visited),
+// a partner who can have several listings needs "create another one" to be
+// a visible, deliberate action (the "+ New listing" button on
+// /business/listings), not something that happens as a side effect of
+// loading a page.
+export async function createPartnerListing(partnerId: string, partnerName: string): Promise<PartnerListing> {
   const slug = await generateListingSlug(partnerName);
   return db.partnerListing.create({
     data: { partnerId, slug, companyName: partnerName, services: [] },
@@ -301,11 +318,11 @@ export type DirectoryLeadStats = {
   wonValue: number;
 };
 
-export async function getDirectoryLeadStats(listingId: string): Promise<DirectoryLeadStats> {
+async function computeDirectoryLeadStats(where: Prisma.DirectoryLeadWhereInput): Promise<DirectoryLeadStats> {
   const [total, byStatus, wonAgg] = await Promise.all([
-    db.directoryLead.count({ where: { listingId } }),
-    db.directoryLead.groupBy({ by: ["status"], where: { listingId }, _count: { _all: true } }),
-    db.directoryLead.aggregate({ where: { listingId, status: "WON" }, _sum: { value: true } }),
+    db.directoryLead.count({ where }),
+    db.directoryLead.groupBy({ by: ["status"], where, _count: { _all: true } }),
+    db.directoryLead.aggregate({ where: { ...where, status: "WON" }, _sum: { value: true } }),
   ]);
   const counts = new Map<string, number>(byStatus.map((row) => [row.status, row._count._all]));
   const won = counts.get("WON") ?? 0;
@@ -318,6 +335,17 @@ export async function getDirectoryLeadStats(listingId: string): Promise<Director
     lost,
     wonValue: Number(wonAgg._sum.value ?? 0),
   };
+}
+
+export async function getDirectoryLeadStats(listingId: string): Promise<DirectoryLeadStats> {
+  return computeDirectoryLeadStats({ listingId });
+}
+
+// Same shape, summed across every listing a partner owns — for the
+// business dashboard's aggregate "Directory listing" card, which no longer
+// has one single listing to point getDirectoryLeadStats at.
+export async function getDirectoryLeadStatsForPartner(partnerId: string): Promise<DirectoryLeadStats> {
+  return computeDirectoryLeadStats({ listing: { partnerId } });
 }
 
 export type DirectoryOverviewStats = {

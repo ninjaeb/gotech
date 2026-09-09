@@ -2,6 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction, requirePartnerAction } from "@/lib/auth/dal";
@@ -12,8 +13,9 @@ import { firstHopValue } from "@/lib/site-url";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import {
   buildPublishedSnapshot,
+  createPartnerListing,
   DAYS_OF_WEEK,
-  ensurePartnerListing,
+  getOwnedListing,
   isValidSlugFormat,
   isValidTimeString,
   normalizeWebsiteUrl,
@@ -428,6 +430,19 @@ export async function translateListingContent(
   return callAi(TranslationSchema, LISTING_TRANSLATION_SYSTEM_PROMPT, prompt);
 }
 
+// Creates a blank draft listing and drops the partner straight into its
+// editor — the explicit, visible equivalent of what the old single-listing
+// ensurePartnerListing used to do silently on first page load. A plain
+// action (no useActionState) since there's no form input to validate: the
+// "+ New listing" button just needs a row to exist before it can navigate
+// to it.
+export async function createListingAction(): Promise<never> {
+  const partner = await requirePartnerAction();
+  const listing = await createPartnerListing(partner.id, partner.name);
+  revalidatePath("/business/listings");
+  redirect(`/business/listings/${listing.id}`);
+}
+
 type ListingSaveResult =
   | { ok: false; error: string; field?: ListingFormField; values: ListingFormValues }
   | { ok: true; listing: Awaited<ReturnType<typeof db.partnerListing.update>> };
@@ -437,9 +452,13 @@ type ListingSaveResult =
 // currently in the form — never a stale save from before this edit, which
 // is what made "you have services typed in but it says you don't" possible
 // before this was one step. `extraData` lets the submit flow fold its own
-// status transition into the very same write.
+// status transition into the very same write. `listingId` is checked
+// against the calling partner via getOwnedListing before anything is read
+// or written — a partner's own request could in principle name any listing
+// id, and only one they actually own may ever be touched here.
 async function saveListingFields(
   partner: { id: string; name: string },
+  listingId: string,
   formData: FormData,
   extraData: { status: "PENDING_REVIEW"; submittedAt: Date } | Record<string, never> = {},
 ): Promise<ListingSaveResult> {
@@ -458,7 +477,10 @@ async function saveListingFields(
     return { ok: false, error: error instanceof Error ? error.message : "Invalid logo", values };
   }
 
-  const listing = await ensurePartnerListing(partner.id, partner.name);
+  const listing = await getOwnedListing(listingId, partner.id);
+  if (!listing) {
+    return { ok: false, error: "Listing not found.", values };
+  }
   const resetToDraft = listing.status === "PUBLISHED" || listing.status === "REJECTED";
 
   // Reconciled against real rows rather than trusted as-is — a checkbox's
@@ -512,17 +534,22 @@ async function saveListingFields(
 // itself — see PartnerListing.publishedSnapshot in schema.prisma — but
 // editing after an approval or rejection resets status back to DRAFT, since
 // whatever an admin last reviewed no longer matches what's on screen; only
-// submitDirectoryListingForReview below asks for another look.
+// submitDirectoryListingForReview below asks for another look. `listingId`
+// is bound in by the form component (see PartnerListingForm) — the first
+// argument to a useActionState action, ahead of the (prevState, formData)
+// pair React itself supplies.
 export async function saveDirectoryListing(
+  listingId: string,
   _prevState: ListingFormState,
   formData: FormData,
 ): Promise<ListingFormState> {
   const partner = await requirePartnerAction();
-  const result = await saveListingFields(partner, formData);
+  const result = await saveListingFields(partner, listingId, formData);
   if (!result.ok) return { error: result.error, field: result.field, values: result.values };
 
   revalidatePath("/business");
-  revalidatePath("/business/listing");
+  revalidatePath("/business/listings");
+  revalidatePath(`/business/listings/${listingId}`);
   if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
   return { success: true };
 }
@@ -534,8 +561,10 @@ export type UpdateSlugState = { error: string; slug: string } | { success: true;
 // it takes effect immediately regardless of DRAFT/PENDING_REVIEW/PUBLISHED
 // status, and never resets that status the way editing content does.
 // Whoever had the old link gets a 404; nothing else about the listing
-// changes.
+// changes. `listingId` is bound in the same way as saveDirectoryListing's
+// (see PartnerSlugForm) and checked the same way via getOwnedListing.
 export async function updateListingSlug(
+  listingId: string,
   _prevState: UpdateSlugState,
   formData: FormData,
 ): Promise<UpdateSlugState> {
@@ -546,7 +575,10 @@ export async function updateListingSlug(
     return { error: "Enter at least 3 letters, numbers, or hyphens.", slug: raw };
   }
 
-  const listing = await ensurePartnerListing(partner.id, partner.name);
+  const listing = await getOwnedListing(listingId, partner.id);
+  if (!listing) {
+    return { error: "Listing not found.", slug: raw };
+  }
   if (normalized === listing.slug) {
     return { success: true, slug: normalized };
   }
@@ -557,7 +589,7 @@ export async function updateListingSlug(
   }
 
   await db.partnerListing.update({ where: { id: listing.id }, data: { slug: normalized } });
-  revalidatePath("/business/listing");
+  revalidatePath(`/business/listings/${listingId}`);
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
   revalidatePath(`/directory/${normalized}`);
@@ -571,8 +603,11 @@ export type SubmitListingState =
 
 // Saves the current form contents and, if they include a name and at least
 // one service, asks an admin to review them — an empty shell isn't worth
-// anyone's review time.
+// anyone's review time. `listingId` comes from the caller (see
+// handleSubmitForReview in partner-listing-form.tsx), same
+// bound-and-ownership-checked treatment as saveDirectoryListing.
 export async function submitDirectoryListingForReview(
+  listingId: string,
   _prevState: SubmitListingState,
   formData: FormData,
 ): Promise<SubmitListingState> {
@@ -586,14 +621,15 @@ export async function submitDirectoryListingForReview(
     return { error: "List at least one service before submitting.", field: "services" };
   }
 
-  const result = await saveListingFields(partner, formData, {
+  const result = await saveListingFields(partner, listingId, formData, {
     status: "PENDING_REVIEW",
     submittedAt: new Date(),
   });
   if (!result.ok) return { error: result.error, field: result.field };
 
   revalidatePath("/business");
-  revalidatePath("/business/listing");
+  revalidatePath("/business/listings");
+  revalidatePath(`/business/listings/${listingId}`);
   revalidatePath("/system/settings/directory");
   return { success: true };
 }

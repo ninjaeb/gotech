@@ -5,8 +5,16 @@ import { updateListingSlug } from "@/app/actions/directory";
 import { Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
-export function PartnerSlugForm({ slug, siteOrigin }: { slug: string; siteOrigin: string }) {
-  const [state, formAction, pending] = useActionState(updateListingSlug, undefined);
+export function PartnerSlugForm({
+  listingId,
+  slug,
+  siteOrigin,
+}: {
+  listingId: string;
+  slug: string;
+  siteOrigin: string;
+}) {
+  const [state, formAction, pending] = useActionState(updateListingSlug.bind(null, listingId), undefined);
   const [value, setValue] = useState(slug);
 
   // Reflects a successful change immediately — the input already shows

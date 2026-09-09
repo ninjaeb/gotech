@@ -17,7 +17,10 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
     getCurrency(),
     db.directoryLead.findFirst({
       where: { id, listing: { partnerId: user.id } },
-      include: { replies: { include: { author: { select: { name: true } } }, orderBy: { createdAt: "asc" } } },
+      include: {
+        replies: { include: { author: { select: { name: true } } }, orderBy: { createdAt: "asc" } },
+        listing: { select: { companyName: true } },
+      },
     }),
   ]);
   if (!lead) notFound();
@@ -25,7 +28,11 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={[{ label: "Directory leads", href: "/business/directory-leads" }, { label: lead.name }]}
+        breadcrumbs={[
+          { label: "Directory leads", href: "/business/directory-leads" },
+          { label: lead.listing.companyName },
+          { label: lead.name },
+        ]}
         title={lead.name}
         description={`Sent ${formatDateTime(lead.createdAt)}`}
         actions={<DirectoryLeadStatusSelect leadId={lead.id} status={lead.status} />}
