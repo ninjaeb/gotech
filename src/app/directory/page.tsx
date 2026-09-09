@@ -55,7 +55,7 @@ export default async function DirectoryHomePage({
   return (
     <div>
       <div className="border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto w-full max-w-6xl px-4 py-14 text-center sm:px-8">
+        <div className="w-full px-4 py-14 text-center sm:px-8">
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100 sm:text-4xl">{t.heroTitle}</h1>
           <p className="mx-auto mt-3 max-w-xl text-slate-500 dark:text-slate-400">{t.heroSubtitle}</p>
 
@@ -83,11 +83,11 @@ export default async function DirectoryHomePage({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8">
+      <div className="w-full px-4 py-10 sm:px-8">
         {filtered.length === 0 ? (
           <EmptyState icon={Handshake} title={t.noResultsTitle} description={t.noResultsDescription} />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map(({ slug, listing }) => (
               <ListingCard key={slug} slug={slug} listing={listing} viewLabel={t.viewListing} />
             ))}

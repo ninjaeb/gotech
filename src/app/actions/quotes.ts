@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import type { QuoteStatus } from "@/generated/prisma/client";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 
 const quoteItemSchema = z.object({
   description: z.string().trim().min(1, "Each line item needs a description"),
@@ -56,7 +56,7 @@ export async function createQuote(
   _prevState: QuoteFormState,
   formData: FormData,
 ): Promise<QuoteFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   let parsed;
   try {
     parsed = parseQuoteForm(formData);
@@ -84,7 +84,7 @@ export async function updateQuote(
   _prevState: QuoteFormState,
   formData: FormData,
 ): Promise<QuoteFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   let parsed;
   try {
     parsed = parseQuoteForm(formData);
@@ -110,14 +110,14 @@ export async function updateQuote(
 }
 
 export async function deleteQuote(quoteId: string) {
-  await requireAdminAction();
+  await requireSalesAction();
   const quote = await db.quote.delete({ where: { id: quoteId }, select: { dealId: true } });
   revalidatePath(`/deals/${quote.dealId}`);
   redirect(`/deals/${quote.dealId}`);
 }
 
 export async function sendQuote(quoteId: string) {
-  await requireAdminAction();
+  await requireSalesAction();
   const quote = await db.quote.findUniqueOrThrow({
     where: { id: quoteId },
     select: { dealId: true, status: true },

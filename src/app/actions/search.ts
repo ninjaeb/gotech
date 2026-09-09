@@ -19,17 +19,18 @@ export type SearchResults = {
 
 const EMPTY_RESULTS: SearchResults = { companies: [], contacts: [], deals: [], tasks: [], projects: [] };
 
-// Companies/Contacts/Deals are Admin-only areas (see requireAdmin) — a
-// Developer's search stays scoped to what they can otherwise see (Tasks,
-// Projects), rather than surfacing matches they'd be bounced from clicking.
+// Companies/Contacts/Deals are Admin+Sales areas (see requireSales) — a
+// Technical login's search stays scoped to what they can otherwise see
+// (Tasks, Projects), rather than surfacing matches they'd be bounced from
+// clicking.
 export async function globalSearch(rawQuery: string): Promise<SearchResults> {
   const user = await getCurrentUser();
   const query = rawQuery.trim();
   if (query.length < MIN_QUERY_LENGTH) return EMPTY_RESULTS;
-  const isAdmin = user.role === "ADMIN";
+  const canSeeSalesData = user.role === "ADMIN" || user.role === "SALES";
 
   const [companies, contacts, deals, tasks, projects] = await Promise.all([
-    isAdmin
+    canSeeSalesData
       ? db.company.findMany({
           where: { OR: [{ name: { contains: query } }, { domain: { contains: query } }] },
           take: RESULT_LIMIT,
@@ -37,7 +38,7 @@ export async function globalSearch(rawQuery: string): Promise<SearchResults> {
           select: { id: true, name: true, domain: true },
         })
       : [],
-    isAdmin
+    canSeeSalesData
       ? db.contact.findMany({
           // Each word must appear somewhere (first name, last name, or
           // email) — not the whole query in any single field. Otherwise
@@ -60,7 +61,7 @@ export async function globalSearch(rawQuery: string): Promise<SearchResults> {
           select: { id: true, firstName: true, lastName: true, email: true },
         })
       : [],
-    isAdmin
+    canSeeSalesData
       ? db.deal.findMany({
           where: { title: { contains: query } },
           take: RESULT_LIMIT,

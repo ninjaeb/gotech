@@ -46,8 +46,9 @@ export function ProjectBudgetPanel({
   totalCost: number;
   unratedMinutes: number;
   currency: string;
-  // Developers see the timeline but not hours/cost budget, and can't edit
-  // any of it — budget is admin-only, everywhere else this stays true.
+  // Sales sees the timeline but not hours/cost budget, and can't edit any
+  // of it — budget/status is Admin+Technical's delivery work, everywhere
+  // else this stays true.
   canManage?: boolean;
 }) {
   const noBudgetSet = budgetHours === null && budgetAmount === null && targetCompletionDate === null;

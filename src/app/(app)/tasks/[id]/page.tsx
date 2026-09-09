@@ -32,7 +32,9 @@ export default async function TaskDetailPage({
 }) {
   const { id } = await params;
   const currentUser = await getCurrentUser();
-  const canManage = currentUser.role === "ADMIN";
+  // Tasks are cross-functional — every real staff role manages its own;
+  // Partner is the only role excluded, and it never reaches this page.
+  const canManage = currentUser.role !== "PARTNER";
 
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
 

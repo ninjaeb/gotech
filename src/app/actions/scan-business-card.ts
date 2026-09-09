@@ -4,7 +4,7 @@ import { z } from "zod";
 import { callAi, isAiConfigured } from "@/lib/ai/client";
 import { deriveCompanyDomain, findOrCreateCompanyByName, normalizeDomain } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 
 const SYSTEM_PROMPT =
   "You transcribe business card photos into structured contact data. Only use text actually visible on the card — never invent or guess a name, number, or company that isn't legible. Leave a field as an empty string if it isn't present or you can't read it confidently.";
@@ -37,7 +37,7 @@ const CardSchema = z.object({
 export type ScanCardResult = { status: "ok"; data: ContactDraft } | { status: "error"; message: string };
 
 export async function scanBusinessCard(formData: FormData): Promise<ScanCardResult> {
-  await requireAdminAction();
+  await requireSalesAction();
   if (!isAiConfigured()) {
     return { status: "error", message: "AI features aren't configured — set OPENROUTER_API_KEY to enable them." };
   }

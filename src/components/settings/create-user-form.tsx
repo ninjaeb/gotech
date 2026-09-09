@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { createUser } from "@/app/actions/users";
 import { Label, Input, Select, RequiredMark } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS } from "@/lib/labels";
 
 export function CreateUserForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -45,10 +46,19 @@ export function CreateUserForm() {
             Role
             <RequiredMark />
           </Label>
-          <Select id="new-user-role" name="role" defaultValue="DEVELOPER" required>
-            <option value="DEVELOPER">Developer — Projects &amp; Tasks only</option>
-            <option value="ADMIN">Admin — full access</option>
-            <option value="PARTNER">Partner — referral portal only</option>
+          <Select id="new-user-role" name="role" defaultValue="SALES" required>
+            <option value="SALES">
+              {ROLE_LABELS.SALES} — {ROLE_DESCRIPTIONS.SALES}
+            </option>
+            <option value="TECHNICAL">
+              {ROLE_LABELS.TECHNICAL} — {ROLE_DESCRIPTIONS.TECHNICAL}
+            </option>
+            <option value="ADMIN">
+              {ROLE_LABELS.ADMIN} — {ROLE_DESCRIPTIONS.ADMIN}
+            </option>
+            <option value="PARTNER">
+              {ROLE_LABELS.PARTNER} — {ROLE_DESCRIPTIONS.PARTNER}
+            </option>
           </Select>
         </div>
         <div>

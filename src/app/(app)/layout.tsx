@@ -9,9 +9,9 @@ import { db } from "@/lib/db";
 import { notificationHref } from "@/lib/notification-href";
 import { isWhatsAppConversationUnread } from "@/lib/whatsapp";
 
-// Developers can't reach /whatsapp at all (nav item hidden, page itself
-// admin-gated) — skip the query on their every page load rather than pay
-// for a count nobody in that role will ever see.
+// Sales and Technical logins can't reach /whatsapp at all (nav item
+// hidden, page itself admin-gated) — skip the query on their every page
+// load rather than pay for a count nobody in that role will ever see.
 async function countUnreadWhatsAppConversations(isAdmin: boolean): Promise<number> {
   if (!isAdmin) return 0;
   const latest = await db.activity.findMany({

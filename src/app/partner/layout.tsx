@@ -14,7 +14,7 @@ export default async function PartnerLayout({ children }: { children: React.Reac
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mx-auto flex w-full max-w-5xl items-center gap-3 px-4 py-3 sm:px-8">
+        <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
           <img src="/icon-192.png" alt="" className="h-7 w-7 shrink-0" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">Gotka partner portal</p>
@@ -33,12 +33,12 @@ export default async function PartnerLayout({ children }: { children: React.Reac
             </form>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-8">
+        <div className="w-full px-4 sm:px-8">
           <PartnerNav />
         </div>
       </header>
       <main className="flex-1 px-4 py-6 sm:px-8 sm:py-8">
-        <div className="mx-auto w-full max-w-5xl">{children}</div>
+        <div className="w-full">{children}</div>
       </main>
     </div>
   );

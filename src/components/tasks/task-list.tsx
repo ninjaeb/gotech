@@ -59,8 +59,9 @@ export function TaskList({
   users?: UserOption[];
   showParent?: boolean;
   emptyMessage?: string;
-  // Developers can log time against tasks but not create/edit/delete/
-  // complete them — everywhere else this defaults to true unchanged.
+  // False only where a caller explicitly restricts it (Partner never
+  // reaches a page that renders this) — everywhere else this defaults to
+  // true, since task management is open to every real staff role.
   canManage?: boolean;
   // Whether the *current user* has a connected mailbox, and whether the
   // team has a connected WhatsApp Business number — gates the per-row

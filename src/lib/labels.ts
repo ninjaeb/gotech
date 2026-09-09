@@ -11,6 +11,7 @@ import {
   ProductServiceType,
   ProjectStatus,
   QuoteStatus,
+  Role,
   TaskPriority,
   TaskType,
 } from "@/generated/prisma/client";
@@ -398,4 +399,22 @@ export const DIRECTORY_LEAD_STATUS_BADGE_CLASSES: Record<DirectoryLeadStatus, st
     "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950 dark:text-orange-300 dark:ring-orange-500/30",
   WON: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
   LOST: "bg-slate-100 text-slate-700 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-500/30",
+};
+
+// Used by the role <select> in Settings → Team (create + edit) so the
+// option text and the role switch's own confirmation stay in sync with
+// what each role can actually reach — see requireSales/requireTechnical in
+// src/lib/auth/dal.ts for the access these summaries describe.
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: "Admin",
+  SALES: "Sales",
+  TECHNICAL: "Technical team",
+  PARTNER: "Partner",
+};
+
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  ADMIN: "Full access",
+  SALES: "Companies, Contacts, Deals & Leaderboard only",
+  TECHNICAL: "Projects & Tasks only",
+  PARTNER: "Referral portal only",
 };

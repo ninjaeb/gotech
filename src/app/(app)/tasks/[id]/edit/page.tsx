@@ -4,14 +4,14 @@ import { updateTask } from "@/app/actions/tasks";
 import { TaskForm } from "@/components/tasks/task-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireStaff } from "@/lib/auth/dal";
 
 export default async function EditTaskPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireStaff();
   const { id } = await params;
   const [task, companies, contacts, deals, users] = await Promise.all([
     db.task.findUnique({

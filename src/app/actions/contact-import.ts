@@ -6,7 +6,7 @@ import {
   parseContactImportFile,
   type ParsedContactRow,
 } from "@/lib/contact-import-parsing";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { toTitleCase } from "@/lib/names";
 import { phoneMatchKey } from "@/lib/phone";
@@ -70,7 +70,7 @@ export type ImportResult = {
 export async function previewContactImport(
   formData: FormData,
 ): Promise<ImportPreview | ImportError> {
-  await requireAdminAction();
+  await requireSalesAction();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { status: "error", message: "Choose a CSV or Excel file to import." };
@@ -150,7 +150,7 @@ export async function previewContactImport(
 export async function confirmContactImport(
   formData: FormData,
 ): Promise<ImportResult | ImportError> {
-  await requireAdminAction();
+  await requireSalesAction();
   const rowsJson = formData.get("rows");
   if (typeof rowsJson !== "string") {
     return {

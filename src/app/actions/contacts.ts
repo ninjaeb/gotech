@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { requireSalesAction } from "@/lib/auth/dal";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 import { toTitleCase } from "@/lib/names";
@@ -113,7 +113,7 @@ export async function createContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   let data: ReturnType<typeof parseContactForm>;
   let photo: Awaited<ReturnType<typeof parseContactPhoto>>;
   try {
@@ -137,7 +137,7 @@ export async function updateContact(
   _prevState: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
-  await requireAdminAction();
+  await requireSalesAction();
   let data: ReturnType<typeof parseContactForm>;
   let photo: Awaited<ReturnType<typeof parseContactPhoto>>;
   try {
@@ -165,7 +165,7 @@ export async function changeContactLifecycleStage(
   id: string,
   stage: string,
 ): Promise<{ error: string } | undefined> {
-  await requireAdminAction();
+  await requireSalesAction();
   const value = stage === "" ? null : (stage as LifecycleStage);
   if (value !== null && !LIFECYCLE_STAGES.includes(value)) {
     return { error: "Not a valid stage." };
@@ -177,7 +177,7 @@ export async function changeContactLifecycleStage(
 }
 
 export async function linkExistingContact(companyId: string, formData: FormData) {
-  await requireAdminAction();
+  await requireSalesAction();
   const contactId = formData.get("contactId");
   if (typeof contactId !== "string" || !contactId) return;
   const previous = await db.contact.findUnique({
@@ -193,7 +193,7 @@ export async function linkExistingContact(companyId: string, formData: FormData)
 
 export async function deleteContact(id: string, formData: FormData) {
   void formData;
-  await requireAdminAction();
+  await requireSalesAction();
   const contact = await db.contact.delete({ where: { id } });
   revalidatePath("/contacts");
   revalidatePath("/deals");

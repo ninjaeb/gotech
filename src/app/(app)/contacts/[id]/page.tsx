@@ -37,7 +37,7 @@ import {
 import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
 import { getCurrency } from "@/lib/settings";
 import { getActiveSequences } from "@/lib/sequences";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
 import { readSectionLayout } from "@/lib/section-layout";
 
@@ -57,7 +57,7 @@ export default async function ContactDetailPage({
 }) {
   const { id } = await params;
 
-  const currentUser = await requireAdmin();
+  const currentUser = await requireSales();
   const [currency, contact, hasEmailAccount, hasWhatsAppAccount, timeLogged, siteOrigin, activeSequences, users] = await Promise.all([
     getCurrency(),
     db.contact.findUnique({

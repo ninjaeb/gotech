@@ -4,14 +4,14 @@ import { updateCompany } from "@/app/actions/companies";
 import { CompanyForm } from "@/components/companies/company-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 
 export default async function EditCompanyPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireSales();
   const { id } = await params;
   const company = await db.company.findUnique({ where: { id } });
   if (!company) notFound();

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/dal";
+import { requireSales } from "@/lib/auth/dal";
 import { buildVCard } from "@/lib/vcard";
 import { fullName } from "@/lib/format";
 
@@ -9,7 +9,7 @@ import { fullName } from "@/lib/format";
 // which is the whole point (see the "save to phone" request this exists
 // for) rather than just handing back a file to look at.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin();
+  await requireSales();
   const { id } = await params;
 
   const contact = await db.contact.findUnique({

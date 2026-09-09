@@ -6,8 +6,8 @@ import { db } from "@/lib/db";
 // demand — kept out of the activity feed / task page's own payload, same
 // reasoning as /api/whatsapp/media/[activityId], so a page with many notes
 // never has to re-serialize every attachment just to render the timeline.
-// Gated on being logged in (not admin-only) — developers can view Tasks and
-// their activity same as admins, just with restricted mutation rights.
+// Gated on being logged in (not admin-only) — every staff role can view
+// Tasks and their activity, just with per-page/per-action mutation rights.
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await verifySession();

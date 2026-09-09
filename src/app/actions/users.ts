@@ -15,7 +15,7 @@ const createUserSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address"),
   title: z.string().trim().optional(),
   password: z.string().trim().optional(),
-  role: z.enum(["ADMIN", "DEVELOPER", "PARTNER"]),
+  role: z.enum(["ADMIN", "TECHNICAL", "SALES", "PARTNER"]),
 });
 
 export type CreateUserState =
