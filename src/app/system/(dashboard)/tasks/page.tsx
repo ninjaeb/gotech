@@ -96,7 +96,11 @@ export default async function TasksPage({
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, companyId: true, contactId: true },
     }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    // Assignees/followers, the assignee filter, and the @mention list
+    // inside a task's description are all staff only: a Partner has no
+    // task list or CRM inbox of their own to see any of them land in, same
+    // reasoning as team-member-row.tsx's own notification toggles.
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
   ]);

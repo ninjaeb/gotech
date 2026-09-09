@@ -5,6 +5,7 @@ import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Select } from "@/components/ui/field";
 import { Combobox } from "@/components/ui/combobox";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import { fullName } from "@/lib/format";
@@ -81,7 +82,27 @@ export function GlobalTaskForm({
           <Input id="g-title" name="title" required placeholder="Follow up on proposal" />
         </FieldGroup>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <FieldGroup label="Assignees" htmlFor="g-assigneeIds">
+          <MultiCombobox
+            id="g-assigneeIds"
+            name="assigneeIds"
+            placeholder="Unassigned"
+            emptyMessage="No matching team members"
+            options={users.map((user) => ({ value: user.id, label: user.name }))}
+          />
+        </FieldGroup>
+        <FieldGroup label="Followers" htmlFor="g-followerIds">
+          <MultiCombobox
+            id="g-followerIds"
+            name="followerIds"
+            placeholder="No followers"
+            emptyMessage="No matching team members"
+            options={users.map((user) => ({ value: user.id, label: user.name }))}
+          />
+        </FieldGroup>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <FieldGroup label="Type" htmlFor="g-type">
           <Select id="g-type" name="type" defaultValue="OTHER">
             {TASK_TYPES.map((type) => (
@@ -102,16 +123,6 @@ export function GlobalTaskForm({
         </FieldGroup>
         <FieldGroup label="Due date" htmlFor="g-dueDate">
           <DatePicker id="g-dueDate" name="dueDate" />
-        </FieldGroup>
-        <FieldGroup label="Assignee" htmlFor="g-assigneeIds">
-          <Select id="g-assigneeIds" name="assigneeIds" defaultValue="">
-            <option value="">Unassigned</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </Select>
         </FieldGroup>
         <FieldGroup label="Company" htmlFor="g-companyId">
           <Combobox

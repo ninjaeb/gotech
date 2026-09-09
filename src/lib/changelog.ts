@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.69",
+    date: "2026-09-09",
+    title: "Task assignees/followers: searchable multi-select, staff only",
+    changes: [
+      "Picking a task's assignees and followers is now a searchable multi-select dropdown instead of a long list of checkboxes, on both Edit task and the Tasks page's quick Add task form",
+      "Add task now has a Followers field too, matching Edit task — it was missing there before",
+      "The list to pick from is now System logins only (Admin/Sales/Technical) — Partners no longer show up as possible assignees or followers, since a Partner has no task list of their own to see one land in",
+    ],
+  },
+  {
     version: "1.68",
     date: "2026-09-09",
     title: "Friendly category pages, SEO/GEO upgrades, and a wider search box",
