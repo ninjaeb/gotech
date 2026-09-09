@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.65",
+    date: "2026-09-09",
+    title: "Settings → Team: mobile layout fix, System logins vs Partners",
+    changes: [
+      "Settings → Team now splits Users into two sections — System logins (Admin/Sales/Technical, the accounts that actually sign into the CRM) and Partners — instead of one flat list mixing both",
+      "Fixed a mobile layout bug where a row's action buttons (role, reset password, delete) could run off the edge of the screen on a phone instead of wrapping onto their own line",
+    ],
+  },
+  {
     version: "1.64",
     date: "2026-09-09",
     title: "Pick multiple products & services for one inquiry",

@@ -166,7 +166,7 @@ export function TeamMemberRow({
   }
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+    <li className="flex flex-col gap-2 py-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="truncate font-medium text-slate-800 dark:text-slate-200">
           {user.name}
@@ -179,7 +179,12 @@ export function TeamMemberRow({
           {user.role === "PARTNER" && user.referralCode && ` · referral link /r/${user.referralCode}`}
         </p>
       </div>
-      <div className="flex items-center gap-3">
+      {/* flex-wrap (not a single non-wrapping row) so every control below
+      gets its own line on a narrow phone instead of running off-screen —
+      each is a direct child of this wrapper, not nested in its own
+      non-wrapping group, so they wrap independently rather than as a stuck-
+      together cluster. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <button
           type="button"
           onClick={() => {
@@ -194,7 +199,7 @@ export function TeamMemberRow({
         </button>
         <UserRateEditor userId={user.id} hourlyRate={user.hourlyRate} currency={currency} />
         {!isSelf && (
-          <div className="flex items-center gap-2">
+          <>
             <UserRoleSelect userId={user.id} role={user.role} />
             <ResetPasswordButton userId={user.id} userName={user.name} />
             {canDelete && (
@@ -208,7 +213,7 @@ export function TeamMemberRow({
                 </ConfirmSubmitButton>
               </form>
             )}
-          </div>
+          </>
         )}
       </div>
     </li>
