@@ -7,6 +7,9 @@ import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { callAi, isAiConfigured } from "@/lib/ai/client";
 import { buildTestimonialContext } from "@/lib/ai/context";
+import { textToHtml } from "@/lib/email";
+import { getNewsletterSender, sendNewsletterEmail } from "@/lib/newsletter-sender";
+import { getSiteOrigin } from "@/lib/site-url";
 
 const TESTIMONIAL_SYSTEM_PROMPT =
   "You write short customer testimonials in a client's own voice, first person, for a services company. Ground everything only in the context given — never invent specific numbers, dates, or outcomes that aren't present. Sound like a real person who worked with the company, not marketing copy.";
@@ -61,6 +64,54 @@ export async function requestTestimonial(contactId: string): Promise<ActionResul
   } catch (error) {
     console.error("requestTestimonial failed:", error);
     return { ok: false, error: "Something went wrong creating the testimonial request." };
+  }
+}
+
+// Called from deals.ts when a deal's stage becomes WON, alongside
+// ensureProjectForWonDeal/markContactAsCustomer — invites the client
+// automatically instead of relying on staff to remember to click "Request
+// testimonial." Skips silently if this contact already has any testimonial
+// request (pending or submitted), so re-saving an already-won deal, or a
+// contact whose second deal later also wins, never sends a repeat invite —
+// the manual button is still there for staff who want to ask again
+// deliberately. Unlike requestTestimonial above, this also emails the link
+// straight away: nothing else will hand it to the client on an automatic,
+// staff-invisible trigger the way a human clicking the button already
+// implies they're about to go deliver it themselves.
+export async function ensureTestimonialRequestForWonDeal(contactId: string | null): Promise<void> {
+  if (!contactId) return;
+  const existing = await db.testimonial.findFirst({ where: { contactId }, select: { id: true } });
+  if (existing) return;
+
+  const contact = await db.contact.findUnique({
+    where: { id: contactId },
+    select: { email: true, firstName: true },
+  });
+  if (!contact) return;
+
+  const token = randomBytes(24).toString("base64url");
+  const aiDraft = await generateTestimonialDraft(contactId);
+  await db.testimonial.create({ data: { token, contactId, aiDraft } });
+  revalidatePath(`/system/contacts/${contactId}`);
+
+  if (!contact.email) return;
+  const sender = await getNewsletterSender();
+  if (!sender) return;
+
+  const link = `${await getSiteOrigin()}/testimonial/${token}`;
+  const text = `Hi ${contact.firstName},\n\nThanks so much for choosing us — it's been a pleasure working with you! If you have a minute, we'd love to hear about your experience:\n\n${link}\n\nIt only takes a moment, and it means a lot to us.`;
+  try {
+    await sendNewsletterEmail(sender, {
+      to: contact.email,
+      subject: "We'd love your feedback",
+      text,
+      html: textToHtml(text),
+    });
+  } catch (error) {
+    console.error(
+      `Testimonial invite email failed for contact ${contactId}:`,
+      error instanceof Error ? error.message : error,
+    );
   }
 }
 

@@ -29,6 +29,7 @@ import { getBusinessSessionPayload } from "@/lib/business/session";
 import { cn } from "@/lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
 import { InquiryProvider, InquiryScrollTarget } from "@/components/directory/listing-inquiry";
@@ -258,37 +259,47 @@ export default async function DirectoryListingPage({
       ? directoryReferralUrl(siteOrigin, recommender.referralCode, slug, resolved)
       : null;
 
-  // The partner's own tagline/description stay the source of truth — a
-  // translation only stands in for whichever field it actually covers, so a
-  // half-filled translation (tagline only, say) still shows the primary
-  // language's About text rather than leaving it blank.
+  // The partner's own tagline/description/services/faqs stay the source of
+  // truth — a translation only stands in for whichever field it actually
+  // covers, so a half-filled translation (tagline only, say) still shows
+  // the primary language's About text (or services/FAQ) rather than
+  // leaving it blank. Company name is never translated — always shown
+  // exactly as the partner entered it, regardless of locale.
   const translation = resolved === "zh" || resolved === "ms" ? listing.translations[resolved] : undefined;
   const displayTagline = translation?.tagline || listing.tagline;
   const displayDescription = translation?.description || listing.description;
+  const displayServices = translation?.services?.length ? translation.services : listing.services;
+  const displayFaqs = translation?.faqs?.length ? translation.faqs : listing.faqs;
 
   return (
-    // Extra bottom padding when the RecommendBar is pinned over the page,
-    // so the inquiry form's submit button never hides behind it.
-    <div className={cn("w-full px-4 py-10 sm:px-8", recommendUrl && "pb-28")}>
+    // Bottom padding clears whatever is pinned over the page's foot: the
+    // mobile jump bar below (always, on small screens), plus the
+    // RecommendBar's pill when a partner is signed in — which floats above
+    // that jump bar on mobile and becomes its own strip from sm up.
+    <div className={cn("w-full px-4 pb-24 sm:px-8 sm:pb-10", recommendUrl && "pb-40 sm:pb-28")}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: buildJsonLd(listing, pageUrl, buildListingLogoUrl(listing, siteOrigin, slug)),
+          __html: buildJsonLd(
+            { ...listing, services: displayServices },
+            pageUrl,
+            buildListingLogoUrl(listing, siteOrigin, slug),
+          ),
         }}
       />
-      {listing.faqs.length > 0 && (
+      {displayFaqs.length > 0 && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(listing.faqs) }}
+          dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(displayFaqs) }}
         />
       )}
       <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
           <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
-            {displayTagline && <p className="mt-1 text-slate-600 dark:text-slate-300">{displayTagline}</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-base text-slate-500 dark:text-slate-400">
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
+            {displayTagline && <p className="mt-1 text-lg text-slate-600 dark:text-slate-300">{displayTagline}</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-lg text-slate-500 dark:text-slate-400">
               {listing.industry && (
                 <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
                   <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
@@ -344,42 +355,42 @@ export default async function DirectoryListingPage({
             {displayDescription && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
+                  <CardTitle className="text-xl">{t.aboutHeading}</CardTitle>
                 </CardHeader>
-                <CardBody className="text-base text-slate-600 dark:text-slate-300">
+                <CardBody className="text-lg text-slate-600 dark:text-slate-300">
                   {renderMarkdownLite(displayDescription)}
                 </CardBody>
               </Card>
             )}
 
-            {(listing.services.length > 0 || listing.operatingHours) && (
+            {(displayServices.length > 0 || listing.operatingHours) && (
               <div
                 className={cn(
                   "grid gap-6",
-                  listing.services.length > 0 && listing.operatingHours ? "sm:grid-cols-2" : "",
+                  displayServices.length > 0 && listing.operatingHours ? "sm:grid-cols-2" : "",
                 )}
               >
-                {listing.services.length > 0 && (
-                  <Card>
+                {displayServices.length > 0 && (
+                  <Card id="services" className="scroll-mt-32">
                     <CardHeader>
-                      <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
+                      <CardTitle className="text-xl">{t.servicesHeading}</CardTitle>
                     </CardHeader>
                     <CardBody>
-                      <ServiceList services={listing.services} />
+                      <ServiceList services={displayServices} />
                     </CardBody>
                   </Card>
                 )}
                 {listing.operatingHours && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-1.5 text-lg">
+                      <CardTitle className="flex items-center gap-1.5 text-xl">
                         <Clock className="h-4 w-4 text-slate-400" />
                         {t.hoursHeading}
                       </CardTitle>
                     </CardHeader>
                     <CardBody>
                       <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
-                        <table className="w-full text-base">
+                        <table className="w-full text-lg">
                           <tbody>
                             {buildHoursRows(listing.operatingHours, t).map((row) => (
                               <tr
@@ -419,14 +430,19 @@ export default async function DirectoryListingPage({
             {mapAddress && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t.visitHeading}</CardTitle>
+                  <CardTitle className="text-xl">{t.visitHeading}</CardTitle>
                 </CardHeader>
                 <CardBody className="space-y-4">
                   {listing.address && (
-                    <p className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-2 text-lg text-slate-600 hover:text-petrol hover:underline dark:text-slate-300 dark:hover:text-petrol-light"
+                    >
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                       <span className="whitespace-pre-wrap">{listing.address}</span>
-                    </p>
+                    </a>
                   )}
                   <iframe
                     title={`${listing.companyName} on the map`}
@@ -439,22 +455,22 @@ export default async function DirectoryListingPage({
               </Card>
             )}
 
-            {listing.faqs.length > 0 && (
+            {displayFaqs.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">{t.faqHeading}</CardTitle>
+                  <CardTitle className="text-xl">{t.faqHeading}</CardTitle>
                 </CardHeader>
                 <CardBody className="space-y-2">
-                  {listing.faqs.map((faq, index) => (
+                  {displayFaqs.map((faq, index) => (
                     <details
                       key={index}
                       className="group rounded-md border border-slate-200 px-3 py-2 dark:border-neutral-800"
                     >
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-slate-900 marker:content-none dark:text-slate-100">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-semibold text-slate-900 marker:content-none dark:text-slate-100">
                         {faq.question}
                         <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
                       </summary>
-                      <p className="mt-2 text-base text-slate-600 dark:text-slate-300">{faq.answer}</p>
+                      <p className="mt-2 text-lg text-slate-600 dark:text-slate-300">{faq.answer}</p>
                     </details>
                   ))}
                 </CardBody>
@@ -462,13 +478,13 @@ export default async function DirectoryListingPage({
             )}
           </div>
 
-          <InquiryScrollTarget className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
+          <InquiryScrollTarget id="contact" className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
+                <CardTitle className="text-xl">{t.contactHeading}</CardTitle>
               </CardHeader>
               <CardBody>
-                <p className="mb-4 text-base text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
+                <p className="mb-4 text-lg text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
                 <DirectoryLeadForm slug={slug} locale={resolved} />
               </CardBody>
             </Card>
@@ -477,6 +493,25 @@ export default async function DirectoryListingPage({
       </InquiryProvider>
 
       {recommendUrl && <RecommendBar title={listing.companyName} url={recommendUrl} label={t.recommendBusinessCta} />}
+
+      {/* Mobile only — on lg+ the Get in touch card is already visible in
+          the sticky right-hand column, so this would just duplicate it. */}
+      <nav
+        aria-label={t.stickyNavLabel}
+        className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:hidden dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        {displayServices.length > 0 && (
+          <a href="#services" className={buttonClasses("secondary", "md", "flex-1 justify-center")}>
+            {t.servicesHeading}
+          </a>
+        )}
+        <a
+          href="#contact"
+          className={buttonClasses("primary", "md", "flex-1 justify-center bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led")}
+        >
+          {t.contactHeading}
+        </a>
+      </nav>
     </div>
   );
 }

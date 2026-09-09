@@ -1574,7 +1574,7 @@ model PartnerListing {
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
   faqs        Json? // FaqEntry[] (src/lib/directory.ts) — {question, answer}; also emitted as FAQPage JSON-LD for SEO/GEO
-  translations Json? // ListingTranslations (src/lib/directory.ts) — {zh?: {tagline, description}, ms?: {tagline, description}}; AI-translated (or hand-edited) copies of tagline/description for the directory's non-English locales, shown in place of the fields above when a visitor is browsing in that language
+  translations Json? // ListingTranslations (src/lib/directory.ts) — {zh?: {tagline, description, services, faqs}, ms?: {...}}; AI-translated (or hand-edited) copies of tagline/description/services/faqs for the directory's non-English locales, shown in place of the fields above when a visitor is browsing in that language
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
   // Optional overrides for the detail page's <title>/meta description (and,
   // through it, Open Graph/Twitter/JSON-LD) — see generateMetadata in

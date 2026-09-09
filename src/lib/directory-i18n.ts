@@ -100,6 +100,7 @@ export type DirectoryStrings = {
   formSubmitting: string;
   formSuccess: string;
   errors: Record<DirectoryLeadFormErrorCode, string>;
+  stickyNavLabel: string;
   footerTagline: string;
   backToDirectory: string;
   brandName: string;
@@ -206,6 +207,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       invalid_submission: "Please check the form and try again.",
       generic: "Something went wrong. Please try again.",
     },
+    stickyNavLabel: "Quick links",
     footerTagline: "A directory of trusted businesses in the Gotka network.",
     backToDirectory: "Back to directory",
     brandName: "Business Directory",
@@ -309,6 +311,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       invalid_submission: "请检查表单内容后重试。",
       generic: "出现错误，请重试。",
     },
+    stickyNavLabel: "快捷链接",
     footerTagline: "Gotka 网络中值得信赖的企业目录。",
     backToDirectory: "返回目录",
     brandName: "企业目录",
@@ -412,6 +415,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       invalid_submission: "Sila semak borang dan cuba lagi.",
       generic: "Berlaku ralat. Sila cuba lagi.",
     },
+    stickyNavLabel: "Pautan pantas",
     footerTagline: "Direktori perniagaan yang dipercayai dalam rangkaian Gotka.",
     backToDirectory: "Kembali ke direktori",
     brandName: "Direktori Perniagaan",

@@ -46,10 +46,18 @@ export function useInquiry(): InquiryContextValue {
 // Marks where selectService's scrollIntoView lands — a thin client wrapper
 // around the (server-rendered) Get in touch card, since only a component
 // that can call useContext gets to hold the actual ref object.
-export function InquiryScrollTarget({ children, className }: { children: ReactNode; className?: string }) {
+export function InquiryScrollTarget({
+  children,
+  className,
+  id,
+}: {
+  children: ReactNode;
+  className?: string;
+  id?: string;
+}) {
   const { formRef } = useInquiry();
   return (
-    <div ref={formRef} className={className}>
+    <div ref={formRef} id={id} className={className}>
       {children}
     </div>
   );
