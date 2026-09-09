@@ -1,21 +1,22 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
 import { requirePartner } from "@/lib/auth/dal";
 import { businessLogout } from "@/app/actions/auth";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { PartnerNav, PartnerNavMenu } from "@/components/referrals/partner-nav";
+import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
+import { getDirectoryLocale } from "@/lib/directory-locale";
+import { PartnerNavMenu } from "@/components/referrals/partner-nav";
 
 // The business portal's own shell — deliberately not the CRM's (dashboard)
 // layout: a partner is an external referrer, so no sidebar, no global
 // search, no notifications, none of the CRM's nav. Styled to match the
-// public directory's own header (src/app/directory/layout.tsx) — sticky,
-// same icon+wordmark treatment — since a business owner moves between the
-// two. Unlike the directory's header, whose menu is a small set of account
-// actions always tucked behind a hamburger, this one is real page
-// navigation: PartnerNav shows it inline once there's room, and
-// PartnerNavMenu takes over with a hamburger below that breakpoint.
+// public directory's own header (src/components/directory/directory-chrome.tsx)
+// exactly — sticky, same icon+wordmark treatment, same language switcher +
+// theme toggle + hamburger row — since a business owner moves between the
+// two and the chrome should feel continuous. PartnerNavMenu is always a
+// hamburger here (no inline tab row on wide screens), grouping every portal
+// page under "My Business" alongside a link out to the public directory.
 export default async function PartnerLayout({ children }: { children: React.ReactNode }) {
-  const user = await requirePartner();
+  const [, locale] = await Promise.all([requirePartner(), getDirectoryLocale()]);
 
   return (
     <div className="flex min-h-full flex-col">
@@ -27,19 +28,9 @@ export default async function PartnerLayout({ children }: { children: React.Reac
               Business Portal
             </span>
           </Link>
-          <PartnerNav />
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <span className="hidden truncate text-sm text-slate-500 dark:text-slate-400 md:inline">{user.name}</span>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            <DirectoryLanguageSwitcher current={locale} />
             <ThemeToggle />
-            <form action={businessLogout} className="hidden sm:block">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-neutral-800 dark:hover:text-slate-200"
-              >
-                <LogOut className="h-4 w-4" />
-                Sign out
-              </button>
-            </form>
             <PartnerNavMenu signOutAction={businessLogout} />
           </div>
         </div>
