@@ -45,6 +45,7 @@ export type DirectoryStrings = {
   viewListing: string;
   servicesHeading: string;
   aboutHeading: string;
+  faqHeading: string;
   visitHeading: string;
   hoursHeading: string;
   hoursOpenLabel: string;
@@ -84,8 +85,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     noResultsTitle: "No partners found",
     noResultsDescription: "Try a different search or industry filter.",
     viewListing: "View details",
-    servicesHeading: "Services",
+    servicesHeading: "Products & Services",
     aboutHeading: "About",
+    faqHeading: "Frequently asked questions",
     visitHeading: "Visit us",
     hoursHeading: "Hours",
     hoursOpenLabel: "Open",
@@ -142,8 +144,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     noResultsTitle: "未找到合作伙伴",
     noResultsDescription: "请尝试其他搜索词或行业筛选。",
     viewListing: "查看详情",
-    servicesHeading: "服务项目",
+    servicesHeading: "产品与服务",
     aboutHeading: "关于",
+    faqHeading: "常见问题",
     visitHeading: "联系地址",
     hoursHeading: "营业时间",
     hoursOpenLabel: "营业",
@@ -200,8 +203,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     noResultsTitle: "Tiada rakan kongsi dijumpai",
     noResultsDescription: "Cuba carian atau penapis industri yang lain.",
     viewListing: "Lihat butiran",
-    servicesHeading: "Perkhidmatan",
+    servicesHeading: "Produk & Perkhidmatan",
     aboutHeading: "Tentang",
+    faqHeading: "Soalan lazim",
     visitHeading: "Lawati kami",
     hoursHeading: "Waktu Operasi",
     hoursOpenLabel: "Buka",

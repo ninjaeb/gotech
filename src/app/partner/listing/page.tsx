@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { requirePartner } from "@/lib/auth/dal";
-import { ensurePartnerListing, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
+import { ensurePartnerListing, faqsFromJson, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
 import { isAiConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -81,6 +81,7 @@ export default async function PartnerListingPage() {
               website: listing.website ?? "",
               location: listing.location ?? "",
               address: listing.address ?? "",
+              faqs: faqsFromJson(listing.faqs),
               seoTitle: listing.seoTitle ?? "",
               seoDescription: listing.seoDescription ?? "",
             }}

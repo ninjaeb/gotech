@@ -1557,12 +1557,13 @@ model PartnerListing {
   companyName String
   tagline     String?
   description String?   @db.Text
-  services    Json // string[] — free-text service/product names
+  services    Json // ServiceEntry[] (src/lib/directory.ts) — {title, description, price}, tolerant of an older listing's plain string[]
   industry    Industry?
   website     String?
   location    String? // short display text, e.g. "Kuala Lumpur, Malaysia"
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
+  faqs        Json? // FaqEntry[] (src/lib/directory.ts) — {question, answer}; also emitted as FAQPage JSON-LD for SEO/GEO
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl
   // Optional overrides for the detail page's <title>/meta description (and,
   // through it, Open Graph/Twitter/JSON-LD) — see generateMetadata in

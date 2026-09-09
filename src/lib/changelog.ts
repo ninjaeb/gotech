@@ -10,6 +10,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.63",
+    date: "2026-09-09",
+    title: "Editor layout cleanup, a list-editing bug fix, and clickable products",
+    changes: [
+      "My listing's editor is reorganized to use its space better: Tagline/Website/Location now share one row, Operating hours sits beside FAQ, and each product/service's price now sits next to its title instead of below its description",
+      "The About field now grows to fit its content instead of scrolling inside a small box, and fixed a bug where pressing Enter at the end of a bullet or numbered list started a plain new line instead of continuing the list",
+      "Services are now labeled Products & Services throughout, for both the editor and the public listing",
+      "On a listing's detail page, every product/service is now clickable — picking one scrolls to the Get in touch card and prefills the message with an inquiry about it",
+      "Font sizes across a listing's detail page (products/services, the hours table) are now consistent with the rest of the page",
+    ],
+  },
+  {
+    version: "1.62",
+    date: "2026-09-09",
+    title: "SEO/GEO-optimized About rewrites, and a listing FAQ section",
+    changes: [
+      "The About field's Rewrite with AI button now optimizes for AI answer engines as well as search engines, and always expands rather than shortens — it'll never trim your draft down, only add relevant detail",
+      "A listing can now have an FAQ section — a partner can add, edit, and reorder question-and-answer entries from My listing, with a Generate with AI button that drafts or improves them from the rest of the listing",
+      "A listing's detail page shows its FAQ as an expandable Q&A list, with schema.org FAQPage structured data for search-result rich snippets and AI answer engines",
+    ],
+  },
+  {
     version: "1.61",
     date: "2026-09-09",
     title: "AI-written SEO, service pricing, and a few listing refinements",

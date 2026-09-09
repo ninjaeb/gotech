@@ -47,25 +47,28 @@ export function ServicesEditor({
         <div key={index} className="rounded-md border border-slate-200 p-3 dark:border-neutral-800">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1 space-y-2">
-              <Input
-                value={service.title}
-                onChange={(event) => updateService(index, { title: event.target.value })}
-                placeholder="Service or product name"
-                maxLength={80}
-              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={service.title}
+                  onChange={(event) => updateService(index, { title: event.target.value })}
+                  placeholder="Service or product name"
+                  maxLength={80}
+                  className="sm:flex-1"
+                />
+                <Input
+                  value={service.price}
+                  onChange={(event) => updateService(index, { price: event.target.value })}
+                  placeholder="Price (optional) — e.g. RM 500"
+                  maxLength={40}
+                  className="sm:w-48"
+                />
+              </div>
               <Textarea
                 value={service.description}
                 onChange={(event) => updateService(index, { description: event.target.value })}
                 rows={2}
                 placeholder="What does this include? (optional)"
                 maxLength={300}
-              />
-              <Input
-                value={service.price}
-                onChange={(event) => updateService(index, { price: event.target.value })}
-                placeholder="Price (optional) — e.g. RM 500 or From RM 200"
-                maxLength={40}
-                className="sm:w-64"
               />
             </div>
             <button

@@ -17,8 +17,10 @@ import {
   isValidSlugFormat,
   isValidTimeString,
   normalizeWebsiteUrl,
+  parseFaqsJson,
   parseServicesJson,
   slugify,
+  type FaqEntry,
   type OperatingHours,
   type ServiceEntry,
 } from "@/lib/directory";
@@ -155,6 +157,7 @@ export type ListingFormValues = {
   website: string;
   location: string;
   address: string;
+  faqs: FaqEntry[];
   seoTitle: string;
   seoDescription: string;
 };
@@ -187,6 +190,7 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     website: stringField(formData, "website"),
     location: stringField(formData, "location"),
     address: stringField(formData, "address"),
+    faqs: parseFaqsJson(stringField(formData, "faqs")),
     seoTitle: stringField(formData, "seoTitle"),
     seoDescription: stringField(formData, "seoDescription"),
   };
@@ -247,7 +251,7 @@ function listingContextLines(context: ListingRewriteContext, otherFieldLabel: st
 }
 
 const LISTING_DESCRIPTION_SYSTEM_PROMPT =
-  "You write short, clear 'About us' business descriptions (2-4 sentences) for a public partner directory that lists services companies. Ground everything only in what's given — never invent client names, numbers, awards, or claims that aren't present. Sound professional and specific, not generic marketing filler. The field supports a small formatting syntax: **bold** for emphasis and [link text](https://example.com) for a link — plain paragraphs otherwise, no headings. Use it sparingly, only where it clearly helps (e.g. bolding the company's core specialty); never invent a link that wasn't already present. If the current draft already uses this syntax, preserve it rather than stripping it out.";
+  "You write 'About us' business descriptions for a public partner directory, optimized for both traditional search engines (SEO) and AI answer engines (GEO — generative engine optimization): natural, keyword-rich language that names the company's actual services, industry, and location wherever they're given, plus some clear, factual, directly-quotable sentences an AI system could confidently summarize or cite. Ground everything only in what's given — never invent client names, numbers, awards, locations, or claims that aren't present. Sound professional and specific, not generic marketing filler. Thorough is better than short: never produce something shorter than the current draft — expand it with more relevant detail (what the company does, who it's for, how, and what makes it different) rather than trimming or condensing. The field supports a small formatting syntax: **bold** for emphasis, bullet/numbered lists, and [link text](https://example.com) for a link — no headings. Use formatting sparingly, only where it clearly helps; never invent a link that wasn't already present. If the current draft already uses this syntax, preserve it rather than stripping it out.";
 
 // Partner-gated — called from the "Rewrite with AI" button next to the
 // About field on the partner's own listing editor. Mirrors
@@ -263,8 +267,8 @@ export async function rewriteListingDescription(
   const trimmed = currentText.trim();
   const contextLines = listingContextLines({ ...context, otherField: context.services }, "Services offered");
   const prompt = trimmed
-    ? `${contextLines}\n\nHere is the current "About us" draft:\n\n${trimmed}\n\nImprove the wording — clearer, more compelling, better flow — without inventing new claims or changing what's actually offered.`
-    : `${contextLines}\n\nWrite a short "About us" description for this company's partner directory listing, based only on the information above.`;
+    ? `${contextLines}\n\nHere is the current "About us" draft:\n\n${trimmed}\n\nExpand and rewrite it to be more thorough and optimized for SEO and GEO — do not make it shorter; add more relevant detail — without inventing new claims or changing what's actually offered.`
+    : `${contextLines}\n\nWrite a thorough "About us" description for this company's partner directory listing, optimized for SEO and GEO, based only on the information above.`;
 
   return callAi(RewrittenTextSchema, LISTING_DESCRIPTION_SYSTEM_PROMPT, prompt);
 }
@@ -338,6 +342,43 @@ export async function generateListingSeoMeta(
   return callAi(SeoMetaSchema, LISTING_SEO_SYSTEM_PROMPT, prompt);
 }
 
+const FaqListSchema = z.object({
+  faqs: z
+    .array(
+      z.object({
+        question: z.string().describe("A question a prospective customer would plausibly ask."),
+        answer: z.string().describe("A direct, factual 1-3 sentence answer, grounded only in the company's given information."),
+      }),
+    )
+    .describe("The cleaned-up (or, if none existed yet, newly drafted) list of frequently asked questions."),
+});
+
+const LISTING_FAQ_SYSTEM_PROMPT =
+  "You write FAQ entries for a business's page on a public partner directory — clear, directly-answerable Q&A that both search engines and AI answer engines can quote or summarize confidently (this is GEO: generative/AI-answer-engine optimization). Ground every answer only in what's given — never invent hours, pricing, service details, locations, or policies that aren't stated. Cover the questions a real prospective customer would actually ask — what the business does, who it's for, where it operates, and (only if the given information supports it) hours, pricing, or how to get started. Never write a question whose answer isn't actually grounded in what's given.";
+
+// Partner-gated — called from the "Generate with AI" button next to the
+// listing editor's FAQ section. Same improve-existing-or-draft-fresh
+// pattern as the other rewrite/generate actions above.
+export async function generateListingFaqs(
+  currentFaqs: { question: string; answer: string }[],
+  context: { companyName: string; industry: string; description: string; services: string },
+): Promise<AiResult<{ faqs: { question: string; answer: string }[] }>> {
+  await requirePartnerAction();
+  if (!isAiConfigured()) return AI_NOT_CONFIGURED;
+
+  const contextLines = listingContextLines({ ...context, otherField: context.services }, "Services offered");
+  const aboutLine = context.description.trim() ? `About us text: ${context.description.trim()}` : "";
+  const currentList = currentFaqs
+    .filter((faq) => faq.question.trim())
+    .map((faq) => `Q: ${faq.question}\nA: ${faq.answer}`)
+    .join("\n\n");
+  const prompt = currentList
+    ? `${contextLines}\n${aboutLine}\n\nHere are the current FAQ entries:\n\n${currentList}\n\nImprove the wording — clearer, more directly answerable — without inventing new claims, and without removing any.`
+    : `${contextLines}\n${aboutLine}\n\nWrite 4-6 FAQ entries for this company's page on the Gotka partner directory, based only on the information above.`;
+
+  return callAi(FaqListSchema, LISTING_FAQ_SYSTEM_PROMPT, prompt);
+}
+
 type ListingSaveResult =
   | { ok: false; error: string; field?: ListingFormField; values: ListingFormValues }
   | { ok: true; listing: Awaited<ReturnType<typeof db.partnerListing.update>> };
@@ -383,6 +424,7 @@ async function saveListingFields(
       location: parsed.data.location || null,
       address: parsed.data.address || null,
       operatingHours: parseOperatingHoursFormData(formData),
+      faqs: parseFaqsJson(stringField(formData, "faqs")),
       seoTitle: parsed.data.seoTitle || null,
       seoDescription: parsed.data.seoDescription || null,
       ...logo,
