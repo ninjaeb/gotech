@@ -144,7 +144,6 @@ const listingSchema = z.object({
     .optional()
     .refine((value) => !value || INDUSTRIES.includes(value as Industry), { message: "Invalid industry" }),
   website: z.string().trim().optional(),
-  location: z.string().trim().optional(),
   address: z.string().trim().optional(),
   seoTitle: z.string().trim().max(100).optional(),
   seoDescription: z.string().trim().max(300).optional(),
@@ -157,7 +156,6 @@ export type ListingFormValues = {
   services: ServiceEntry[];
   industry: string;
   website: string;
-  location: string;
   address: string;
   faqs: FaqEntry[];
   categoryIds: string[];
@@ -205,7 +203,6 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     services: parseServicesJson(stringField(formData, "services")),
     industry: stringField(formData, "industry"),
     website: stringField(formData, "website"),
-    location: stringField(formData, "location"),
     address: stringField(formData, "address"),
     faqs: parseFaqsJson(stringField(formData, "faqs")),
     categoryIds: formData.getAll("categoryIds").filter((value): value is string => typeof value === "string"),
@@ -494,7 +491,6 @@ async function saveListingFields(
         services: parseServicesJson(stringField(formData, "services")),
         industry: (parsed.data.industry || null) as Industry | null,
         website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
-        location: parsed.data.location || null,
         address: parsed.data.address || null,
         operatingHours: parseOperatingHoursFormData(formData),
         faqs: parseFaqsJson(stringField(formData, "faqs")),

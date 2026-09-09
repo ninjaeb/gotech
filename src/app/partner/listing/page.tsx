@@ -84,7 +84,6 @@ export default async function PartnerListingPage() {
               services: servicesFromJson(listing.services),
               industry: listing.industry ?? "",
               website: listing.website ?? "",
-              location: listing.location ?? "",
               address: listing.address ?? "",
               faqs: faqsFromJson(listing.faqs),
               categoryIds: selectedCategoryIds,

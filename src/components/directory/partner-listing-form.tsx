@@ -22,52 +22,24 @@ import { OperatingHoursEditor } from "@/components/directory/operating-hours-edi
 import { ServicesEditor } from "@/components/directory/services-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
+import { cn } from "@/lib/utils";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
 import type { OperatingHours } from "@/lib/operating-hours";
 import type { FaqEntry, ListingTranslations, ServiceEntry } from "@/lib/directory";
 
 type TranslationLocale = "zh" | "ms";
+type EditorTab = "en" | TranslationLocale;
 
-// One Tagline + About pair for a non-English locale — factored out since
-// PartnerListingForm needs the identical block twice (zh, ms), differing
-// only in which locale's slice of `translations` it reads/writes.
-function TranslationFields({
-  locale,
-  label,
-  entry,
-  onChange,
-}: {
-  locale: TranslationLocale;
-  label: string;
-  entry: { tagline: string; description: string } | undefined;
-  onChange: (locale: TranslationLocale, field: "tagline" | "description", value: string) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">{label}</p>
-      <div className="space-y-3">
-        <FieldGroup label="Tagline" htmlFor={`${locale}Tagline`}>
-          <Input
-            id={`${locale}Tagline`}
-            name={`${locale}Tagline`}
-            value={entry?.tagline ?? ""}
-            onChange={(event) => onChange(locale, "tagline", event.target.value)}
-            maxLength={140}
-          />
-        </FieldGroup>
-        <FieldGroup label="About" htmlFor={`${locale}Description`}>
-          <MarkdownLiteEditor
-            id={`${locale}Description`}
-            name={`${locale}Description`}
-            rows={4}
-            value={entry?.description ?? ""}
-            onChange={(value) => onChange(locale, "description", value)}
-          />
-        </FieldGroup>
-      </div>
-    </div>
-  );
-}
+// Which language's Tagline/About the editor is currently showing — Company
+// name, Website, Industry, Business categories, Address, Operating hours,
+// Products & services, FAQ, and Search & social preview aren't part of this
+// switch: they're single fields shared across every language, never
+// duplicated per tab.
+const LANGUAGE_TABS: { code: EditorTab; label: string }[] = [
+  { code: "en", label: "EN" },
+  { code: "zh", label: "中文" },
+  { code: "ms", label: "BM" },
+];
 
 // The other two AI actions (description rewrite, SEO meta) just want a
 // readable summary of what services exist for grounding — not the
@@ -134,6 +106,7 @@ export function PartnerListingForm({
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [translations, setTranslations] = useState<ListingTranslations>(current.translations);
+  const [activeTab, setActiveTab] = useState<EditorTab>("en");
   const [rewritingDescription, startRewriteDescription] = useTransition();
   const [rewritingServices, startRewriteServices] = useTransition();
   const [generatingFaqs, startGenerateFaqs] = useTransition();
@@ -281,11 +254,87 @@ export function PartnerListingForm({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
+        <div className="inline-flex rounded-md bg-slate-100 p-0.5 dark:bg-neutral-800">
+          {LANGUAGE_TABS.map((tab) => (
+            <button
+              key={tab.code}
+              type="button"
+              onClick={() => setActiveTab(tab.code)}
+              aria-pressed={activeTab === tab.code}
+              className={cn(
+                "rounded px-3 py-1.5 text-sm font-medium transition-colors",
+                activeTab === tab.code
+                  ? "bg-white text-petrol-ink shadow-sm dark:bg-neutral-700 dark:text-petrol-light"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200",
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {aiAvailable && (
+          <button
+            type="button"
+            onClick={handleTranslate}
+            disabled={translating}
+            className={buttonClasses("ghost", "sm", "shrink-0")}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {translating ? "Translating…" : "Translate with AI"}
+          </button>
+        )}
+      </div>
+      <p className="-mt-3 text-xs text-slate-400">
+        Tagline and About are per-language — switch tabs to edit each. Everything else applies to all languages.
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <FieldGroup label="Company name" htmlFor="companyName" required>
           <Input id="companyName" name="companyName" required defaultValue={current.companyName} />
           {companyNameError && <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{companyNameError}</p>}
         </FieldGroup>
+
+        <div hidden={activeTab !== "en"}>
+          <FieldGroup label="Tagline" htmlFor="tagline">
+            <Input
+              id="tagline"
+              name="tagline"
+              defaultValue={current.tagline}
+              placeholder="One line under your company name"
+              maxLength={140}
+            />
+          </FieldGroup>
+        </div>
+        <div hidden={activeTab !== "zh"}>
+          <FieldGroup label="Tagline" htmlFor="zhTagline">
+            <Input
+              id="zhTagline"
+              name="zhTagline"
+              value={translations.zh?.tagline ?? ""}
+              onChange={(event) => updateTranslation("zh", "tagline", event.target.value)}
+              maxLength={140}
+            />
+          </FieldGroup>
+        </div>
+        <div hidden={activeTab !== "ms"}>
+          <FieldGroup label="Tagline" htmlFor="msTagline">
+            <Input
+              id="msTagline"
+              name="msTagline"
+              value={translations.ms?.tagline ?? ""}
+              onChange={(event) => updateTranslation("ms", "tagline", event.target.value)}
+              maxLength={140}
+            />
+          </FieldGroup>
+        </div>
+
+        <FieldGroup label="Website" htmlFor="website">
+          <Input id="website" name="website" defaultValue={current.website} placeholder="acme.com" />
+        </FieldGroup>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Industry" htmlFor="industry">
           <Select id="industry" name="industry" defaultValue={current.industry}>
             <option value="">Not set</option>
@@ -296,44 +345,31 @@ export function PartnerListingForm({
             ))}
           </Select>
         </FieldGroup>
-      </div>
-
-      <FieldGroup label="Business categories" htmlFor="categoryIds-group">
-        {categories.length === 0 ? (
-          <p className="text-sm text-slate-400">No categories yet — an admin can add some from Settings → Directory.</p>
-        ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {categories.map((category, index) => (
-              <label
-                key={category.id}
-                htmlFor={`categoryIds-${index}`}
-                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
-              >
-                <input
-                  id={`categoryIds-${index}`}
-                  type="checkbox"
-                  name="categoryIds"
-                  value={category.id}
-                  defaultChecked={current.categoryIds.includes(category.id)}
-                  className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led dark:border-neutral-700"
-                />
-                {category.name}
-              </label>
-            ))}
-          </div>
-        )}
-        <p className="mt-1 text-xs text-slate-400">Optional — helps visitors filter the directory by what you do.</p>
-      </FieldGroup>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <FieldGroup label="Tagline" htmlFor="tagline">
-          <Input id="tagline" name="tagline" defaultValue={current.tagline} placeholder="One line under your company name" maxLength={140} />
-        </FieldGroup>
-        <FieldGroup label="Website" htmlFor="website">
-          <Input id="website" name="website" defaultValue={current.website} placeholder="acme.com" />
-        </FieldGroup>
-        <FieldGroup label="Location" htmlFor="location">
-          <Input id="location" name="location" defaultValue={current.location} placeholder="Kuala Lumpur, Malaysia" />
+        <FieldGroup label="Business categories" htmlFor="categoryIds-group">
+          {categories.length === 0 ? (
+            <p className="text-sm text-slate-400">No categories yet — an admin can add some from Settings → Directory.</p>
+          ) : (
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {categories.map((category, index) => (
+                <label
+                  key={category.id}
+                  htmlFor={`categoryIds-${index}`}
+                  className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
+                >
+                  <input
+                    id={`categoryIds-${index}`}
+                    type="checkbox"
+                    name="categoryIds"
+                    value={category.id}
+                    defaultChecked={current.categoryIds.includes(category.id)}
+                    className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led dark:border-neutral-700"
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          )}
+          <p className="mt-1 text-xs text-slate-400">Optional — helps visitors filter the directory by what you do.</p>
         </FieldGroup>
       </div>
 
@@ -345,42 +381,11 @@ export function PartnerListingForm({
           defaultValue={current.address}
           placeholder={"123 Jalan Bukit Bintang\n50200 Kuala Lumpur, Malaysia"}
         />
-        <p className="mt-1 text-xs text-slate-400">
-          Shown on your listing with a map. Leave blank to skip the map — Location above still shows either way.
-        </p>
+        <p className="mt-1 text-xs text-slate-400">Shown on your listing with a map. Leave blank to skip the map.</p>
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label>Operating hours</Label>
-          <OperatingHoursEditor initialHours={operatingHours} />
-          <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
-        </div>
-
-        <div>
-          <div className="mb-1.5 flex items-center justify-between gap-2">
-            <Label className="mb-0">FAQ</Label>
-            {aiAvailable && (
-              <button
-                type="button"
-                onClick={handleGenerateFaqs}
-                disabled={generatingFaqs}
-                className={buttonClasses("ghost", "sm", "shrink-0")}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {generatingFaqs ? "Generating…" : "Generate with AI"}
-              </button>
-            )}
-          </div>
-          <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
-          <p className="mt-1 text-xs text-slate-400">
-            Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+        <div hidden={activeTab !== "en"}>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <Label htmlFor="description" className="mb-0">
               About
@@ -410,7 +415,35 @@ export function PartnerListingForm({
             Preview to see how it&apos;ll look.
           </p>
         </div>
+        <div hidden={activeTab !== "zh"}>
+          <Label htmlFor="zhDescription">About</Label>
+          <MarkdownLiteEditor
+            id="zhDescription"
+            name="zhDescription"
+            rows={5}
+            value={translations.zh?.description ?? ""}
+            onChange={(value) => updateTranslation("zh", "description", value)}
+          />
+        </div>
+        <div hidden={activeTab !== "ms"}>
+          <Label htmlFor="msDescription">About</Label>
+          <MarkdownLiteEditor
+            id="msDescription"
+            name="msDescription"
+            rows={5}
+            value={translations.ms?.description ?? ""}
+            onChange={(value) => updateTranslation("ms", "description", value)}
+          />
+        </div>
 
+        <div>
+          <Label>Operating hours</Label>
+          <OperatingHoursEditor initialHours={operatingHours} />
+          <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <Label className="mb-0">
@@ -439,31 +472,27 @@ export function PartnerListingForm({
             </p>
           )}
         </div>
-      </div>
 
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label className="mb-0">Translations</Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleTranslate}
-              disabled={translating}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {translating ? "Translating…" : "Translate with AI"}
-            </button>
-          )}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label className="mb-0">FAQ</Label>
+            {aiAvailable && (
+              <button
+                type="button"
+                onClick={handleGenerateFaqs}
+                disabled={generatingFaqs}
+                className={buttonClasses("ghost", "sm", "shrink-0")}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {generatingFaqs ? "Generating…" : "Generate with AI"}
+              </button>
+            )}
+          </div>
+          <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
+          <p className="mt-1 text-xs text-slate-400">
+            Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
+          </p>
         </div>
-        <div className="space-y-4 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
-          <TranslationFields locale="zh" label="中文 (Chinese)" entry={translations.zh} onChange={updateTranslation} />
-          <TranslationFields locale="ms" label="Bahasa Melayu (Malay)" entry={translations.ms} onChange={updateTranslation} />
-        </div>
-        <p className="mt-1 text-xs text-slate-400">
-          Optional — shown in place of the Tagline and About fields above when a visitor is browsing the directory in
-          that language.
-        </p>
       </div>
 
       <div>
