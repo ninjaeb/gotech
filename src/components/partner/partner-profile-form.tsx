@@ -7,12 +7,30 @@ import { Button } from "@/components/ui/button";
 import { PHONE_FORMAT_HINT } from "@/lib/phone";
 import { useActionToast } from "@/components/ui/toast";
 
-export function PartnerProfileForm({ email, phone }: { email: string; phone: string | null }) {
+export function PartnerProfileForm({
+  name,
+  email,
+  title,
+  phone,
+}: {
+  name: string;
+  email: string;
+  title: string | null;
+  phone: string | null;
+}) {
   const [state, formAction, pending] = useActionState(updatePartnerProfile, undefined);
   useActionToast(state, "Profile updated.", { toastErrors: false });
 
   return (
     <form action={formAction} className="space-y-4">
+      <div>
+        <Label htmlFor="name">
+          Name
+          <RequiredMark />
+        </Label>
+        <Input id="name" name="name" required defaultValue={name} />
+      </div>
+
       <div>
         <Label htmlFor="email">
           Email
@@ -20,6 +38,11 @@ export function PartnerProfileForm({ email, phone }: { email: string; phone: str
         </Label>
         <Input id="email" name="email" type="email" required defaultValue={email} />
         <p className="mt-1 text-xs text-slate-400">Used to sign in, and where nothing else applies.</p>
+      </div>
+
+      <div>
+        <Label htmlFor="title">Title</Label>
+        <Input id="title" name="title" defaultValue={title ?? ""} />
       </div>
 
       <div>

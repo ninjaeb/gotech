@@ -11,14 +11,14 @@ export default async function PartnerProfilePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Profile" description="Your own login — email, contact phone, and password." />
+      <PageHeader title="Profile" description="Your own login — name, email, contact phone, and password." />
 
       <Card>
         <CardHeader>
           <CardTitle>Account details</CardTitle>
         </CardHeader>
         <CardBody>
-          <PartnerProfileForm email={user.email} phone={phone} />
+          <PartnerProfileForm name={user.name} email={user.email} title={user.title} phone={phone} />
         </CardBody>
       </Card>
 

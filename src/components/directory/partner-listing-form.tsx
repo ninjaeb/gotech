@@ -31,11 +31,11 @@ import type { FaqEntry, ListingTranslations, ServiceEntry } from "@/lib/director
 type TranslationLocale = "zh" | "ms";
 type EditorTab = "en" | TranslationLocale;
 
-// Which language's Tagline/About the editor is currently showing — Company
-// name, Website, Industry, Business categories, Address, Operating hours,
-// Products & services, FAQ, and Search & social preview aren't part of this
-// switch: they're single fields shared across every language, never
-// duplicated per tab.
+// Which language's Tagline/About/Products & services/FAQ the editor is
+// currently showing — Company name, Website, Industry, Business
+// categories, Address, Operating hours, and Search & social preview aren't
+// part of this switch: they're single fields shared across every language,
+// never duplicated per tab.
 const LANGUAGE_TABS: { code: EditorTab; label: string }[] = [
   { code: "en", label: "EN" },
   { code: "zh", label: "中文" },
@@ -222,24 +222,54 @@ export function PartnerListingForm({
     });
   }
 
-  function updateTranslation(locale: "zh" | "ms", field: "tagline" | "description", value: string) {
-    setTranslations((prev) => ({
-      ...prev,
-      [locale]: { tagline: prev[locale]?.tagline ?? "", description: prev[locale]?.description ?? "", [field]: value },
-    }));
+  function emptyTranslationEntry(prev: ListingTranslations, locale: TranslationLocale) {
+    return {
+      tagline: prev[locale]?.tagline ?? "",
+      description: prev[locale]?.description ?? "",
+      services: prev[locale]?.services ?? [],
+      faqs: prev[locale]?.faqs ?? [],
+    };
   }
 
-  // Translates the primary tagline/description together, into both target
-  // languages at once — unlike the rewrite/generate actions above there's no
-  // existing translation to "improve"; the English fields are always the
-  // source of truth, so every call starts fresh from them.
+  function updateTranslation(locale: TranslationLocale, field: "tagline" | "description", value: string) {
+    setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), [field]: value } }));
+  }
+
+  function updateTranslatedServices(locale: TranslationLocale, newServices: ServiceEntry[]) {
+    setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), services: newServices } }));
+  }
+
+  function updateTranslatedFaqs(locale: TranslationLocale, newFaqs: FaqEntry[]) {
+    setTranslations((prev) => ({ ...prev, [locale]: { ...emptyTranslationEntry(prev, locale), faqs: newFaqs } }));
+  }
+
+  // Translates the primary tagline/description/services/faqs together, into
+  // both target languages at once — unlike the rewrite/generate actions
+  // above there's no existing translation to "improve"; the English fields
+  // are always the source of truth, so every call starts fresh from them.
+  // Services come back title/description only (see translateListingContent)
+  // — each entry's price is re-attached by index right after, same as
+  // handleRewriteServices does for the English list.
   function handleTranslate() {
     const formData = new FormData(formRef.current ?? undefined);
     const tagline = String(formData.get("tagline") || "");
     startTranslate(async () => {
-      const result = await translateListingContent({ tagline, description });
-      if (result.status === "ok") setTranslations({ zh: result.data.zh, ms: result.data.ms });
-      else toast.error(result.message);
+      const result = await translateListingContent({
+        tagline,
+        description,
+        services: services.map(({ title, description: serviceDescription }) => ({ title, description: serviceDescription })),
+        faqs: faqs.map(({ question, answer }) => ({ question, answer })),
+      });
+      if (result.status === "ok") {
+        const attachPrices = (translated: { title: string; description: string }[]) =>
+          translated.map((entry, i) => ({ ...entry, price: services[i]?.price ?? "" }));
+        setTranslations({
+          zh: { ...result.data.zh, services: attachPrices(result.data.zh.services) },
+          ms: { ...result.data.ms, services: attachPrices(result.data.ms.services) },
+        });
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 
@@ -317,7 +347,9 @@ export function PartnerListingForm({
         )}
       </div>
       <p className="-mt-3 text-xs text-slate-400">
-        Tagline and About are per-language — switch tabs to edit each. Everything else applies to all languages.
+        Tagline, About, Products &amp; services, and FAQ are per-language — switch tabs to edit each, or use
+        Translate with AI to fill in Chinese and Malay from your English content. Everything else (company name,
+        industry, categories, hours, and more) applies to all languages.
       </p>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -479,7 +511,7 @@ export function PartnerListingForm({
               Products &amp; services
               <RequiredMark />
             </Label>
-            {aiAvailable && (
+            {aiAvailable && activeTab === "en" && (
               <button
                 type="button"
                 onClick={handleRewriteServices}
@@ -491,13 +523,29 @@ export function PartnerListingForm({
               </button>
             )}
           </div>
-          <ServicesEditor name="services" value={services} onChange={setServices} />
+          <div hidden={activeTab !== "en"}>
+            <ServicesEditor name="services" value={services} onChange={setServices} />
+          </div>
+          <div hidden={activeTab !== "zh"}>
+            <ServicesEditor
+              name="zhServices"
+              value={translations.zh?.services ?? []}
+              onChange={(value) => updateTranslatedServices("zh", value)}
+            />
+          </div>
+          <div hidden={activeTab !== "ms"}>
+            <ServicesEditor
+              name="msServices"
+              value={translations.ms?.services ?? []}
+              onChange={(value) => updateTranslatedServices("ms", value)}
+            />
+          </div>
           {servicesError ? (
             <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{servicesError}</p>
           ) : (
             <p className="mt-1 text-xs text-slate-400">
               A title, an optional description, and an optional price for each — shown on your listing. At least one
-              is required before you can submit for review.
+              is required (in English) before you can submit for review.
             </p>
           )}
         </div>
@@ -505,7 +553,7 @@ export function PartnerListingForm({
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <Label className="mb-0">FAQ</Label>
-            {aiAvailable && (
+            {aiAvailable && activeTab === "en" && (
               <button
                 type="button"
                 onClick={handleGenerateFaqs}
@@ -517,7 +565,15 @@ export function PartnerListingForm({
               </button>
             )}
           </div>
-          <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
+          <div hidden={activeTab !== "en"}>
+            <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
+          </div>
+          <div hidden={activeTab !== "zh"}>
+            <FaqEditor name="zhFaqs" value={translations.zh?.faqs ?? []} onChange={(value) => updateTranslatedFaqs("zh", value)} />
+          </div>
+          <div hidden={activeTab !== "ms"}>
+            <FaqEditor name="msFaqs" value={translations.ms?.faqs ?? []} onChange={(value) => updateTranslatedFaqs("ms", value)} />
+          </div>
           <p className="mt-1 text-xs text-slate-400">
             Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
           </p>
@@ -569,7 +625,13 @@ export function PartnerListingForm({
 
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Sticky rather than plain-flow — this is a long form (translations,
+          services, FAQ...), and Save/Submit staying reachable without
+          scrolling all the way down matters most on mobile. Bleeds out of
+          CardBody's own -mx-5/px-5 padding so the bar spans the card's full
+          width; stops sticking once its own bottom (the card's) scrolls
+          past the viewport, same as any sticky element. */}
+      <div className="sticky bottom-0 -mx-5 -mb-4 flex flex-wrap items-center gap-2 border-t border-slate-200 bg-white px-5 py-3 dark:border-neutral-800 dark:bg-neutral-900">
         <Button
           type="submit"
           disabled={pending || justSaved}

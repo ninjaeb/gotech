@@ -8,9 +8,11 @@ import { isValidEmailFormat } from "@/lib/email-format";
 import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/phone";
 
 const partnerProfileSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().toLowerCase().min(1, "Email is required").refine(isValidEmailFormat, {
     message: "Enter a valid email address",
   }),
+  title: z.string().trim().optional(),
   phone: z
     .string()
     .trim()
@@ -33,7 +35,9 @@ export async function updatePartnerProfile(
   const partner = await requirePartnerAction();
 
   const parsed = partnerProfileSchema.safeParse({
+    name: formData.get("name"),
     email: formData.get("email"),
+    title: formData.get("title"),
     phone: formData.get("phone") || undefined,
   });
   if (!parsed.success) {
@@ -48,7 +52,9 @@ export async function updatePartnerProfile(
   await db.user.update({
     where: { id: partner.id },
     data: {
+      name: parsed.data.name,
       email: parsed.data.email,
+      title: parsed.data.title || null,
       phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null,
     },
   });
