@@ -32,6 +32,7 @@ export function MultiCombobox({
   emptyMessage = "No matches",
   className,
   disabled,
+  size = "md",
 }: {
   id?: string;
   name: string;
@@ -43,6 +44,11 @@ export function MultiCombobox({
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  // "lg" for a more prominent field — bigger chips, taller input, bigger
+  // text — where this is a standalone, visually important picker (e.g. the
+  // business directory's own category field) rather than one field among
+  // many in a dense form (task assignees/followers, which stay "md").
+  size?: "md" | "lg";
 }) {
   const isControlled = value !== undefined;
   const [internalValue, setInternalValue] = useState<string[]>(defaultValue ?? []);
@@ -151,11 +157,14 @@ export function MultiCombobox({
       ))}
 
       {selectedOptions.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
+        <div className={cn("mb-2 flex flex-wrap", size === "lg" ? "gap-2" : "gap-1.5")}>
           {selectedOptions.map((option) => (
             <span
               key={option.value}
-              className="inline-flex items-center gap-1 rounded-full bg-indigo-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/30"
+              className={cn(
+                "inline-flex items-center rounded-full bg-indigo-50 font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20 dark:bg-indigo-500/10 dark:text-indigo-300 dark:ring-indigo-400/30",
+                size === "lg" ? "gap-1.5 py-1.5 pl-3.5 pr-2 text-sm" : "gap-1 py-0.5 pl-2.5 pr-1 text-xs",
+              )}
             >
               {option.label}
               <button
@@ -163,9 +172,12 @@ export function MultiCombobox({
                 onClick={() => removeOption(option.value)}
                 disabled={disabled}
                 aria-label={`Remove ${option.label}`}
-                className="rounded-full p-0.5 hover:bg-indigo-100 dark:hover:bg-indigo-500/20"
+                className={cn(
+                  "rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20",
+                  size === "lg" ? "p-1" : "p-0.5",
+                )}
               >
-                <X className="h-3 w-3" />
+                <X className={size === "lg" ? "h-4 w-4" : "h-3 w-3"} />
               </button>
             </span>
           ))}
@@ -194,9 +206,18 @@ export function MultiCombobox({
             setHighlightedIndex(0);
           }}
           onKeyDown={handleKeyDown}
-          className={cn(fieldClasses, controlHeight, "pr-8")}
+          className={cn(
+            fieldClasses,
+            controlHeight,
+            size === "lg" ? "h-12 pr-10 text-base" : "pr-8",
+          )}
         />
-        <ChevronsUpDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <ChevronsUpDown
+          className={cn(
+            "pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400",
+            size === "lg" ? "right-3 h-5 w-5" : "right-2.5 h-4 w-4",
+          )}
+        />
       </div>
 
       {open && (
@@ -220,7 +241,8 @@ export function MultiCombobox({
                 }}
                 onMouseEnter={() => setHighlightedIndex(index)}
                 className={cn(
-                  "flex w-full flex-col px-3 py-2 text-left text-sm text-slate-700 dark:text-slate-300",
+                  "flex w-full flex-col text-left text-slate-700 dark:text-slate-300",
+                  size === "lg" ? "px-3.5 py-2.5 text-base" : "px-3 py-2 text-sm",
                   index === highlightedIndex ? "bg-indigo-50 dark:bg-neutral-800" : "",
                 )}
               >
