@@ -21,7 +21,7 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
 const DEFAULT_OPEN = "09:00";
 const DEFAULT_CLOSE = "18:00";
 
-const timeInputClasses = cn(fieldClasses, controlHeight, "w-auto");
+const timeInputClasses = cn(fieldClasses, controlHeight, "w-auto text-base");
 
 // Google-My-Business-style picker: a Closed/Open dropdown per day, with
 // two time fields that appear only once a day is set to Open. Only the
@@ -45,14 +45,14 @@ export function OperatingHoursEditor({ initialHours }: { initialHours: Operating
         const isOpen = statuses[day] === "open";
         return (
           <div key={day} className="flex flex-wrap items-center gap-2">
-            <span className="w-24 shrink-0 text-sm text-slate-700 dark:text-slate-300">{DAY_LABELS[day]}</span>
+            <span className="w-24 shrink-0 text-base text-slate-700 dark:text-slate-300">{DAY_LABELS[day]}</span>
             <Select
               name={`hours-${day}-status`}
               value={statuses[day]}
               onChange={(event) =>
                 setStatuses((prev) => ({ ...prev, [day]: event.target.value as "open" | "closed" }))
               }
-              className="!h-9 w-28 shrink-0"
+              className="!h-9 w-28 shrink-0 text-base"
             >
               <option value="closed">Closed</option>
               <option value="open">Open</option>
@@ -65,7 +65,7 @@ export function OperatingHoursEditor({ initialHours }: { initialHours: Operating
                   defaultValue={dayHours?.open ?? DEFAULT_OPEN}
                   className={timeInputClasses}
                 />
-                <span className="text-sm text-slate-400">to</span>
+                <span className="text-base text-slate-400">to</span>
                 <input
                   type="time"
                   name={`hours-${day}-close`}
