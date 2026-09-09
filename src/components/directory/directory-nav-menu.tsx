@@ -95,7 +95,12 @@ export function DirectoryNavMenu({
             </Link>
           )}
           {viewer === "staff" && (
-            <Link href="/system" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+            // Links to /business, not /system — requirePartner() on the
+            // business portal bounces a signed-in non-partner to their real
+            // home (/system) via server redirect, so this never surfaces
+            // the CRM's internal path in the directory's rendered HTML or a
+            // link preview.
+            <Link href="/business" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
               <LayoutDashboard className="h-4 w-4 shrink-0 text-slate-400" />
               {goToCrmLabel}
             </Link>
