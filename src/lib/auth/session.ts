@@ -3,7 +3,7 @@ import "server-only";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const COOKIE_NAME = "session";
+const COOKIE_NAME = "system_session";
 const SESSION_DURATION = "30d";
 
 function getSecretKey() {
