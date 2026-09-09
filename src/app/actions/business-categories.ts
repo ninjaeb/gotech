@@ -27,7 +27,7 @@ export async function createBusinessCategory(formData: FormData): Promise<void> 
   }
 
   await db.businessCategory.create({ data: { name: parsed.data.name } });
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
   revalidatePath("/partner/listing");
 }
 
@@ -38,6 +38,6 @@ export async function createBusinessCategory(formData: FormData): Promise<void> 
 export async function deleteBusinessCategory(id: string): Promise<void> {
   await requireAdminAction();
   await db.businessCategory.delete({ where: { id } });
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
   revalidatePath("/partner/listing");
 }
