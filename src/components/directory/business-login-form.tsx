@@ -13,9 +13,11 @@ import { GoogleIcon } from "@/components/directory/google-icon";
 // login() rejects a business one, see src/app/actions/auth.ts), so a
 // partner never lands on staff-branded chrome and vice versa. The Google
 // button posts to the same /api/auth/google flow the signup page uses
-// (registerOrSignInPartnerWithGoogle signs an existing account straight in
-// and creates a new one on the fly), so this one button covers both
-// "log me in" and "I don't have an account yet" without a separate form.
+// (registerOrSignInPartnerWithGoogle signs an existing PARTNER straight in,
+// creates a new one on the fly, and rejects a staff account's Google login
+// the same way businessLogin rejects its password), so this one button
+// covers both "log me in" and "I don't have an account yet" without a
+// separate form.
 export function BusinessLoginForm({
   googleEnabled,
   initialError,

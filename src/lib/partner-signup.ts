@@ -98,19 +98,30 @@ export async function registerPartnerWithPassword(
   return { ok: true, userId: user.id };
 }
 
+export type PartnerGoogleError = "wrong_role";
+export type PartnerGoogleResult =
+  | { ok: true; userId: string; isNew: boolean }
+  | { ok: false; error: PartnerGoogleError };
+
 // Google path: the visitor's email is already verified by Google, so a
-// match against an existing User is treated as "this is them, log them
-// in" rather than a conflict — the same trust an admin-provisioned staff
-// account gets when they'd otherwise have typed a password. A brand-new
-// email gets the full Company/Contact/User/PartnerListing creation, with
-// a random, never-shared password hash (this account only ever signs in
+// match against an existing PARTNER is treated as "this is them, log them
+// in" rather than a conflict — no password needed, Google itself vouches
+// for the email. A match against a staff account is a hard stop instead,
+// same as businessLogin() rejecting a staff account's password (see
+// src/app/actions/auth.ts): /business and /directory are the partner's
+// front door, never staff's, Google button included. A brand-new email
+// gets the full Company/Contact/User/PartnerListing creation, with a
+// random, never-shared password hash (this account only ever signs in
 // through Google) so the schema's required passwordHash column still
 // holds something no one can guess or use.
 export async function registerOrSignInPartnerWithGoogle(
   input: PartnerSignupInput & { passwordHash: string },
-): Promise<{ userId: string; isNew: boolean }> {
-  const existing = await db.user.findUnique({ where: { email: input.email }, select: { id: true } });
-  if (existing) return { userId: existing.id, isNew: false };
+): Promise<PartnerGoogleResult> {
+  const existing = await db.user.findUnique({ where: { email: input.email }, select: { id: true, role: true } });
+  if (existing) {
+    if (existing.role !== "PARTNER") return { ok: false, error: "wrong_role" };
+    return { ok: true, userId: existing.id, isNew: false };
+  }
 
   const { companyId, contactId } = await createCompanyAndContact(input);
   const user = await createPartnerUserAndListing(input);
@@ -128,5 +139,5 @@ export async function registerOrSignInPartnerWithGoogle(
   revalidatePath("/system/settings/team");
   revalidatePath("/system/referrals");
 
-  return { userId: user.id, isNew: true };
+  return { ok: true, userId: user.id, isNew: true };
 }
