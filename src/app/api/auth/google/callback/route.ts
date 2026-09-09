@@ -18,8 +18,9 @@ const STATE_COOKIE = "google_oauth_state";
 // lines below to build the redirect_uri sent to Google itself — every
 // redirect back to the browser here needs to use that same origin, or the
 // visitor ends up bounced to a URL only the server itself can reach.
-function failure(siteOrigin: string, code: string) {
-  const url = new URL("/directory/signup", siteOrigin);
+function failure(siteOrigin: string, code: string, returnTo: "signup" | "login" = "signup") {
+  const path = returnTo === "login" ? "/business/login" : "/directory/signup";
+  const url = new URL(path, siteOrigin);
   url.searchParams.set("error", code);
   return NextResponse.redirect(url);
 }
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeGoogleCode(code, redirectUri);
     const profile = await verifyGoogleIdToken(tokens.id_token);
     if (!profile.emailVerified) {
-      const res = failure(siteOrigin, "email_unverified");
+      const res = failure(siteOrigin, "email_unverified", state.returnTo);
       res.cookies.delete(STATE_COOKIE);
       return res;
     }
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest) {
     res.cookies.delete(STATE_COOKIE);
     return res;
   } catch {
-    const res = failure(siteOrigin, "google_failed");
+    const res = failure(siteOrigin, "google_failed", state.returnTo);
     res.cookies.delete(STATE_COOKIE);
     return res;
   }

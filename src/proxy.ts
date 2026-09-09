@@ -25,6 +25,12 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login", "/business/login"];
 // partner directory (src/app/directory) — browsed and its lead form
 // submitted by visitors with no login at all. /api/directory-images/ serves
 // a listing's About-field images, embedded on that same public page.
+// /api/auth/google is the "Continue with Google" redirect-out-and-back
+// (src/app/api/auth/google, .../callback) kicked off from both
+// /directory/signup and /business/login — the visitor has no session yet
+// when they click it, so without this prefix the proxy would bounce the
+// POST (and Google's own redirect back to the callback) to a login page
+// before either request ever reached its handler.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
   "/r/",
@@ -41,6 +47,7 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/api/public/newsletter-subscribe",
   "/api/newsletter-images/",
   "/api/directory-images/",
+  "/api/auth/google",
 ];
 
 // The client portal (/portal/*) is a second, independent visitor type with
