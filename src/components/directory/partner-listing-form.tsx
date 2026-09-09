@@ -10,12 +10,14 @@ import {
   saveDirectoryListing,
   submitDirectoryListingForReview,
   translateListingContent,
+  type AutoCreatedListingDetails,
   type ListingFormField,
   type ListingFormValues,
 } from "@/app/actions/directory";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
+import { AiAutoCreatePanel } from "@/components/directory/ai-auto-create-panel";
 import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
@@ -60,6 +62,7 @@ export function PartnerListingForm({
   operatingHours,
   status,
   aiAvailable,
+  placesAvailable,
   categories,
 }: {
   listingId: string;
@@ -68,6 +71,7 @@ export function PartnerListingForm({
   operatingHours: OperatingHours | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
+  placesAvailable: boolean;
   categories: { id: string; name: string }[];
 }) {
   const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
@@ -116,14 +120,25 @@ export function PartnerListingForm({
     if (state && "success" in state) toast.success("Draft saved.");
   }, [state, toast]);
 
-  // Company name and industry stay plain defaultValue inputs (unchanged
-  // below) — they're only grounding context for the AI rewrite, never
-  // rewritten themselves, so reading them live off the form via FormData at
-  // rewrite time is enough; they don't need to be controlled state.
+  // Company name stays a plain defaultValue input (unchanged below) — it's
+  // only grounding context for the AI actions, never written by one, so
+  // reading it live off the form via FormData when needed is enough. Every
+  // field AI Auto Create can fill in (see handleAutoCreated) is controlled
+  // state instead, so one result can land in all of them at once.
   const formRef = useRef<HTMLFormElement>(null);
+  const [tagline, setTagline] = useState(current.tagline);
+  const [website, setWebsite] = useState(current.website);
+  const [industry, setIndustry] = useState(current.industry);
+  const [address, setAddress] = useState(current.address);
+  const [categoryIds, setCategoryIds] = useState<string[]>(current.categoryIds);
   const [description, setDescription] = useState(current.description);
   const [services, setServices] = useState<ServiceEntry[]>(current.services);
   const [faqs, setFaqs] = useState<FaqEntry[]>(current.faqs);
+  // OperatingHoursEditor seeds its own per-day state from initialHours once,
+  // on mount — bumping the key remounts it so a fresh set of hours from AI
+  // Auto Create actually shows, instead of being ignored as a prop change.
+  const [hours, setHours] = useState(operatingHours);
+  const [hoursKey, setHoursKey] = useState(0);
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [translations, setTranslations] = useState<ListingTranslations>(current.translations);
@@ -286,6 +301,26 @@ export function PartnerListingForm({
     });
   }
 
+  // Only fields the draft actually has something for are replaced — a
+  // Google listing with no hours, say, leaves hours the partner already set
+  // alone rather than wiping them.
+  function handleAutoCreated(details: AutoCreatedListingDetails) {
+    if (details.tagline) setTagline(details.tagline);
+    if (details.description) setDescription(details.description);
+    if (details.industry) setIndustry(details.industry);
+    if (details.categoryIds.length > 0) setCategoryIds(details.categoryIds);
+    if (details.services.length > 0) setServices(details.services);
+    if (details.faqs.length > 0) setFaqs(details.faqs);
+    if (details.website) setWebsite(details.website);
+    if (details.address) setAddress(details.address);
+    if (details.operatingHours) {
+      setHours(details.operatingHours);
+      setHoursKey((key) => key + 1);
+    }
+    setActiveTab("en");
+    setJustSaved(false);
+  }
+
   return (
     <form
       ref={formRef}
@@ -294,16 +329,29 @@ export function PartnerListingForm({
       // Native change/input events bubble here from any plain field the
       // visitor edits after a save — the signal that "Saved" is stale, so
       // the button re-enables. Content that changes without a native event
-      // (an AI rewrite/translate/generate response, or a MarkdownLiteEditor
-      // toolbar click, both of which just call a setState setter directly)
-      // clears it explicitly at the point of change instead — see
-      // handleRewriteDescription and friends, and updateTranslation/
-      // updateTranslatedServices/updateTranslatedFaqs above. Doesn't catch
-      // every custom widget's own button clicks (categories, FAQ/service
-      // row add-remove), but those are rare to touch alone without also
-      // editing a plain field nearby.
+      // (an AI rewrite/translate/generate/auto-create response, or a
+      // MarkdownLiteEditor toolbar click, both of which just call a setState
+      // setter directly) clears it explicitly at the point of change instead
+      // — see handleRewriteDescription and friends, handleAutoCreated, and
+      // updateTranslation/updateTranslatedServices/updateTranslatedFaqs
+      // above. Doesn't catch every custom widget's own button clicks
+      // (categories, FAQ/service row add-remove), but those are rare to
+      // touch alone without also editing a plain field nearby.
       onChange={() => setJustSaved(false)}
     >
+      {aiAvailable && (
+        <AiAutoCreatePanel
+          placesAvailable={placesAvailable}
+          defaultQuery={current.companyName}
+          getContext={() => ({ companyName: contextFromForm().companyName, website })}
+          onWebsiteFound={(site) => {
+            setWebsite(site);
+            setJustSaved(false);
+          }}
+          onCreated={handleAutoCreated}
+        />
+      )}
+
       <div>
         <Label htmlFor="logo">Logo</Label>
         <div className="flex items-center gap-4">
@@ -382,7 +430,8 @@ export function PartnerListingForm({
             <Input
               id="tagline"
               name="tagline"
-              defaultValue={current.tagline}
+              value={tagline}
+              onChange={(event) => setTagline(event.target.value)}
               placeholder="One line under your company name"
               maxLength={140}
             />
@@ -412,7 +461,13 @@ export function PartnerListingForm({
         </div>
 
         <FieldGroup label="Website" htmlFor="website">
-          <Input id="website" name="website" defaultValue={current.website} placeholder="acme.com" />
+          <Input
+            id="website"
+            name="website"
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+            placeholder="acme.com"
+          />
         </FieldGroup>
       </div>
 
@@ -421,7 +476,8 @@ export function PartnerListingForm({
           <Select
             id="industry"
             name="industry"
-            defaultValue={current.industry}
+            value={industry}
+            onChange={(event) => setIndustry(event.target.value)}
             className="h-12 text-base font-medium"
           >
             <option value="">Not set</option>
@@ -440,7 +496,8 @@ export function PartnerListingForm({
               id="categoryIds"
               name="categoryIds"
               options={categories.map((category) => ({ value: category.id, label: category.name }))}
-              defaultValue={current.categoryIds}
+              value={categoryIds}
+              onValueChange={setCategoryIds}
               placeholder="Search categories…"
               emptyMessage="No matching categories"
               size="lg"
@@ -455,7 +512,8 @@ export function PartnerListingForm({
           id="address"
           name="address"
           rows={2}
-          defaultValue={current.address}
+          value={address}
+          onChange={(event) => setAddress(event.target.value)}
           placeholder={"123 Jalan Bukit Bintang\n50200 Kuala Lumpur, Malaysia"}
         />
         <p className="mt-1 text-xs text-slate-400">Shown on your listing with a map. Leave blank to skip the map.</p>
@@ -521,7 +579,7 @@ export function PartnerListingForm({
 
         <div>
           <Label>Operating hours</Label>
-          <OperatingHoursEditor initialHours={operatingHours} />
+          <OperatingHoursEditor key={hoursKey} initialHours={hours} />
           <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
         </div>
       </div>
