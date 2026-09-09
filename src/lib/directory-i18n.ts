@@ -25,6 +25,16 @@ export type DirectoryLeadFormErrorCode =
   | "invalid_submission"
   | "generic";
 
+export type DirectoryDayLabels = {
+  monday: string;
+  tuesday: string;
+  wednesday: string;
+  thursday: string;
+  friday: string;
+  saturday: string;
+  sunday: string;
+};
+
 export type DirectoryStrings = {
   heroTitle: string;
   heroSubtitle: string;
@@ -36,6 +46,8 @@ export type DirectoryStrings = {
   servicesHeading: string;
   aboutHeading: string;
   visitHeading: string;
+  hoursClosedLabel: string;
+  dayLabels: DirectoryDayLabels;
   websiteLabel: string;
   locationLabel: string;
   contactHeading: string;
@@ -71,6 +83,16 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "Services",
     aboutHeading: "About",
     visitHeading: "Visit us",
+    hoursClosedLabel: "Closed",
+    dayLabels: {
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
+      sunday: "Sunday",
+    },
     websiteLabel: "Website",
     locationLabel: "Location",
     contactHeading: "Get in touch",
@@ -115,6 +137,16 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "服务项目",
     aboutHeading: "关于",
     visitHeading: "联系地址",
+    hoursClosedLabel: "休息",
+    dayLabels: {
+      monday: "星期一",
+      tuesday: "星期二",
+      wednesday: "星期三",
+      thursday: "星期四",
+      friday: "星期五",
+      saturday: "星期六",
+      sunday: "星期日",
+    },
     websiteLabel: "网站",
     locationLabel: "地点",
     contactHeading: "联系我们",
@@ -159,6 +191,16 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     servicesHeading: "Perkhidmatan",
     aboutHeading: "Tentang",
     visitHeading: "Lawati kami",
+    hoursClosedLabel: "Tutup",
+    dayLabels: {
+      monday: "Isnin",
+      tuesday: "Selasa",
+      wednesday: "Rabu",
+      thursday: "Khamis",
+      friday: "Jumaat",
+      saturday: "Sabtu",
+      sunday: "Ahad",
+    },
     websiteLabel: "Laman web",
     locationLabel: "Lokasi",
     contactHeading: "Hubungi kami",

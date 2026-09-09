@@ -21,7 +21,7 @@ export function ListingCard({
 
   return (
     <Link href={`/directory/${slug}`} className="block h-full">
-      <Card className="flex h-full flex-col transition-colors hover:border-indigo-300 dark:hover:border-indigo-800">
+      <Card className="flex h-full flex-col transition-colors hover:border-petrol/40 dark:hover:border-petrol-light/30">
         <CardBody className="flex flex-1 flex-col gap-3">
           <div className="flex items-center gap-3">
             <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-10 w-10 text-sm" />
@@ -40,13 +40,19 @@ export function ListingCard({
           {listing.services.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {listing.services.slice(0, MAX_VISIBLE_SERVICES).map((service) => (
-                <Badge key={service}>{service}</Badge>
+                <Badge key={service} className="bg-led-soft text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20">
+                  {service}
+                </Badge>
               ))}
-              {extraServices > 0 && <Badge>+{extraServices}</Badge>}
+              {extraServices > 0 && (
+                <Badge className="bg-led-soft text-petrol-ink ring-led/30 dark:bg-led-soft-dark dark:text-petrol-light dark:ring-led/20">
+                  +{extraServices}
+                </Badge>
+              )}
             </div>
           )}
 
-          <span className="mt-auto inline-flex items-center gap-1 pt-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+          <span className="mt-auto inline-flex items-center gap-1 pt-1 text-xs font-medium text-petrol dark:text-petrol-light">
             {viewLabel}
             <ChevronRight className="h-3.5 w-3.5" />
           </span>

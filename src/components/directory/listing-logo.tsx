@@ -27,7 +27,7 @@ export function ListingLogo({
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-lg bg-indigo-600 font-semibold text-white",
+        "flex shrink-0 items-center justify-center rounded-lg bg-petrol font-semibold text-white",
         className,
       )}
     >

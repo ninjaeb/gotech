@@ -10,6 +10,26 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.58",
+    date: "2026-09-09",
+    title: "Gotka.com branding on the directory and partner portal",
+    changes: [
+      "The public directory and partner portal now use gotka.com's own colors — petrol teal for links and highlights, LED green for primary buttons — instead of the CRM's indigo",
+      "On a listing's detail page, the Get in touch card now follows you down the page instead of scrolling out of view once the About/Services/Visit us content runs long",
+      "Bigger, easier-to-read text throughout a listing's detail page — the About and Services sections, the Visit us details, and the inquiry form",
+    ],
+  },
+  {
+    version: "1.57",
+    date: "2026-09-09",
+    title: "Google-My-Business-style operating hours",
+    changes: [
+      "Operating hours on a partner listing are now set day by day — an Open/Closed dropdown per day, with opening and closing time fields when open — instead of typing hours as free text",
+      "A listing's detail page groups consecutive days with matching hours onto one line (e.g. \"Monday – Friday: 09:00 – 18:00\"), and its schema.org structured data now includes proper machine-readable opening hours, which free text couldn't support",
+      "Service tags on a listing's detail page are noticeably bigger, easier to scan at a glance",
+    ],
+  },
+  {
     version: "1.56",
     date: "2026-09-09",
     title: "Directory SEO, editable web address, and live search",

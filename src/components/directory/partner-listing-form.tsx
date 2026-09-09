@@ -13,18 +13,22 @@ import {
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
 import type { PartnerListingStatus } from "@/generated/prisma/client";
+import type { OperatingHours } from "@/lib/operating-hours";
 
 export function PartnerListingForm({
   values,
   logoUrl,
+  operatingHours,
   status,
   aiAvailable,
 }: {
   values: ListingFormValues;
   logoUrl: string | null;
+  operatingHours: OperatingHours | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
 }) {
@@ -137,7 +141,7 @@ export function PartnerListingForm({
                   name="removeLogo"
                   checked={removeLogo}
                   onChange={(event) => setRemoveLogo(event.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led"
                 />
                 Remove current logo
               </label>
@@ -189,16 +193,11 @@ export function PartnerListingForm({
         </p>
       </FieldGroup>
 
-      <FieldGroup label="Operating hours" htmlFor="operatingHours">
-        <Textarea
-          id="operatingHours"
-          name="operatingHours"
-          rows={3}
-          defaultValue={current.operatingHours}
-          placeholder={"Monday – Friday: 9:00 AM – 6:00 PM\nSaturday: 10:00 AM – 2:00 PM\nSunday: Closed"}
-        />
-        <p className="mt-1 text-xs text-slate-400">One line per day or range — shown on your listing as written.</p>
-      </FieldGroup>
+      <div>
+        <Label>Operating hours</Label>
+        <OperatingHoursEditor initialHours={operatingHours} />
+        <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
+      </div>
 
       <div>
         <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -266,7 +265,11 @@ export function PartnerListingForm({
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={pending}>
+        <Button
+          type="submit"
+          disabled={pending}
+          className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+        >
           {pending ? "Saving…" : "Save draft"}
         </Button>
         <Button

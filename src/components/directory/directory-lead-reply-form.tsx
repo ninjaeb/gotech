@@ -25,7 +25,12 @@ export function DirectoryLeadReplyForm({ leadId }: { leadId: string }) {
       />
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
       <div className="flex justify-end">
-        <Button type="submit" size="sm" disabled={pending}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={pending}
+          className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+        >
           {pending ? "Sending…" : "Send reply"}
         </Button>
       </div>

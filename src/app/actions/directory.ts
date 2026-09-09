@@ -12,11 +12,14 @@ import { firstHopValue } from "@/lib/site-url";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import {
   buildPublishedSnapshot,
+  DAYS_OF_WEEK,
   ensurePartnerListing,
   isValidSlugFormat,
+  isValidTimeString,
   normalizeWebsiteUrl,
   parseServicesInput,
   slugify,
+  type OperatingHours,
 } from "@/lib/directory";
 import { notifyPartnerOfNewLead, sendDirectoryLeadReply } from "@/lib/directory-notify";
 import { DIRECTORY_LOCALE_COOKIE } from "@/lib/directory-locale";
@@ -139,7 +142,6 @@ const listingSchema = z.object({
   website: z.string().trim().optional(),
   location: z.string().trim().optional(),
   address: z.string().trim().optional(),
-  operatingHours: z.string().trim().optional(),
 });
 
 export type ListingFormValues = {
@@ -151,7 +153,6 @@ export type ListingFormValues = {
   website: string;
   location: string;
   address: string;
-  operatingHours: string;
 };
 
 // Which field an error belongs to, so the UI can show it right under that
@@ -179,8 +180,29 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     website: stringField(formData, "website"),
     location: stringField(formData, "location"),
     address: stringField(formData, "address"),
-    operatingHours: stringField(formData, "operatingHours"),
   };
+}
+
+// One entry per day of week — see the OperatingHoursEditor component for
+// the matching field names (hours-<day>-status/-open/-close). Malformed or
+// incomplete input for a day (e.g. "open" but a blank time field) is
+// treated as closed rather than rejecting the whole save — permissive,
+// same spirit as the rest of this form.
+function parseOperatingHoursFormData(formData: FormData): OperatingHours {
+  const result = {} as OperatingHours;
+  for (const day of DAYS_OF_WEEK) {
+    const status = formData.get(`hours-${day}-status`);
+    const open = formData.get(`hours-${day}-open`);
+    const close = formData.get(`hours-${day}-close`);
+    const isOpen =
+      status === "open" &&
+      typeof open === "string" &&
+      isValidTimeString(open) &&
+      typeof close === "string" &&
+      isValidTimeString(close);
+    result[day] = isOpen ? { open: open as string, close: close as string } : null;
+  }
+  return result;
 }
 
 async function parseListingLogo(formData: FormData): Promise<{ logoUrl?: string | null }> {
@@ -304,7 +326,7 @@ async function saveListingFields(
       website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
       location: parsed.data.location || null,
       address: parsed.data.address || null,
-      operatingHours: parsed.data.operatingHours || null,
+      operatingHours: parseOperatingHoursFormData(formData),
       ...logo,
       ...(resetToDraft ? { status: "DRAFT" as const, reviewNote: null } : {}),
       ...extraData,

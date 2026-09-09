@@ -27,7 +27,11 @@ export function WithdrawalRequestForm({ availableLabel }: { availableLabel: stri
         </p>
       </div>
       {state && "error" in state && <p className="text-sm text-rose-600 dark:text-rose-400">{state.error}</p>}
-      <Button type="submit" disabled={pending}>
+      <Button
+        type="submit"
+        disabled={pending}
+        className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+      >
         {pending ? "Requesting…" : `Request withdrawal of ${availableLabel}`}
       </Button>
     </form>

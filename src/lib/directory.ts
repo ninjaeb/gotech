@@ -1,5 +1,23 @@
 import { db } from "@/lib/db";
 import type { Industry, PartnerListing } from "@/generated/prisma/client";
+import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
+
+// Re-exported for existing server-side imports (actions, pages) that
+// already pull these from "@/lib/directory" — but a "use client" component
+// needing DAYS_OF_WEEK/OperatingHours etc. at runtime (not just as a type)
+// must import them from "@/lib/operating-hours" directly, never from here:
+// this module's own top-level `db` import can't be bundled for the browser.
+export {
+  DAYS_OF_WEEK,
+  formatOpeningHoursSchema,
+  groupOperatingHours,
+  isValidTimeString,
+  operatingHoursFromJson,
+  type DayGroup,
+  type DayHours,
+  type DayOfWeek,
+  type OperatingHours,
+} from "@/lib/operating-hours";
 
 // The only shape the public directory ever reads — a snapshot of a
 // listing's public fields as they were the last time an admin approved
@@ -16,7 +34,7 @@ export type PublishedListingSnapshot = {
   website: string | null;
   location: string | null;
   address: string | null;
-  operatingHours: string | null;
+  operatingHours: OperatingHours | null;
   logoUrl: string | null;
 };
 
@@ -57,7 +75,7 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     website: typeof raw.website === "string" ? raw.website : null,
     location: typeof raw.location === "string" ? raw.location : null,
     address: typeof raw.address === "string" ? raw.address : null,
-    operatingHours: typeof raw.operatingHours === "string" ? raw.operatingHours : null,
+    operatingHours: operatingHoursFromJson(raw.operatingHours),
     logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : null,
   };
 }
@@ -72,7 +90,7 @@ export function buildPublishedSnapshot(listing: PartnerListing): PublishedListin
     website: listing.website,
     location: listing.location,
     address: listing.address,
-    operatingHours: listing.operatingHours,
+    operatingHours: operatingHoursFromJson(listing.operatingHours),
     logoUrl: listing.logoUrl,
   };
 }
