@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Check, Copy, Mail, MessageCircle, Share2 } from "lucide-react";
-import { buttonClasses } from "@/components/ui/button";
+import { Check, Copy, Mail, MessageCircle, Share2, ThumbsUp } from "lucide-react";
+import { buttonClasses, type ButtonSize, type ButtonVariant } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // A small share menu — copy link, email, WhatsApp, plus the device's own
@@ -11,7 +11,34 @@ import { cn } from "@/lib/utils";
 // options stay available everywhere: WhatsApp/email links work with or
 // without navigator.share, so there's no reason to hide them just because
 // the native sheet is also on offer.
-export function ShareButton({ title, url }: { title: string; url: string }) {
+//
+// The same menu doubles as the listing page's "Recommend" button (see
+// RecommendBar): identical options, just a different label/icon and a
+// referral-tracking URL instead of the plain page URL — so the only
+// difference between "share" and "recommend" is which link goes out.
+export function ShareButton({
+  title,
+  url,
+  label = "Share",
+  icon = "share",
+  variant = "secondary",
+  size = "sm",
+  className,
+  menuPlacement = "below",
+  menuAlign = "right",
+}: {
+  title: string;
+  url: string;
+  label?: string;
+  icon?: "share" | "recommend";
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+  // "above" for a button pinned to the bottom of the viewport, where a
+  // menu dropping downward would open off-screen.
+  menuPlacement?: "below" | "above";
+  menuAlign?: "right" | "center";
+}) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +94,8 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
 
   const mailtoHref = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`;
   const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+  const TriggerIcon = icon === "recommend" ? ThumbsUp : Share2;
+  const triggerIconClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
 
   return (
     <div ref={containerRef} className="relative">
@@ -75,16 +104,20 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
-        className={buttonClasses("secondary", "sm", "shrink-0")}
+        className={buttonClasses(variant, size, cn("shrink-0", className))}
       >
-        <Share2 className="h-3.5 w-3.5" />
-        Share
+        <TriggerIcon className={triggerIconClass} />
+        {label}
       </button>
 
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
+          className={cn(
+            "absolute z-30 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900",
+            menuPlacement === "above" ? "bottom-full mb-2" : "top-full mt-2",
+            menuAlign === "center" ? "left-1/2 -translate-x-1/2" : "right-0",
+          )}
         >
           <button
             type="button"
@@ -124,9 +157,7 @@ export function ShareButton({ title, url }: { title: string; url: string }) {
               type="button"
               role="menuitem"
               onClick={handleNativeShare}
-              className={cn(
-                "flex w-full items-center gap-2.5 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:border-neutral-800 dark:text-slate-200 dark:hover:bg-neutral-800",
-              )}
+              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:border-neutral-800 dark:text-slate-200 dark:hover:bg-neutral-800"
             >
               <Share2 className="h-4 w-4 shrink-0 text-slate-400" />
               More…

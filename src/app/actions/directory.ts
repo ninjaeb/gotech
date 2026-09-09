@@ -10,6 +10,7 @@ import { isValidEmailFormat } from "@/lib/email-format";
 import { isValidPhoneFormat, normalizePhone } from "@/lib/phone";
 import { isRateLimited, isSuspiciouslyFast } from "@/lib/lead-spam-guard";
 import { firstHopValue } from "@/lib/site-url";
+import { DIRECTORY_REFERRAL_COOKIE, findPartnerByReferralCode } from "@/lib/referrals";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import {
   buildPublishedSnapshot,
@@ -121,12 +122,20 @@ export async function submitDirectoryLead(
   // src/app/[locale]/directory/[slug]/page.tsx) — the form carries it
   // explicitly (see directory-lead-form.tsx); the cookie is only a
   // fallback for an old cached page that predates that hidden field.
+  const cookieStore = await cookies();
   const formLocale = formData.get("locale");
-  const locale = isDirectoryLocale(formLocale) ? formLocale : (await cookies()).get(DIRECTORY_LOCALE_COOKIE)?.value;
+  const locale = isDirectoryLocale(formLocale) ? formLocale : cookieStore.get(DIRECTORY_LOCALE_COOKIE)?.value;
+
+  // Credit the partner whose "Recommend" link brought this visitor here
+  // (see src/app/r/[code]/route.ts) — but never the listing's own partner,
+  // who'd otherwise be able to refer leads to themselves.
+  const referrer = await findPartnerByReferralCode(cookieStore.get(DIRECTORY_REFERRAL_COOKIE)?.value);
+  const referredById = referrer && referrer.id !== listing.partnerId ? referrer.id : null;
 
   const lead = await db.directoryLead.create({
     data: {
       listingId: listing.id,
+      referredById,
       name: parsed.data.name,
       email: parsed.data.email,
       phone: normalizePhone(parsed.data.phone),
