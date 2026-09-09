@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import {
   generateListingFaqs,
@@ -88,15 +88,33 @@ export function PartnerListingForm({
   // when `state` has changed since the last render is React's own
   // documented way to do this without an extra render round-trip.
   const [displayError, setDisplayError] = useState<{ error: string; field?: ListingFormField } | null>(null);
+  // True right after a successful "Save draft" — greys the button out and
+  // swaps its label to "Saved" so a click clearly did something, until the
+  // next edit (see the form's onChange below) or resubmit makes it stale.
+  const [justSaved, setJustSaved] = useState(false);
   const [lastSyncedState, setLastSyncedState] = useState(state);
   if (state !== lastSyncedState) {
     setLastSyncedState(state);
-    if (state && "error" in state) setDisplayError({ error: state.error, field: state.field });
-    else if (state && "success" in state) setDisplayError(null);
+    if (state && "error" in state) {
+      setDisplayError({ error: state.error, field: state.field });
+      setJustSaved(false);
+    } else if (state && "success" in state) {
+      setDisplayError(null);
+      setJustSaved(true);
+    }
   }
   const companyNameError = displayError?.field === "companyName" ? displayError.error : null;
   const servicesError = displayError?.field === "services" ? displayError.error : null;
   const generalError = displayError && !displayError.field ? displayError.error : null;
+
+  // The render-phase sync above only updates React state (the documented
+  // exception to "don't setState during render") — the toast itself is a
+  // real side effect, so it belongs in an effect keyed on `state`, not
+  // alongside that sync, or a double-render (e.g. Strict Mode) could fire
+  // it twice.
+  useEffect(() => {
+    if (state && "success" in state) toast.success("Draft saved.");
+  }, [state, toast]);
 
   // Company name and industry stay plain defaultValue inputs (unchanged
   // below) — they're only grounding context for the AI rewrite, never
@@ -226,7 +244,17 @@ export function PartnerListingForm({
   }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-5">
+    <form
+      ref={formRef}
+      action={formAction}
+      className="space-y-5"
+      // Native change/input events bubble here from any plain field the
+      // visitor edits after a save — the signal that "Saved" is stale, so
+      // the button re-enables. Doesn't catch every custom widget's own
+      // button clicks (categories, FAQ/service row add-remove), but those
+      // are rare to touch alone without also editing a plain field nearby.
+      onChange={() => setJustSaved(false)}
+    >
       <div>
         <Label htmlFor="logo">Logo</Label>
         <div className="flex items-center gap-4">
@@ -339,7 +367,12 @@ export function PartnerListingForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Industry" htmlFor="industry">
-          <Select id="industry" name="industry" defaultValue={current.industry}>
+          <Select
+            id="industry"
+            name="industry"
+            defaultValue={current.industry}
+            className="h-12 text-base font-medium"
+          >
             <option value="">Not set</option>
             {INDUSTRIES.map((code) => (
               <option key={code} value={code}>
@@ -359,6 +392,7 @@ export function PartnerListingForm({
               defaultValue={current.categoryIds}
               placeholder="Search categories…"
               emptyMessage="No matching categories"
+              size="lg"
             />
           )}
           <p className="mt-1 text-xs text-slate-400">Optional — helps visitors filter the directory by what you do.</p>
@@ -538,10 +572,11 @@ export function PartnerListingForm({
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="submit"
-          disabled={pending}
-          className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+          disabled={pending || justSaved}
+          variant={justSaved ? "secondary" : "primary"}
+          className={justSaved ? undefined : "bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"}
         >
-          {pending ? "Saving…" : "Save draft"}
+          {pending ? "Saving…" : justSaved ? "Saved" : "Save draft"}
         </Button>
         <Button
           type="button"
