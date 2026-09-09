@@ -3,7 +3,6 @@ import { ChevronRight } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
-import { INDUSTRY_LABELS } from "@/lib/labels";
 import type { PublishedListingSnapshot } from "@/lib/directory";
 
 const MAX_VISIBLE_SERVICES = 3;
@@ -12,10 +11,15 @@ export function ListingCard({
   slug,
   listing,
   viewLabel,
+  industryLabel,
 }: {
   slug: string;
   listing: PublishedListingSnapshot;
   viewLabel: string;
+  // Pre-resolved for the visitor's locale by the caller (see
+  // directory-search.tsx) — this component has no locale of its own to
+  // look one up with.
+  industryLabel?: string;
 }) {
   const extraServices = listing.services.length - MAX_VISIBLE_SERVICES;
 
@@ -27,10 +31,8 @@ export function ListingCard({
             <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-10 w-10 text-sm" />
             <div className="min-w-0">
               <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</p>
-              {listing.industry && (
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {INDUSTRY_LABELS[listing.industry]}
-                </p>
+              {listing.industry && industryLabel && (
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">{industryLabel}</p>
               )}
             </div>
           </div>

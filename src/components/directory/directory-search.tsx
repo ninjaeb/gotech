@@ -26,7 +26,11 @@ export function DirectorySearch({
   listings: ListingRow[];
   industries: Industry[];
   industryLabels: Record<Industry, string>;
-  categories: string[];
+  // value stays the English category name a listing's snapshot actually
+  // stores (see readPublishedSnapshot) so filtering/the URL query param
+  // keep matching regardless of locale; label is that name translated for
+  // display (see translateCategoryName).
+  categories: { value: string; label: string }[];
   t: DirectoryStrings;
   initialQuery: string;
   initialIndustry: string;
@@ -92,9 +96,9 @@ export function DirectorySearch({
             {categories.length > 0 && (
               <Select value={category} onChange={(event) => setCategory(event.target.value)} className="sm:w-56">
                 <option value="">{t.allCategories}</option>
-                {categories.map((name) => (
-                  <option key={name} value={name}>
-                    {name}
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.label}
                   </option>
                 ))}
               </Select>
@@ -109,7 +113,13 @@ export function DirectorySearch({
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map(({ slug, listing }) => (
-              <ListingCard key={slug} slug={slug} listing={listing} viewLabel={t.viewListing} />
+              <ListingCard
+                key={slug}
+                slug={slug}
+                listing={listing}
+                viewLabel={t.viewListing}
+                industryLabel={listing.industry ? industryLabels[listing.industry] : undefined}
+              />
             ))}
           </div>
         )}

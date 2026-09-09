@@ -1,3 +1,6 @@
+import type { Industry } from "@/generated/prisma/client";
+import { INDUSTRY_LABELS } from "@/lib/labels";
+
 // Same three languages as the public /lead form (src/lib/lead-form-i18n.ts)
 // but kept as its own copy rather than shared — that file's locale type and
 // list are specific to the lead-capture widget's own module state, and this
@@ -422,5 +425,59 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       email_unverified: "E-mel akaun Google anda belum disahkan.",
       wrong_role: "Akaun Google itu milik kakitangan. Kakitangan log masuk di /system/login.",
     },
+  },
+};
+
+// Industry is a fixed enum shared with the internal /system CRM (see
+// INDUSTRY_LABELS in src/lib/labels.ts, English-only — that side isn't
+// trilingual, see src/app/system/(dashboard)/settings/directory/page.tsx's
+// own comment on why). The public directory needs the same 20 values in
+// all three locales; "en" reuses INDUSTRY_LABELS directly rather than
+// duplicating those strings a second time.
+export const INDUSTRY_LABELS_BY_LOCALE: Record<DirectoryLocale, Record<Industry, string>> = {
+  en: INDUSTRY_LABELS,
+  zh: {
+    TECHNOLOGY: "科技",
+    RETAIL_ECOMMERCE: "零售与电子商务",
+    HEALTHCARE: "医疗保健",
+    FINANCE_BANKING: "金融与银行",
+    MANUFACTURING: "制造业",
+    CONSTRUCTION_REAL_ESTATE: "建筑与房地产",
+    EDUCATION: "教育",
+    HOSPITALITY_TOURISM: "酒店与旅游",
+    PROFESSIONAL_SERVICES: "专业服务",
+    MEDIA_ENTERTAINMENT: "媒体与娱乐",
+    TRANSPORTATION_LOGISTICS: "运输与物流",
+    AGRICULTURE: "农业",
+    ENERGY_UTILITIES: "能源与公用事业",
+    GOVERNMENT_NONPROFIT: "政府与非营利组织",
+    TELECOMMUNICATIONS: "电信",
+    AUTOMOTIVE: "汽车",
+    FOOD_BEVERAGE: "餐饮",
+    LEGAL: "法律",
+    MARKETING_ADVERTISING: "市场营销与广告",
+    OTHER: "其他",
+  },
+  ms: {
+    TECHNOLOGY: "Teknologi",
+    RETAIL_ECOMMERCE: "Runcit & E-dagang",
+    HEALTHCARE: "Penjagaan Kesihatan",
+    FINANCE_BANKING: "Kewangan & Perbankan",
+    MANUFACTURING: "Pembuatan",
+    CONSTRUCTION_REAL_ESTATE: "Pembinaan & Hartanah",
+    EDUCATION: "Pendidikan",
+    HOSPITALITY_TOURISM: "Hospitaliti & Pelancongan",
+    PROFESSIONAL_SERVICES: "Perkhidmatan Profesional",
+    MEDIA_ENTERTAINMENT: "Media & Hiburan",
+    TRANSPORTATION_LOGISTICS: "Pengangkutan & Logistik",
+    AGRICULTURE: "Pertanian",
+    ENERGY_UTILITIES: "Tenaga & Utiliti",
+    GOVERNMENT_NONPROFIT: "Kerajaan & Bukan Untung",
+    TELECOMMUNICATIONS: "Telekomunikasi",
+    AUTOMOTIVE: "Automotif",
+    FOOD_BEVERAGE: "Makanan & Minuman",
+    LEGAL: "Undang-undang",
+    MARKETING_ADVERTISING: "Pemasaran & Pengiklanan",
+    OTHER: "Lain-lain",
   },
 };
