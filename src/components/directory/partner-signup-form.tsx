@@ -136,7 +136,7 @@ export function PartnerSignupForm({
 
       <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         {t.signupAlreadyPartner}{" "}
-        <Link href="/system/login" className="text-petrol hover:underline dark:text-petrol-light">
+        <Link href="/business/login" className="text-petrol hover:underline dark:text-petrol-light">
           {t.signupSignInLink}
         </Link>
       </p>

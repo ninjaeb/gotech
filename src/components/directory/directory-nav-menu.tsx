@@ -78,7 +78,7 @@ export function DirectoryNavMenu({
         >
           {viewer === null && (
             <>
-              <Link href="/system/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+              <Link href="/business/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <LogIn className="h-4 w-4 shrink-0 text-slate-400" />
                 {loginLabel}
               </Link>

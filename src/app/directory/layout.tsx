@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
 import { DirectoryNavMenu, type DirectoryViewer } from "@/components/directory/directory-nav-menu";
-import { logout } from "@/app/actions/auth";
+import { businessLogout, logout } from "@/app/actions/auth";
 import { getSessionPayload } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { getDirectoryLocale } from "@/lib/directory-locale";
@@ -50,7 +50,7 @@ export default async function DirectoryLayout({ children }: { children: React.Re
             <ThemeToggle />
             <DirectoryNavMenu
               viewer={viewer}
-              logoutAction={logout}
+              logoutAction={viewer === "business" ? businessLogout : logout}
               loginLabel={t.navLoginRegister}
               listBusinessLabel={t.listBusinessCta}
               myBusinessLabel={t.navMyBusiness}
