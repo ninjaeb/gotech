@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.70",
+    date: "2026-09-09",
+    title: "Listing page: clickable address, mobile jump bar",
+    changes: [
+      "A listing's address under Visit us is now a link that opens the location in Google Maps",
+      "On mobile, a listing page now has a bar pinned to the bottom of the screen with quick jumps to Products & Services and Get in touch",
+    ],
+  },
+  {
     version: "1.69",
     date: "2026-09-09",
     title: "Task assignees/followers: searchable multi-select, staff only",

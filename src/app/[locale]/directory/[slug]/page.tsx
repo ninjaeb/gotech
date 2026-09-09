@@ -27,6 +27,7 @@ import { INDUSTRY_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonClasses } from "@/components/ui/button";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
 import { InquiryProvider, InquiryScrollTarget } from "@/components/directory/listing-inquiry";
@@ -236,7 +237,7 @@ export default async function DirectoryListingPage({
   const displayDescription = translation?.description || listing.description;
 
   return (
-    <div className="w-full px-4 py-10 sm:px-8">
+    <div className="w-full px-4 pt-10 pb-24 sm:px-8 sm:py-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -315,7 +316,7 @@ export default async function DirectoryListingPage({
                 )}
               >
                 {listing.services.length > 0 && (
-                  <Card>
+                  <Card id="services" className="scroll-mt-32">
                     <CardHeader>
                       <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
                     </CardHeader>
@@ -378,10 +379,15 @@ export default async function DirectoryListingPage({
                 </CardHeader>
                 <CardBody className="space-y-4">
                   {listing.address && (
-                    <p className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-2 text-base text-slate-600 hover:text-petrol hover:underline dark:text-slate-300 dark:hover:text-petrol-light"
+                    >
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                       <span className="whitespace-pre-wrap">{listing.address}</span>
-                    </p>
+                    </a>
                   )}
                   <iframe
                     title={`${listing.companyName} on the map`}
@@ -417,7 +423,7 @@ export default async function DirectoryListingPage({
             )}
           </div>
 
-          <InquiryScrollTarget className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
+          <InquiryScrollTarget id="contact" className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
@@ -430,6 +436,25 @@ export default async function DirectoryListingPage({
           </InquiryScrollTarget>
         </div>
       </InquiryProvider>
+
+      {/* Mobile only — on lg+ the Get in touch card is already visible in
+          the sticky right-hand column, so this would just duplicate it. */}
+      <nav
+        aria-label={t.stickyNavLabel}
+        className="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:hidden dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        {listing.services.length > 0 && (
+          <a href="#services" className={buttonClasses("secondary", "md", "flex-1 justify-center")}>
+            {t.servicesHeading}
+          </a>
+        )}
+        <a
+          href="#contact"
+          className={buttonClasses("primary", "md", "flex-1 justify-center bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led")}
+        >
+          {t.contactHeading}
+        </a>
+      </nav>
     </div>
   );
 }
