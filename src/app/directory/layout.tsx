@@ -1,9 +1,26 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
-import { DirectoryNavMenu } from "@/components/directory/directory-nav-menu";
+import { DirectoryNavMenu, type DirectoryViewer } from "@/components/directory/directory-nav-menu";
+import { logout } from "@/app/actions/auth";
+import { getSessionPayload } from "@/lib/auth/session";
+import { db } from "@/lib/db";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
+
+// The directory shares its session cookie with the CRM (see src/proxy.ts —
+// one "session" cookie, no separate directory-visitor auth) — so a signed-in
+// business owner or staff member browsing here is genuinely signed in, and
+// the nav menu should offer their own portal instead of "Login / Register".
+// A DB lookup rather than trusting the cookie's userId alone, since role
+// isn't (and shouldn't be) part of the JWT payload itself.
+async function getDirectoryViewer(): Promise<DirectoryViewer> {
+  const session = await getSessionPayload();
+  if (!session?.userId) return null;
+  const user = await db.user.findUnique({ where: { id: session.userId }, select: { role: true } });
+  if (!user) return null;
+  return user.role === "PARTNER" ? "business" : "staff";
+}
 
 // The one page in this app deliberately styled like gotka.com's own
 // marketing site (header/hero/footer) rather than the minimal centered-card
@@ -11,7 +28,7 @@ import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
 // are single-purpose forms, this is a browsable directory meant to feel
 // like a page on the company's own site.
 export default async function DirectoryLayout({ children }: { children: React.ReactNode }) {
-  const locale = await getDirectoryLocale();
+  const [locale, viewer] = await Promise.all([getDirectoryLocale(), getDirectoryViewer()]);
   const t = DIRECTORY_STRINGS[locale];
 
   return (
@@ -31,7 +48,15 @@ export default async function DirectoryLayout({ children }: { children: React.Re
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <DirectoryLanguageSwitcher current={locale} />
             <ThemeToggle />
-            <DirectoryNavMenu loginLabel={t.navLoginRegister} listBusinessLabel={t.listBusinessCta} />
+            <DirectoryNavMenu
+              viewer={viewer}
+              logoutAction={logout}
+              loginLabel={t.navLoginRegister}
+              listBusinessLabel={t.listBusinessCta}
+              myBusinessLabel={t.navMyBusiness}
+              goToCrmLabel={t.navGoToCrm}
+              signOutLabel={t.navSignOut}
+            />
           </div>
         </div>
       </header>

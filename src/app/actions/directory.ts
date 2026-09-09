@@ -521,8 +521,8 @@ export async function saveDirectoryListing(
   const result = await saveListingFields(partner, formData);
   if (!result.ok) return { error: result.error, field: result.field, values: result.values };
 
-  revalidatePath("/partner");
-  revalidatePath("/partner/listing");
+  revalidatePath("/business");
+  revalidatePath("/business/listing");
   if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
   return { success: true };
 }
@@ -557,7 +557,7 @@ export async function updateListingSlug(
   }
 
   await db.partnerListing.update({ where: { id: listing.id }, data: { slug: normalized } });
-  revalidatePath("/partner/listing");
+  revalidatePath("/business/listing");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
   revalidatePath(`/directory/${normalized}`);
@@ -592,8 +592,8 @@ export async function submitDirectoryListingForReview(
   });
   if (!result.ok) return { error: result.error, field: result.field };
 
-  revalidatePath("/partner");
-  revalidatePath("/partner/listing");
+  revalidatePath("/business");
+  revalidatePath("/business/listing");
   revalidatePath("/system/settings/directory");
   return { success: true };
 }
@@ -631,9 +631,9 @@ export async function updateDirectoryLeadStatus(leadId: string, formData: FormDa
       closedAt,
     },
   });
-  revalidatePath("/partner");
-  revalidatePath("/partner/directory-leads");
-  revalidatePath(`/partner/directory-leads/${lead.id}`);
+  revalidatePath("/business");
+  revalidatePath("/business/directory-leads");
+  revalidatePath(`/business/directory-leads/${lead.id}`);
 }
 
 const leadDetailsSchema = z.object({
@@ -664,8 +664,8 @@ export async function updateDirectoryLeadDetails(
     where: { id: lead.id },
     data: { value: parsed.data.value, notes: parsed.data.notes || null },
   });
-  revalidatePath("/partner");
-  revalidatePath(`/partner/directory-leads/${lead.id}`);
+  revalidatePath("/business");
+  revalidatePath(`/business/directory-leads/${lead.id}`);
   return { success: true };
 }
 
@@ -708,7 +708,7 @@ export async function replyToDirectoryLead(
     }),
   ]);
 
-  revalidatePath(`/partner/directory-leads/${lead.id}`);
+  revalidatePath(`/business/directory-leads/${lead.id}`);
   if (!result.sent) return { error: `Saved, but the email didn't send: ${result.error}` };
   return { success: true };
 }

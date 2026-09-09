@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
-  { href: "/partner", label: "Overview" },
-  { href: "/partner/listing", label: "My listing" },
-  { href: "/partner/leads", label: "Leads" },
-  { href: "/partner/directory-leads", label: "Directory leads" },
-  { href: "/partner/commissions", label: "Commissions" },
-  { href: "/partner/profile", label: "Profile" },
+  { href: "/business", label: "Overview" },
+  { href: "/business/listing", label: "My listing" },
+  { href: "/business/leads", label: "Leads" },
+  { href: "/business/directory-leads", label: "Directory leads" },
+  { href: "/business/commissions", label: "Commissions" },
+  { href: "/business/profile", label: "Profile" },
 ];
 
 export function PartnerNav() {
@@ -18,7 +18,7 @@ export function PartnerNav() {
   return (
     <nav className="-mb-px flex gap-1 overflow-x-auto">
       {ITEMS.map((item) => {
-        const active = item.href === "/partner" ? pathname === "/partner" : pathname.startsWith(item.href);
+        const active = item.href === "/business" ? pathname === "/business" : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}

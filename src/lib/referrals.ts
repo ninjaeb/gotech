@@ -5,8 +5,8 @@ import { getReferralSettings } from "@/lib/settings";
 // The referral program's shared logic — see the comment block above
 // ReferralClick in prisma/schema.prisma for the end-to-end flow. Everything
 // here is called from a few places (public lead form, deal stage changes,
-// the partner portal, the admin Referrals page), so it lives together rather
-// than being spread across those callers.
+// the business portal, the admin Referrals page), so it lives together
+// rather than being spread across those callers.
 
 // Only ever letters/digits/hyphens: this goes straight into a URL path
 // (/r/<code>) and a ?ref= query value, and the embed widget only accepts
@@ -126,7 +126,7 @@ export type PartnerStats = {
   paid: number;
 };
 
-// One query set for both the partner portal's overview and the admin
+// One query set for both the business portal's overview and the admin
 // Referrals page's per-partner table, so both always agree on the numbers.
 export async function getPartnerStats(partnerId: string): Promise<PartnerStats> {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);

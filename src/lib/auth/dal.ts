@@ -29,10 +29,10 @@ export const getCurrentUser = cache(async () => {
 // Technical team members only get Projects, Tasks, and a trimmed-down
 // Settings — this is where one landing on a blocked page gets sent instead.
 export const TECHNICAL_HOME = "/system/tasks";
-// Partners (external referrers) only ever get the partner portal — see
-// src/lib/referrals.ts. The (app) layout bounces them here too, so no CRM
-// page is reachable for that role even without its own explicit gate.
-export const PARTNER_HOME = "/partner";
+// Partners (external referrers) only ever get the business portal — see
+// src/lib/referrals.ts. The (dashboard) layout bounces them here too, so no
+// CRM page is reachable for that role even without its own explicit gate.
+export const PARTNER_HOME = "/business";
 
 // Where a given role belongs when it lands somewhere it shouldn't (or right
 // after logging in). ADMIN and SALES share the dashboard as their home —
@@ -52,7 +52,7 @@ export async function requireAdmin() {
   return user;
 }
 
-// For the partner portal's Server Components — the mirror image of
+// For the business portal's Server Components — the mirror image of
 // requireAdmin: staff of either role get sent back to their own home.
 export async function requirePartner() {
   const user = await getCurrentUser();
@@ -62,7 +62,7 @@ export async function requirePartner() {
   return user;
 }
 
-// For the partner portal's Server Actions (same throw-not-redirect
+// For the business portal's Server Actions (same throw-not-redirect
 // convention as requireAdminAction).
 export async function requirePartnerAction() {
   const user = await getCurrentUser();

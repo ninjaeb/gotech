@@ -25,7 +25,7 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={[{ label: "Directory leads", href: "/partner/directory-leads" }, { label: lead.name }]}
+        breadcrumbs={[{ label: "Directory leads", href: "/business/directory-leads" }, { label: lead.name }]}
         title={lead.name}
         description={`Sent ${formatDateTime(lead.createdAt)}`}
         actions={<DirectoryLeadStatusSelect leadId={lead.id} status={lead.status} />}

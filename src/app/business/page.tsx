@@ -97,7 +97,7 @@ export default async function PartnerOverviewPage() {
           description="Inquiries sent through your link"
           icon={UserPlus}
           accent="indigo"
-          href="/partner/leads"
+          href="/business/leads"
         />
         <StatCard
           label="Deals won"
@@ -112,7 +112,7 @@ export default async function PartnerOverviewPage() {
           description="All commissions, before payouts"
           icon={Handshake}
           accent="emerald"
-          href="/partner/commissions"
+          href="/business/commissions"
         />
         <StatCard
           label="Available to withdraw"
@@ -120,7 +120,7 @@ export default async function PartnerOverviewPage() {
           description={stats.pending > 0 ? `${formatCurrencyExact(stats.pending, currency)} awaiting approval` : "Approved, not yet requested"}
           icon={Wallet}
           accent="orange"
-          href="/partner/commissions"
+          href="/business/commissions"
         />
         <StatCard
           label="Paid out"
@@ -160,7 +160,7 @@ export default async function PartnerOverviewPage() {
           )}
           {stats.leads > recentLeads.length && (
             <p className="mt-3 text-right text-xs">
-              <Link href="/partner/leads" className="text-petrol hover:underline dark:text-petrol-light">
+              <Link href="/business/leads" className="text-petrol hover:underline dark:text-petrol-light">
                 See all {stats.leads} leads
               </Link>
             </p>
@@ -171,7 +171,7 @@ export default async function PartnerOverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle>Directory listing</CardTitle>
-          <Link href="/partner/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
+          <Link href="/business/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
             Edit listing
           </Link>
         </CardHeader>
@@ -190,7 +190,7 @@ export default async function PartnerOverviewPage() {
               value={directoryStats.new.toString()}
               icon={Inbox}
               accent="sky"
-              href="/partner/directory-leads"
+              href="/business/directory-leads"
             />
             <StatCard label="Won" value={directoryStats.won.toString()} icon={Store} accent="emerald" />
             <StatCard

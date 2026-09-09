@@ -53,6 +53,6 @@ export async function updatePartnerProfile(
     },
   });
 
-  revalidatePath("/partner/profile");
+  revalidatePath("/business/profile");
   return { success: true };
 }

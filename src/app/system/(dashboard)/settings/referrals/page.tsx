@@ -36,7 +36,7 @@ export default async function ReferralSettingsPage() {
               <Link href="/system/settings/team" className="text-indigo-600 hover:underline dark:text-indigo-400">
                 Settings → Team
               </Link>{" "}
-              with the <strong>Partner</strong> role. They get their own login to the partner portal only — nothing
+              with the <strong>Partner</strong> role. They get their own login to the business portal only — nothing
               in the CRM.
             </li>
             <li>

@@ -77,6 +77,9 @@ export type DirectoryStrings = {
   backToDirectory: string;
   brandName: string;
   navLoginRegister: string;
+  navMyBusiness: string;
+  navGoToCrm: string;
+  navSignOut: string;
   listBusinessCta: string;
   signupHeading: string;
   signupSubheading: string;
@@ -177,6 +180,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     backToDirectory: "Back to directory",
     brandName: "Business Directory",
     navLoginRegister: "Login / Register",
+    navMyBusiness: "My business",
+    navGoToCrm: "Go to CRM",
+    navSignOut: "Sign out",
     listBusinessCta: "List your business",
     signupHeading: "List your business",
     signupSubheading: "Join the business directory and start receiving inquiries directly from visitors.",
@@ -274,6 +280,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     backToDirectory: "返回目录",
     brandName: "企业目录",
     navLoginRegister: "登录 / 注册",
+    navMyBusiness: "我的企业",
+    navGoToCrm: "前往 CRM",
+    navSignOut: "退出登录",
     listBusinessCta: "刊登您的企业",
     signupHeading: "刊登您的企业",
     signupSubheading: "加入企业目录，直接从访客那里获得咨询。",
@@ -371,6 +380,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     backToDirectory: "Kembali ke direktori",
     brandName: "Direktori Perniagaan",
     navLoginRegister: "Log Masuk / Daftar",
+    navMyBusiness: "Perniagaan saya",
+    navGoToCrm: "Pergi ke CRM",
+    navSignOut: "Log keluar",
     listBusinessCta: "Senaraikan perniagaan anda",
     signupHeading: "Senaraikan perniagaan anda",
     signupSubheading: "Sertai direktori perniagaan dan mula menerima pertanyaan terus daripada pelawat.",
