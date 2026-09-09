@@ -349,9 +349,9 @@ export async function confirmContactImport(
     created += 1;
   }
 
-  revalidatePath("/contacts");
-  revalidatePath("/companies");
-  revalidatePath("/");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system/companies");
+  revalidatePath("/system");
 
   return {
     status: "done",

@@ -37,18 +37,18 @@ import { NotificationBell, type NotificationItem } from "@/components/layout/not
 // Technical gets Projects/Tasks like Admin does; WhatsApp/Newsletters/Lists/
 // Referrals stay Admin-only.
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SALES"], iconColor: "text-slate-400" },
-  { href: "/companies", label: "Companies", icon: Building2, roles: ["ADMIN", "SALES"], iconColor: "text-sky-400" },
-  { href: "/contacts", label: "Contacts", icon: Users, roles: ["ADMIN", "SALES"], iconColor: "text-cyan-400" },
-  { href: "/lists", label: "Lists", icon: ListFilter, roles: ["ADMIN"], iconColor: "text-violet-400" },
-  { href: "/deals", label: "Deals", icon: KanbanSquare, roles: ["ADMIN", "SALES"], iconColor: "text-fuchsia-400" },
-  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle, roles: ["ADMIN"], iconColor: "text-emerald-400" },
-  { href: "/newsletters", label: "Newsletters", icon: Mail, roles: ["ADMIN"], iconColor: "text-blue-400" },
-  { href: "/projects", label: "Projects", icon: FolderKanban, roles: null, iconColor: "text-orange-400" },
-  { href: "/tasks", label: "Tasks", icon: CheckSquare, roles: null, iconColor: "text-rose-400" },
-  { href: "/leaderboard", label: "Leaderboard", icon: Trophy, roles: ["ADMIN", "SALES"], iconColor: "text-amber-400" },
-  { href: "/referrals", label: "Referrals", icon: Handshake, roles: ["ADMIN"], iconColor: "text-teal-400" },
-  { href: "/settings", label: "Settings", icon: Settings, roles: null, iconColor: "text-slate-400" },
+  { href: "/system", label: "Dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SALES"], iconColor: "text-slate-400" },
+  { href: "/system/companies", label: "Companies", icon: Building2, roles: ["ADMIN", "SALES"], iconColor: "text-sky-400" },
+  { href: "/system/contacts", label: "Contacts", icon: Users, roles: ["ADMIN", "SALES"], iconColor: "text-cyan-400" },
+  { href: "/system/lists", label: "Lists", icon: ListFilter, roles: ["ADMIN"], iconColor: "text-violet-400" },
+  { href: "/system/deals", label: "Deals", icon: KanbanSquare, roles: ["ADMIN", "SALES"], iconColor: "text-fuchsia-400" },
+  { href: "/system/whatsapp", label: "WhatsApp", icon: MessageCircle, roles: ["ADMIN"], iconColor: "text-emerald-400" },
+  { href: "/system/newsletters", label: "Newsletters", icon: Mail, roles: ["ADMIN"], iconColor: "text-blue-400" },
+  { href: "/system/projects", label: "Projects", icon: FolderKanban, roles: null, iconColor: "text-orange-400" },
+  { href: "/system/tasks", label: "Tasks", icon: CheckSquare, roles: null, iconColor: "text-rose-400" },
+  { href: "/system/leaderboard", label: "Leaderboard", icon: Trophy, roles: ["ADMIN", "SALES"], iconColor: "text-amber-400" },
+  { href: "/system/referrals", label: "Referrals", icon: Handshake, roles: ["ADMIN"], iconColor: "text-teal-400" },
+  { href: "/system/settings", label: "Settings", icon: Settings, roles: null, iconColor: "text-slate-400" },
 ];
 
 export function Sidebar({
@@ -80,12 +80,12 @@ export function Sidebar({
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navItems.map((item) => {
           const active =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/system"
+              ? pathname === "/system"
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           const badgeCount =
-            item.href === "/tasks" ? myTaskAlertCount : item.href === "/whatsapp" ? whatsappUnreadCount : 0;
+            item.href === "/system/tasks" ? myTaskAlertCount : item.href === "/system/whatsapp" ? whatsappUnreadCount : 0;
           return (
             <Fragment key={item.href}>
               <Link
@@ -105,7 +105,7 @@ export function Sidebar({
                   </span>
                 )}
               </Link>
-              {item.href === "/settings" &&
+              {item.href === "/system/settings" &&
                 SETTINGS_SUB_ITEMS.filter((sub) => !sub.adminOnly || user.role === "ADMIN").map((sub) => (
                   <Link
                     key={sub.href}

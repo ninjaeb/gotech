@@ -126,10 +126,10 @@ export async function createContact(
     };
   }
   const contact = await db.contact.create({ data: { ...data, ...photo } });
-  revalidatePath("/contacts");
-  revalidatePath("/");
-  if (data.companyId) revalidatePath(`/companies/${data.companyId}`);
-  redirect(`/contacts/${contact.id}`);
+  revalidatePath("/system/contacts");
+  revalidatePath("/system");
+  if (data.companyId) revalidatePath(`/system/companies/${data.companyId}`);
+  redirect(`/system/contacts/${contact.id}`);
 }
 
 export async function updateContact(
@@ -154,11 +154,11 @@ export async function updateContact(
     select: { companyId: true },
   });
   await db.contact.update({ where: { id }, data: { ...data, ...photo } });
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${id}`);
-  if (previous?.companyId) revalidatePath(`/companies/${previous.companyId}`);
-  if (data.companyId) revalidatePath(`/companies/${data.companyId}`);
-  redirect(`/contacts/${id}`);
+  revalidatePath("/system/contacts");
+  revalidatePath(`/system/contacts/${id}`);
+  if (previous?.companyId) revalidatePath(`/system/companies/${previous.companyId}`);
+  if (data.companyId) revalidatePath(`/system/companies/${data.companyId}`);
+  redirect(`/system/contacts/${id}`);
 }
 
 export async function changeContactLifecycleStage(
@@ -171,9 +171,9 @@ export async function changeContactLifecycleStage(
     return { error: "Not a valid stage." };
   }
   await db.contact.update({ where: { id }, data: { lifecycleStage: value } });
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${id}`);
-  revalidatePath("/");
+  revalidatePath("/system/contacts");
+  revalidatePath(`/system/contacts/${id}`);
+  revalidatePath("/system");
 }
 
 export async function linkExistingContact(companyId: string, formData: FormData) {
@@ -185,19 +185,19 @@ export async function linkExistingContact(companyId: string, formData: FormData)
     select: { companyId: true },
   });
   await db.contact.update({ where: { id: contactId }, data: { companyId } });
-  revalidatePath("/contacts");
-  revalidatePath(`/contacts/${contactId}`);
-  revalidatePath(`/companies/${companyId}`);
-  if (previous?.companyId) revalidatePath(`/companies/${previous.companyId}`);
+  revalidatePath("/system/contacts");
+  revalidatePath(`/system/contacts/${contactId}`);
+  revalidatePath(`/system/companies/${companyId}`);
+  if (previous?.companyId) revalidatePath(`/system/companies/${previous.companyId}`);
 }
 
 export async function deleteContact(id: string, formData: FormData) {
   void formData;
   await requireSalesAction();
   const contact = await db.contact.delete({ where: { id } });
-  revalidatePath("/contacts");
-  revalidatePath("/deals");
-  revalidatePath("/");
-  if (contact.companyId) revalidatePath(`/companies/${contact.companyId}`);
-  redirect("/contacts");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system/deals");
+  revalidatePath("/system");
+  if (contact.companyId) revalidatePath(`/system/companies/${contact.companyId}`);
+  redirect("/system/contacts");
 }

@@ -150,11 +150,11 @@ export async function sendWhatsAppToContact(
     },
   });
 
-  revalidatePath(`/contacts/${contactId}`);
-  revalidatePath(`/whatsapp/${contactId}`);
-  revalidatePath("/whatsapp");
-  if (dealId) revalidatePath(`/deals/${dealId}`);
-  if (parsed.data.taskId) revalidatePath(`/tasks/${parsed.data.taskId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
+  revalidatePath(`/system/whatsapp/${contactId}`);
+  revalidatePath("/system/whatsapp");
+  if (dealId) revalidatePath(`/system/deals/${dealId}`);
+  if (parsed.data.taskId) revalidatePath(`/system/tasks/${parsed.data.taskId}`);
   return {
     success: true,
     message: {

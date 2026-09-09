@@ -61,6 +61,6 @@ export async function sendWhatsAppBroadcast(
     return { error: "No eligible recipients in that list — everyone either has no phone on file or hasn't opted into WhatsApp." };
   }
 
-  revalidatePath("/newsletters");
-  redirect(withFlash("/newsletters", `Broadcast sending to ${count} recipient${count === 1 ? "" : "s"}.`));
+  revalidatePath("/system/newsletters");
+  redirect(withFlash("/system/newsletters", `Broadcast sending to ${count} recipient${count === 1 ? "" : "s"}.`));
 }

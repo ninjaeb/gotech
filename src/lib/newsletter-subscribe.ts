@@ -83,8 +83,8 @@ export async function subscribeToNewsletter(data: NewsletterSubscribeInput): Pro
     skipDuplicates: true,
   });
 
-  revalidatePath("/contacts");
-  revalidatePath(`/lists/${listId}`);
+  revalidatePath("/system/contacts");
+  revalidatePath(`/system/lists/${listId}`);
 
   return { ok: true };
 }

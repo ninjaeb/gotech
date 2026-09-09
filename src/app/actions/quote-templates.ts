@@ -74,8 +74,8 @@ export async function createQuoteTemplate(
     },
   });
 
-  revalidatePath("/settings/quote-templates");
-  redirect(withFlash(`/settings/quote-templates/${template.id}`, "Quote template created."));
+  revalidatePath("/system/settings/quote-templates");
+  redirect(withFlash(`/system/settings/quote-templates/${template.id}`, "Quote template created."));
 }
 
 export async function updateQuoteTemplate(
@@ -103,14 +103,14 @@ export async function updateQuoteTemplate(
     },
   });
 
-  revalidatePath("/settings/quote-templates");
-  revalidatePath(`/settings/quote-templates/${templateId}`);
-  redirect(withFlash(`/settings/quote-templates/${templateId}`, "Changes saved."));
+  revalidatePath("/system/settings/quote-templates");
+  revalidatePath(`/system/settings/quote-templates/${templateId}`);
+  redirect(withFlash(`/system/settings/quote-templates/${templateId}`, "Changes saved."));
 }
 
 export async function deleteQuoteTemplate(id: string) {
   await requireAdminAction();
   await db.quoteTemplate.delete({ where: { id } });
-  revalidatePath("/settings/quote-templates");
-  redirect(withFlash("/settings/quote-templates", "Quote template deleted."));
+  revalidatePath("/system/settings/quote-templates");
+  redirect(withFlash("/system/settings/quote-templates", "Quote template deleted."));
 }

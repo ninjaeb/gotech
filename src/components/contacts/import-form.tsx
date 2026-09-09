@@ -84,7 +84,7 @@ export function ImportForm() {
             </p>
           </div>
           <div className="flex justify-center gap-2">
-            <Link href="/contacts" className="inline-flex">
+            <Link href="/system/contacts" className="inline-flex">
               <Button variant="secondary">View contacts</Button>
             </Link>
             <Button onClick={startOver}>Import another file</Button>

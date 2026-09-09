@@ -69,7 +69,7 @@ export async function updateBookingSettings(
     slotMinutes: parsed.data.slotMinutes,
     weeklyHours: parsed.data.weeklyHours as WeeklyHours,
   });
-  revalidatePath("/settings/forms");
+  revalidatePath("/system/settings/forms");
   revalidatePath("/book");
   return { success: true };
 }
@@ -86,7 +86,7 @@ export async function updateTaskReminderHour(
     return { error: "Invalid hour" };
   }
   await setTaskReminderHour(parsed.data);
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -107,7 +107,7 @@ export async function updateTaskAssignmentNotificationDelay(
     return { error: "Invalid delay" };
   }
   await setTaskAssignmentNotificationDelayMinutes(parsed.data);
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -132,7 +132,7 @@ export async function updateNewsletterSubscribeList(
     return { error: "Invalid list" };
   }
   await setNewsletterSubscribeListId(parsed.data);
-  revalidatePath("/settings/newsletter");
+  revalidatePath("/system/settings/newsletter");
   return { success: true };
 }
 
@@ -150,7 +150,7 @@ export async function sendTaskRemindersNow(
   void formData;
   await requireAdminAction();
   const result = await runTaskReminders({ force: true });
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return result;
 }
 
@@ -193,7 +193,7 @@ export async function sendTaskDigestTemplateTest(
       phone,
       TEMPLATE_NAME,
       "en",
-      [firstName, "2", "3", `${siteOrigin}/tasks?filter=due&assignee=${admin.id}`],
+      [firstName, "2", "3", `${siteOrigin}/system/tasks?filter=due&assignee=${admin.id}`],
       [firstName],
     );
   } catch (error) {

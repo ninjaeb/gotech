@@ -70,7 +70,7 @@ export async function saveNewsletterSender(
     update: values,
   });
 
-  revalidatePath("/settings/newsletter");
+  revalidatePath("/system/settings/newsletter");
   return { success: true };
 }
 
@@ -81,6 +81,6 @@ export async function deleteNewsletterSender(
   void formData;
   await requireAdminAction();
   await db.newsletterSender.deleteMany({ where: { id: "singleton" } });
-  revalidatePath("/settings/newsletter");
+  revalidatePath("/system/settings/newsletter");
   return { success: true };
 }

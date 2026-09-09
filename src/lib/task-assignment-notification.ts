@@ -59,7 +59,7 @@ async function sendTaskAssignmentNotification(
   await db.notification.createMany({
     data: recipientIds.map((userId) => ({ userId, taskId, content })),
   });
-  await notifyTaskAssignmentViaWhatsApp(recipientIds, assignerName, taskTitle, `/tasks/${taskId}`);
+  await notifyTaskAssignmentViaWhatsApp(recipientIds, assignerName, taskTitle, `/system/tasks/${taskId}`);
 }
 
 // Cron entrypoint (see scripts/sync-email.ts) — sends every pending

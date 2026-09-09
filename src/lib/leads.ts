@@ -122,12 +122,12 @@ export async function createLeadFromSubmission(data: LeadInput): Promise<CreateL
       })),
     });
   }
-  await notifyNewLeadViaWhatsApp(data.name, companyName ?? "", `/deals/${deal.id}`);
+  await notifyNewLeadViaWhatsApp(data.name, companyName ?? "", `/system/deals/${deal.id}`);
 
-  revalidatePath("/deals");
-  revalidatePath("/contacts");
-  revalidatePath("/companies");
-  revalidatePath("/");
+  revalidatePath("/system/deals");
+  revalidatePath("/system/contacts");
+  revalidatePath("/system/companies");
+  revalidatePath("/system");
 
   return { ok: true };
 }

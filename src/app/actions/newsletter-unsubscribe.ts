@@ -39,5 +39,5 @@ export async function setContactEmailOptOut(contactId: string, optOut: boolean, 
     where: { id: contactId },
     data: { emailOptOut: optOut, emailOptOutAt: optOut ? new Date() : null },
   });
-  revalidatePath(`/contacts/${contactId}`);
+  revalidatePath(`/system/contacts/${contactId}`);
 }

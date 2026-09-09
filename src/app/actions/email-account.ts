@@ -100,7 +100,7 @@ export async function connectEmailAccount(
     },
   });
 
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -136,7 +136,7 @@ export async function updateEmailSenderSettings(
     },
   });
 
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -147,7 +147,7 @@ export async function disconnectEmailAccount(
   void formData;
   const user = await requireAdminAction();
   await db.emailAccount.deleteMany({ where: { userId: user.id } });
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }
 
@@ -165,9 +165,9 @@ export async function syncEmailAccountNow(
   try {
     await syncEmailAccount(account);
   } catch (error) {
-    revalidatePath("/settings/integrations");
+    revalidatePath("/system/settings/integrations");
     return { error: error instanceof Error ? error.message : "Sync failed." };
   }
-  revalidatePath("/settings/integrations");
+  revalidatePath("/system/settings/integrations");
   return { success: true };
 }

@@ -18,11 +18,11 @@ const GROUPS: {
   href: (id: string) => string;
   iconColor: string;
 }[] = [
-  { key: "companies", label: "Companies", icon: Building2, href: (id) => `/companies/${id}`, iconColor: "text-sky-500 dark:text-sky-400" },
-  { key: "contacts", label: "Contacts", icon: Users, href: (id) => `/contacts/${id}`, iconColor: "text-cyan-500 dark:text-cyan-400" },
-  { key: "deals", label: "Deals", icon: KanbanSquare, href: (id) => `/deals/${id}`, iconColor: "text-fuchsia-500 dark:text-fuchsia-400" },
-  { key: "projects", label: "Projects", icon: FolderKanban, href: (id) => `/projects/${id}`, iconColor: "text-orange-500 dark:text-orange-400" },
-  { key: "tasks", label: "Tasks", icon: CheckSquare, href: (id) => `/tasks/${id}/edit`, iconColor: "text-rose-500 dark:text-rose-400" },
+  { key: "companies", label: "Companies", icon: Building2, href: (id) => `/system/companies/${id}`, iconColor: "text-sky-500 dark:text-sky-400" },
+  { key: "contacts", label: "Contacts", icon: Users, href: (id) => `/system/contacts/${id}`, iconColor: "text-cyan-500 dark:text-cyan-400" },
+  { key: "deals", label: "Deals", icon: KanbanSquare, href: (id) => `/system/deals/${id}`, iconColor: "text-fuchsia-500 dark:text-fuchsia-400" },
+  { key: "projects", label: "Projects", icon: FolderKanban, href: (id) => `/system/projects/${id}`, iconColor: "text-orange-500 dark:text-orange-400" },
+  { key: "tasks", label: "Tasks", icon: CheckSquare, href: (id) => `/system/tasks/${id}/edit`, iconColor: "text-rose-500 dark:text-rose-400" },
 ];
 
 export function GlobalSearch() {

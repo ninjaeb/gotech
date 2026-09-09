@@ -70,7 +70,7 @@ export function ContactSearchList({ contacts, stage }: { contacts: ContactRow[];
           }
           action={
             !hasActiveFilters && (
-              <Link href="/contacts/new" className={buttonClasses()}>
+              <Link href="/system/contacts/new" className={buttonClasses()}>
                 <Plus className="h-4 w-4" />
                 New contact
               </Link>
@@ -83,7 +83,7 @@ export function ContactSearchList({ contacts, stage }: { contacts: ContactRow[];
             {filtered.map((contact) => (
               <li key={contact.id}>
                 <Link
-                  href={`/contacts/${contact.id}`}
+                  href={`/system/contacts/${contact.id}`}
                   className="flex items-center gap-3 px-5 py-4 hover:bg-slate-50 dark:hover:bg-neutral-800/50"
                 >
                   <ContactAvatar

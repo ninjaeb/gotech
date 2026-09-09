@@ -11,12 +11,12 @@ import type { MetadataRoute } from "next";
 // dark navy in both themes, matching this icon's own background.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/",
+    id: "/system",
     name: "Gotka CRM",
     short_name: "Gotka CRM",
     description: "Manage companies, contacts, deals, and tasks in one place.",
-    start_url: "/",
-    scope: "/",
+    start_url: "/system",
+    scope: "/system",
     display: "standalone",
     background_color: "#020617",
     theme_color: "#020617",

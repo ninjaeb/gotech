@@ -39,7 +39,7 @@ async function notifyTaskMentions(
     data: newlyMentioned.map((userId) => ({ userId, taskId, content })),
   });
 
-  await notifyMentionsViaWhatsApp(newlyMentioned, currentUser, description, `/tasks/${taskId}`, {
+  await notifyMentionsViaWhatsApp(newlyMentioned, currentUser, description, `/system/tasks/${taskId}`, {
     taskId,
     contactId: null,
     companyId: null,
@@ -79,7 +79,7 @@ async function notifyTaskStatusChange(
     data: recipientIds.map((userId) => ({ userId, taskId, content })),
   });
 
-  await notifyTaskStatusViaWhatsApp(recipientIds, actorName, taskTitle, statusText, `/tasks/${taskId}`);
+  await notifyTaskStatusViaWhatsApp(recipientIds, actorName, taskTitle, statusText, `/system/tasks/${taskId}`);
 }
 
 const taskSchema = z.object({
@@ -109,13 +109,13 @@ function revalidateTaskPaths(task: {
   dealId?: string | null;
   projectId?: string | null;
 }) {
-  revalidatePath("/tasks");
-  revalidatePath("/");
-  if (task.contactId) revalidatePath(`/contacts/${task.contactId}`);
-  if (task.companyId) revalidatePath(`/companies/${task.companyId}`);
-  if (task.dealId) revalidatePath(`/deals/${task.dealId}`);
-  if (task.projectId) revalidatePath(`/projects/${task.projectId}`);
-  if (task.id) revalidatePath(`/tasks/${task.id}`);
+  revalidatePath("/system/tasks");
+  revalidatePath("/system");
+  if (task.contactId) revalidatePath(`/system/contacts/${task.contactId}`);
+  if (task.companyId) revalidatePath(`/system/companies/${task.companyId}`);
+  if (task.dealId) revalidatePath(`/system/deals/${task.dealId}`);
+  if (task.projectId) revalidatePath(`/system/projects/${task.projectId}`);
+  if (task.id) revalidatePath(`/system/tasks/${task.id}`);
 }
 
 export async function createTask(formData: FormData) {
@@ -229,7 +229,7 @@ export async function updateTask(id: string, formData: FormData) {
   await cancelPendingTaskAssignmentNotifications(task.id, unassignedIds);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
-  redirect("/tasks");
+  redirect("/system/tasks");
 }
 
 export async function toggleTaskComplete(id: string) {

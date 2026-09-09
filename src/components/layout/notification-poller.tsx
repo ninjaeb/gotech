@@ -60,7 +60,7 @@ function fireDesktopNotifications(items: PolledNotification[], router: ReturnTyp
     });
     notification.onclick = () => {
       window.focus();
-      router.push("/");
+      router.push("/system");
       notification.close();
     };
     return;

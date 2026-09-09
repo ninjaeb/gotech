@@ -38,8 +38,8 @@ export async function createPipeline(
     },
   });
 
-  revalidatePath("/settings/pipelines");
-  redirect(withFlash(`/settings/pipelines/${pipeline.id}`, "Pipeline created."));
+  revalidatePath("/system/settings/pipelines");
+  redirect(withFlash(`/system/settings/pipelines/${pipeline.id}`, "Pipeline created."));
 }
 
 export async function renamePipeline(
@@ -51,8 +51,8 @@ export async function renamePipeline(
   const name = String(formData.get("name") || "").trim();
   if (!name) return { error: "Pipeline name is required" };
   await db.pipeline.update({ where: { id }, data: { name } });
-  revalidatePath("/settings/pipelines");
-  revalidatePath(`/settings/pipelines/${id}`);
+  revalidatePath("/system/settings/pipelines");
+  revalidatePath(`/system/settings/pipelines/${id}`);
   return { success: true };
 }
 
@@ -62,9 +62,9 @@ export async function setDefaultPipeline(id: string): Promise<PipelineActionStat
     db.pipeline.updateMany({ where: { isDefault: true }, data: { isDefault: false } }),
     db.pipeline.update({ where: { id }, data: { isDefault: true } }),
   ]);
-  revalidatePath("/settings/pipelines");
-  revalidatePath("/deals");
-  revalidatePath("/");
+  revalidatePath("/system/settings/pipelines");
+  revalidatePath("/system/deals");
+  revalidatePath("/system");
   return { success: true };
 }
 
@@ -86,8 +86,8 @@ export async function deletePipeline(id: string, formData: FormData) {
   }
 
   await db.pipeline.delete({ where: { id } });
-  revalidatePath("/settings/pipelines");
-  redirect(withFlash("/settings/pipelines", "Pipeline deleted."));
+  revalidatePath("/system/settings/pipelines");
+  redirect(withFlash("/system/settings/pipelines", "Pipeline deleted."));
 }
 
 const stageSchema = z.object({
@@ -147,9 +147,9 @@ export async function updatePipelineStages(
     throw error;
   }
 
-  revalidatePath(`/settings/pipelines/${pipelineId}`);
-  revalidatePath("/settings/pipelines");
-  revalidatePath("/deals");
-  revalidatePath("/");
+  revalidatePath(`/system/settings/pipelines/${pipelineId}`);
+  revalidatePath("/system/settings/pipelines");
+  revalidatePath("/system/deals");
+  revalidatePath("/system");
   return { success: true };
 }

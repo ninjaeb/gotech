@@ -100,9 +100,9 @@ export async function createCompany(_prevState: CompanyFormState, formData: Form
   const parsed = parseCompanyForm(formData);
   if (!parsed.success) return { error: parsed.error, values: extractCompanyFormValues(formData) };
   const company = await db.company.create({ data: parsed.data });
-  revalidatePath("/companies");
-  revalidatePath("/");
-  redirect(`/companies/${company.id}`);
+  revalidatePath("/system/companies");
+  revalidatePath("/system");
+  redirect(`/system/companies/${company.id}`);
 }
 
 export async function updateCompany(
@@ -114,17 +114,17 @@ export async function updateCompany(
   const parsed = parseCompanyForm(formData);
   if (!parsed.success) return { error: parsed.error, values: extractCompanyFormValues(formData) };
   await db.company.update({ where: { id }, data: parsed.data });
-  revalidatePath("/companies");
-  revalidatePath(`/companies/${id}`);
-  redirect(`/companies/${id}`);
+  revalidatePath("/system/companies");
+  revalidatePath(`/system/companies/${id}`);
+  redirect(`/system/companies/${id}`);
 }
 
 export async function deleteCompany(id: string, formData: FormData) {
   void formData;
   await requireSalesAction();
   await db.company.delete({ where: { id } });
-  revalidatePath("/companies");
-  revalidatePath("/deals");
-  revalidatePath("/");
-  redirect("/companies");
+  revalidatePath("/system/companies");
+  revalidatePath("/system/deals");
+  revalidatePath("/system");
+  redirect("/system/companies");
 }

@@ -75,8 +75,8 @@ export async function createQuote(
     },
   });
 
-  revalidatePath(`/deals/${dealId}`);
-  redirect(`/deals/${dealId}/quotes/${quote.id}`);
+  revalidatePath(`/system/deals/${dealId}`);
+  redirect(`/system/deals/${dealId}/quotes/${quote.id}`);
 }
 
 export async function updateQuote(
@@ -104,16 +104,16 @@ export async function updateQuote(
     },
   });
 
-  revalidatePath(`/deals/${quote.dealId}`);
-  revalidatePath(`/deals/${quote.dealId}/quotes/${quote.id}`);
-  redirect(`/deals/${quote.dealId}/quotes/${quote.id}`);
+  revalidatePath(`/system/deals/${quote.dealId}`);
+  revalidatePath(`/system/deals/${quote.dealId}/quotes/${quote.id}`);
+  redirect(`/system/deals/${quote.dealId}/quotes/${quote.id}`);
 }
 
 export async function deleteQuote(quoteId: string) {
   await requireSalesAction();
   const quote = await db.quote.delete({ where: { id: quoteId }, select: { dealId: true } });
-  revalidatePath(`/deals/${quote.dealId}`);
-  redirect(`/deals/${quote.dealId}`);
+  revalidatePath(`/system/deals/${quote.dealId}`);
+  redirect(`/system/deals/${quote.dealId}`);
 }
 
 export async function sendQuote(quoteId: string) {
@@ -125,8 +125,8 @@ export async function sendQuote(quoteId: string) {
   if (quote.status === "DRAFT") {
     await db.quote.update({ where: { id: quoteId }, data: { status: "SENT", sentAt: new Date() } });
   }
-  revalidatePath(`/deals/${quote.dealId}`);
-  revalidatePath(`/deals/${quote.dealId}/quotes/${quoteId}`);
+  revalidatePath(`/system/deals/${quote.dealId}`);
+  revalidatePath(`/system/deals/${quote.dealId}/quotes/${quoteId}`);
 }
 
 // Called from the public quote page (no session) on first render — a real

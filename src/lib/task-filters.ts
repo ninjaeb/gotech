@@ -23,5 +23,5 @@ export function tabHref(key: FilterKey, query: string, assigneeParam?: string) {
   if (query) params.set("q", query);
   if (assigneeParam !== undefined) params.set("assignee", assigneeParam);
   const qs = params.toString();
-  return qs ? `/tasks?${qs}` : "/tasks";
+  return qs ? `/system/tasks?${qs}` : "/system/tasks";
 }

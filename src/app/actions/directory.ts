@@ -521,7 +521,7 @@ export async function submitDirectoryListingForReview(
 
   revalidatePath("/partner");
   revalidatePath("/partner/listing");
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
   return { success: true };
 }
 
@@ -657,7 +657,7 @@ export async function approveDirectoryListing(id: string): Promise<void> {
       publishedSnapshot: buildPublishedSnapshot(listing),
     },
   });
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
 }
@@ -676,7 +676,7 @@ export async function rejectDirectoryListing(id: string, formData: FormData): Pr
     where: { id },
     data: { status: "REJECTED", reviewNote: parsed.data.note, reviewedAt: new Date() },
   });
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
 }
 
 // Pulls a listing off the public directory without touching the partner's
@@ -688,7 +688,7 @@ export async function unpublishDirectoryListing(id: string): Promise<void> {
     where: { id },
     data: { publishedSnapshot: Prisma.JsonNull, status: "DRAFT" },
   });
-  revalidatePath("/settings/directory");
+  revalidatePath("/system/settings/directory");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
 }
