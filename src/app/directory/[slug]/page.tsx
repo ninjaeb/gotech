@@ -13,6 +13,8 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
+import { InquiryProvider, InquiryScrollTarget } from "@/components/directory/listing-inquiry";
+import { ServiceList } from "@/components/directory/service-list";
 import { ShareButton } from "@/components/directory/share-button";
 
 export const dynamic = "force-dynamic";
@@ -227,158 +229,143 @@ export default async function DirectoryListingPage({ params }: { params: Promise
         <ShareButton title={listing.companyName} url={pageUrl} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          {listing.description && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
-              </CardHeader>
-              <CardBody className="text-base text-slate-600 dark:text-slate-300">
-                {renderMarkdownLite(listing.description)}
-              </CardBody>
-            </Card>
-          )}
+      <InquiryProvider>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            {listing.description && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
+                </CardHeader>
+                <CardBody className="text-base text-slate-600 dark:text-slate-300">
+                  {renderMarkdownLite(listing.description)}
+                </CardBody>
+              </Card>
+            )}
 
-          {(listing.services.length > 0 || listing.operatingHours) && (
-            <div
-              className={cn(
-                "grid gap-6",
-                listing.services.length > 0 && listing.operatingHours ? "sm:grid-cols-2" : "",
-              )}
-            >
-              {listing.services.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
-                  </CardHeader>
-                  <CardBody className="space-y-4">
-                    {listing.services.map((service, index) => (
-                      <div
-                        key={index}
-                        className="border-b border-slate-100 pb-4 last:border-b-0 last:pb-0 dark:border-neutral-800"
-                      >
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                          <h3 className="font-semibold text-slate-900 dark:text-slate-100">{service.title}</h3>
-                          {service.price && (
-                            <span className="shrink-0 text-sm font-medium text-petrol dark:text-petrol-light">
-                              {service.price}
-                            </span>
-                          )}
-                        </div>
-                        {service.description && (
-                          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{service.description}</p>
-                        )}
-                      </div>
-                    ))}
-                  </CardBody>
-                </Card>
-              )}
-              {listing.operatingHours && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-1.5 text-lg">
-                      <Clock className="h-4 w-4 text-slate-400" />
-                      {t.hoursHeading}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardBody>
-                    <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
-                      <table className="w-full text-sm">
-                        <tbody>
-                          {buildHoursRows(listing.operatingHours, t).map((row) => (
-                            <tr
-                              key={row.day}
-                              className={cn(
-                                "border-b border-slate-200 last:border-b-0 dark:border-neutral-800",
-                                row.isToday && "bg-led-soft dark:bg-led-soft-dark",
-                              )}
-                            >
-                              <td
-                                className={cn(
-                                  "px-3 py-2 font-semibold text-slate-700 dark:text-slate-300",
-                                  row.isToday && "text-petrol-ink dark:text-petrol-light",
-                                )}
-                              >
-                                {row.label}
-                              </td>
-                              <td
-                                className={cn(
-                                  "px-3 py-2 text-slate-600 dark:text-slate-300",
-                                  row.isToday && "font-semibold text-petrol-ink dark:text-petrol-light",
-                                )}
-                              >
-                                {row.status}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardBody>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {mapAddress && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t.visitHeading}</CardTitle>
-              </CardHeader>
-              <CardBody className="space-y-4">
-                {listing.address && (
-                  <p className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
-                    <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-                    <span className="whitespace-pre-wrap">{listing.address}</span>
-                  </p>
+            {(listing.services.length > 0 || listing.operatingHours) && (
+              <div
+                className={cn(
+                  "grid gap-6",
+                  listing.services.length > 0 && listing.operatingHours ? "sm:grid-cols-2" : "",
                 )}
-                <iframe
-                  title={`${listing.companyName} on the map`}
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
-                  className="h-64 w-full rounded-md border-0"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
-              </CardBody>
-            </Card>
-          )}
+              >
+                {listing.services.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">{t.servicesHeading}</CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                      <ServiceList services={listing.services} />
+                    </CardBody>
+                  </Card>
+                )}
+                {listing.operatingHours && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-1.5 text-lg">
+                        <Clock className="h-4 w-4 text-slate-400" />
+                        {t.hoursHeading}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardBody>
+                      <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
+                        <table className="w-full text-base">
+                          <tbody>
+                            {buildHoursRows(listing.operatingHours, t).map((row) => (
+                              <tr
+                                key={row.day}
+                                className={cn(
+                                  "border-b border-slate-200 last:border-b-0 dark:border-neutral-800",
+                                  row.isToday && "bg-led-soft dark:bg-led-soft-dark",
+                                )}
+                              >
+                                <td
+                                  className={cn(
+                                    "px-3 py-2 font-semibold text-slate-700 dark:text-slate-300",
+                                    row.isToday && "text-petrol-ink dark:text-petrol-light",
+                                  )}
+                                >
+                                  {row.label}
+                                </td>
+                                <td
+                                  className={cn(
+                                    "px-3 py-2 text-slate-600 dark:text-slate-300",
+                                    row.isToday && "font-semibold text-petrol-ink dark:text-petrol-light",
+                                  )}
+                                >
+                                  {row.status}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardBody>
+                  </Card>
+                )}
+              </div>
+            )}
 
-          {listing.faqs.length > 0 && (
+            {mapAddress && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{t.visitHeading}</CardTitle>
+                </CardHeader>
+                <CardBody className="space-y-4">
+                  {listing.address && (
+                    <p className="flex items-start gap-2 text-base text-slate-600 dark:text-slate-300">
+                      <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                      <span className="whitespace-pre-wrap">{listing.address}</span>
+                    </p>
+                  )}
+                  <iframe
+                    title={`${listing.companyName} on the map`}
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
+                    className="h-64 w-full rounded-md border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </CardBody>
+              </Card>
+            )}
+
+            {listing.faqs.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">{t.faqHeading}</CardTitle>
+                </CardHeader>
+                <CardBody className="space-y-2">
+                  {listing.faqs.map((faq, index) => (
+                    <details
+                      key={index}
+                      className="group rounded-md border border-slate-200 px-3 py-2 dark:border-neutral-800"
+                    >
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-slate-900 marker:content-none dark:text-slate-100">
+                        {faq.question}
+                        <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <p className="mt-2 text-base text-slate-600 dark:text-slate-300">{faq.answer}</p>
+                    </details>
+                  ))}
+                </CardBody>
+              </Card>
+            )}
+          </div>
+
+          <InquiryScrollTarget className="lg:sticky lg:top-6 lg:self-start">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t.faqHeading}</CardTitle>
+                <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
               </CardHeader>
-              <CardBody className="space-y-2">
-                {listing.faqs.map((faq, index) => (
-                  <details
-                    key={index}
-                    className="group rounded-md border border-slate-200 px-3 py-2 dark:border-neutral-800"
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-slate-900 marker:content-none dark:text-slate-100">
-                      {faq.question}
-                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
-                    </summary>
-                    <p className="mt-2 text-base text-slate-600 dark:text-slate-300">{faq.answer}</p>
-                  </details>
-                ))}
+              <CardBody>
+                <p className="mb-4 text-base text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
+                <DirectoryLeadForm slug={slug} locale={locale} />
               </CardBody>
             </Card>
-          )}
+          </InquiryScrollTarget>
         </div>
-
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
-            </CardHeader>
-            <CardBody>
-              <p className="mb-4 text-base text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
-              <DirectoryLeadForm slug={slug} locale={locale} />
-            </CardBody>
-          </Card>
-        </div>
-      </div>
+      </InquiryProvider>
     </div>
   );
 }

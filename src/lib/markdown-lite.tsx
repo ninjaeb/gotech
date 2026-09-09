@@ -77,8 +77,11 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 
 type Block = { type: "paragraph" | "bullet-list" | "numbered-list"; lines: string[] };
 
-const BULLET_RE = /^[-*]\s+(.*)$/;
-const NUMBERED_RE = /^\d+\.\s+(.*)$/;
+// Exported for markdown-lite-editor.tsx's Enter-key handling, which needs to
+// recognize "the cursor is on a list line" using the exact same grammar this
+// parses with, rather than a second, potentially-drifting copy of it.
+export const BULLET_RE = /^[-*]\s+(.*)$/;
+export const NUMBERED_RE = /^\d+\.\s+(.*)$/;
 
 // Blank lines separate paragraphs; a run of consecutive list-marker lines
 // becomes one list. Everything else is a paragraph, with single line

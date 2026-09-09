@@ -10,6 +10,18 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.63",
+    date: "2026-09-09",
+    title: "Editor layout cleanup, a list-editing bug fix, and clickable products",
+    changes: [
+      "My listing's editor is reorganized to use its space better: Tagline/Website/Location now share one row, Operating hours sits beside FAQ, and each product/service's price now sits next to its title instead of below its description",
+      "The About field now grows to fit its content instead of scrolling inside a small box, and fixed a bug where pressing Enter at the end of a bullet or numbered list started a plain new line instead of continuing the list",
+      "Services are now labeled Products & Services throughout, for both the editor and the public listing",
+      "On a listing's detail page, every product/service is now clickable — picking one scrolls to the Get in touch card and prefills the message with an inquiry about it",
+      "Font sizes across a listing's detail page (products/services, the hours table) are now consistent with the rest of the page",
+    ],
+  },
+  {
     version: "1.62",
     date: "2026-09-09",
     title: "SEO/GEO-optimized About rewrites, and a listing FAQ section",

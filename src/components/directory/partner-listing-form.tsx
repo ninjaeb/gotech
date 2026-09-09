@@ -229,11 +229,10 @@ export function PartnerListingForm({
         </FieldGroup>
       </div>
 
-      <FieldGroup label="Tagline" htmlFor="tagline">
-        <Input id="tagline" name="tagline" defaultValue={current.tagline} placeholder="One line under your company name" maxLength={140} />
-      </FieldGroup>
-
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FieldGroup label="Tagline" htmlFor="tagline">
+          <Input id="tagline" name="tagline" defaultValue={current.tagline} placeholder="One line under your company name" maxLength={140} />
+        </FieldGroup>
         <FieldGroup label="Website" htmlFor="website">
           <Input id="website" name="website" defaultValue={current.website} placeholder="acme.com" />
         </FieldGroup>
@@ -255,10 +254,33 @@ export function PartnerListingForm({
         </p>
       </FieldGroup>
 
-      <div>
-        <Label>Operating hours</Label>
-        <OperatingHoursEditor initialHours={operatingHours} />
-        <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label>Operating hours</Label>
+          <OperatingHoursEditor initialHours={operatingHours} />
+          <p className="mt-1 text-xs text-slate-400">Shown on your listing exactly as set here.</p>
+        </div>
+
+        <div>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label className="mb-0">FAQ</Label>
+            {aiAvailable && (
+              <button
+                type="button"
+                onClick={handleGenerateFaqs}
+                disabled={generatingFaqs}
+                className={buttonClasses("ghost", "sm", "shrink-0")}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {generatingFaqs ? "Generating…" : "Generate with AI"}
+              </button>
+            )}
+          </div>
+          <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
+          <p className="mt-1 text-xs text-slate-400">
+            Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -296,7 +318,7 @@ export function PartnerListingForm({
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <Label className="mb-0">
-              Services
+              Products &amp; services
               <RequiredMark />
             </Label>
             {aiAvailable && (
@@ -363,27 +385,6 @@ export function PartnerListingForm({
         </div>
         <p className="mt-1 text-xs text-slate-400">
           Optional — leave blank to use your tagline and About text automatically.
-        </p>
-      </div>
-
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label className="mb-0">FAQ</Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleGenerateFaqs}
-              disabled={generatingFaqs}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {generatingFaqs ? "Generating…" : "Generate with AI"}
-            </button>
-          )}
-        </div>
-        <FaqEditor name="faqs" value={faqs} onChange={setFaqs} />
-        <p className="mt-1 text-xs text-slate-400">
-          Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
         </p>
       </div>
 

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { submitDirectoryLead } from "@/app/actions/directory";
 import { Button } from "@/components/ui/button";
 import { FieldGroup, Input, Textarea } from "@/components/ui/field";
+import { useInquiry } from "@/components/directory/listing-inquiry";
 import { DIRECTORY_STRINGS, type DirectoryLocale } from "@/lib/directory-i18n";
 
 // Same honeypot/render-timing shape as the CRM's own public lead form (see
@@ -21,6 +22,20 @@ export function DirectoryLeadForm({ slug, locale }: { slug: string; locale: Dire
   const [company, setCompany] = useState("");
   const [message, setMessage] = useState("");
   const [renderedAt] = useState(() => Date.now());
+
+  // Clicking a product/service (see ServiceList) sets this, which prefills
+  // the message here instead of leaving a visitor to type out what they're
+  // asking about — see InquiryProvider for the shared click state. Updating
+  // `message` during render (comparing against the last-seen selection)
+  // rather than in an effect is React's own documented way to sync state
+  // to a changed prop/context value without an extra render round-trip —
+  // same pattern partner-listing-form.tsx uses for its own display state.
+  const { selectedService } = useInquiry();
+  const [lastSelectedService, setLastSelectedService] = useState(selectedService);
+  if (selectedService !== lastSelectedService) {
+    setLastSelectedService(selectedService);
+    if (selectedService) setMessage(`I'm interested in: ${selectedService}. `);
+  }
 
   if (state?.status === "success") {
     return (

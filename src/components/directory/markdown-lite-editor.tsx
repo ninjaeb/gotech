@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Bold, Image as ImageIcon, Link2, List, ListOrdered } from "lucide-react";
 import { uploadDirectoryListingImage } from "@/app/actions/directory-images";
 import { compressImage } from "@/lib/image-compression";
-import { renderMarkdownLite } from "@/lib/markdown-lite";
+import { BULLET_RE, NUMBERED_RE, renderMarkdownLite } from "@/lib/markdown-lite";
 import { cn } from "@/lib/utils";
 
 type Range = { start: number; end: number };
@@ -58,6 +58,22 @@ export function MarkdownLiteEditor({
     textareaRef.current.setSelectionRange(pending.start, pending.end);
   }, [value]);
 
+  // Grows the box to fit its content instead of scrolling internally —
+  // About should read like the rest of the page (the reader scrolls the
+  // page, not a little box inside it), the way Services' own list of rows
+  // already does by just stacking and growing the page underneath it.
+  // Resetting height to "auto" first is what makes scrollHeight shrink back
+  // down when text is removed, not just grow. Also re-runs on `mode`: a
+  // hidden (display:none) textarea reports scrollHeight 0, so a value
+  // change while on the Preview tab needs re-measuring once Write is
+  // visible again, not just on the next keystroke.
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el || mode !== "write") return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value, mode]);
+
   function currentSelection(): Range {
     const el = textareaRef.current;
     if (!el) return { start: value.length, end: value.length };
@@ -98,6 +114,45 @@ export function MarkdownLiteEditor({
     const { start, end } = currentSelection();
     const next = value.slice(0, start) + text + value.slice(end);
     const cursor = start + text.length;
+    pendingSelection.current = { start: cursor, end: cursor };
+    onChange(next);
+  }
+
+  // Pressing Enter at the end of a list line should continue the list (the
+  // way most markdown editors behave) instead of just dropping to a plain
+  // new line — matching lines against the same BULLET_RE/NUMBERED_RE the
+  // parser itself uses, so "is this line a list item" never drifts between
+  // the two. Enter on an empty list item ends the list instead of adding
+  // yet another empty one, the usual double-Enter-to-exit convention.
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    const { start, end } = currentSelection();
+    if (start !== end) return;
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const nextBreak = value.indexOf("\n", start);
+    const lineEnd = nextBreak === -1 ? value.length : nextBreak;
+    if (start !== lineEnd) return; // mid-line Enter just splits the line as normal
+    const line = value.slice(lineStart, start);
+
+    const bullet = BULLET_RE.exec(line);
+    const numbered = NUMBERED_RE.exec(line);
+    if (!bullet && !numbered) return;
+    event.preventDefault();
+
+    const content = (bullet ?? numbered)![1].trim();
+    if (!content) {
+      // An empty list item — Enter here ends the list rather than
+      // continuing it with another empty one.
+      const next = value.slice(0, lineStart) + value.slice(start);
+      pendingSelection.current = { start: lineStart, end: lineStart };
+      onChange(next);
+      return;
+    }
+
+    const marker = bullet ? `${line[0]} ` : `${parseInt(line, 10) + 1}. `;
+    const insertion = `\n${marker}`;
+    const next = value.slice(0, start) + insertion + value.slice(end);
+    const cursor = start + insertion.length;
     pendingSelection.current = { start: cursor, end: cursor };
     onChange(next);
   }
@@ -184,9 +239,10 @@ export function MarkdownLiteEditor({
         rows={rows}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
         hidden={mode === "preview"}
-        className="block w-full resize-y border-0 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:bg-neutral-900 dark:text-slate-100 dark:placeholder:text-slate-500"
+        className="block w-full resize-none overflow-hidden border-0 px-3 py-2 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0 dark:bg-neutral-900 dark:text-slate-100 dark:placeholder:text-slate-500"
       />
       {mode === "preview" && (
         <div className="min-h-32 px-3 py-2 text-base text-slate-600 dark:text-slate-300">
