@@ -367,7 +367,7 @@ Publishes a Partner-role user's own profile to a public, trilingual directory at
    - Header (optional, static text only — no variable): anything you like, e.g. "New directory inquiry"
    - Body: `New directory inquiry from {{1}} ({{2}})` on its own line, then a blank line, then `Reply here: {{3}}`
    - Footer (optional, static text only): anything you like, e.g. "Automated notification from Gotka CRM"
-   - No buttons — the link is the body's own `{{3}}` variable. Sample values Meta asks for: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/partner/directory-leads/abc123`.
+   - No buttons — the link is the body's own `{{3}}` variable. Sample values Meta asks for: e.g. `Sarah Tan` / `Acme Corp` / `https://crm.yourcompany.com/business/directory-leads/abc123`.
 
    Submit for review, same as the other templates above.
 4. **Nothing to opt in** — a partner with a phone number on file gets the WhatsApp ping automatically once the template's approved; without WhatsApp Business connected, or without a phone number, the lead is still created and still emailed (if a system mailbox is configured in *Settings → Newsletter*) — only the WhatsApp half is silently skipped.

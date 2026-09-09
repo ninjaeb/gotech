@@ -28,7 +28,7 @@ export async function createBusinessCategory(formData: FormData): Promise<void> 
 
   await db.businessCategory.create({ data: { name: parsed.data.name } });
   revalidatePath("/system/settings/directory");
-  revalidatePath("/partner/listing");
+  revalidatePath("/business/listing");
 }
 
 // Deleting a category a listing still has selected just drops that
@@ -39,5 +39,5 @@ export async function deleteBusinessCategory(id: string): Promise<void> {
   await requireAdminAction();
   await db.businessCategory.delete({ where: { id } });
   revalidatePath("/system/settings/directory");
-  revalidatePath("/partner/listing");
+  revalidatePath("/business/listing");
 }

@@ -30,7 +30,7 @@ export default async function PartnerDirectoryLeadsPage() {
               title="No listing yet"
               description="Set up your listing first — once it's published, inquiries sent through it show up here."
               action={
-                <Link href="/partner/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
+                <Link href="/business/listing" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
                   Go to My listing
                 </Link>
               }
@@ -84,7 +84,7 @@ export default async function PartnerDirectoryLeadsPage() {
                   {leads.map((lead) => (
                     <tr key={lead.id}>
                       <td className="py-2.5 pr-3">
-                        <Link href={`/partner/directory-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
+                        <Link href={`/business/directory-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
                           <p className="font-medium text-slate-800 dark:text-slate-200">{lead.name}</p>
                           {lead.company && <p className="text-xs text-slate-400">{lead.company}</p>}
                         </Link>

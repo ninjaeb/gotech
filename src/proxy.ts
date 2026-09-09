@@ -2,8 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/session";
 import { decryptPortalSession } from "@/lib/portal/session";
 
-// Routes logged-out visitors can reach at all.
-const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
+// Routes logged-out visitors can reach at all. Two separate login pages —
+// /system for staff, /business for partners — each redirected to below
+// based on which section the visitor was actually headed for, not a
+// single shared login the way this repo used to have one.
+const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login", "/business/login"];
 // Routes that stay public even for a logged-in user — e.g. a shared quote
 // link, which staff previewing it shouldn't get bounced away from.
 // /api/whatsapp/webhook is Meta's server calling in directly (no session
@@ -83,13 +86,20 @@ export async function proxy(request: NextRequest) {
   const isAlwaysPublic = ALWAYS_PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isPublicRoute = isAuthOnlyPublic || isAlwaysPublic;
   const session = await decrypt(request.cookies.get("session")?.value);
+  const isBusinessSection = pathname === "/business" || pathname.startsWith("/business/");
 
   if (!isPublicRoute && !session?.userId) {
-    return NextResponse.redirect(new URL("/system/login", request.url));
+    const loginPath = isBusinessSection ? "/business/login" : "/system/login";
+    return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
   if (isAuthOnlyPublic && session?.userId) {
-    return NextResponse.redirect(new URL("/system", request.url));
+    // Proxy only knows a session exists here, not its role (role isn't in
+    // the JWT payload) — landing on the wrong section's home is a harmless
+    // extra hop, since that section's own layout bounces by role anyway
+    // (see homeForRole in src/lib/auth/dal.ts).
+    const target = pathname === "/business/login" ? "/business" : "/system";
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   return NextResponse.next();

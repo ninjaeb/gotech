@@ -55,8 +55,8 @@ export async function requestReferralWithdrawal(
     });
   });
 
-  revalidatePath("/partner");
-  revalidatePath("/partner/commissions");
+  revalidatePath("/business");
+  revalidatePath("/business/commissions");
   revalidatePath("/system/referrals");
   return { success: true };
 }
@@ -85,7 +85,7 @@ export async function updateReferralSettings(
   await setReferralSettings(parsed.data);
   revalidatePath("/system/settings/referrals");
   revalidatePath("/system/referrals");
-  revalidatePath("/partner");
+  revalidatePath("/business");
   return { success: true };
 }
 
@@ -116,9 +116,9 @@ export async function updatePartnerCommissionRate(userId: string, formData: Form
 
 function revalidateReferralPaths() {
   revalidatePath("/system/referrals");
-  revalidatePath("/partner");
-  revalidatePath("/partner/leads");
-  revalidatePath("/partner/commissions");
+  revalidatePath("/business");
+  revalidatePath("/business/leads");
+  revalidatePath("/business/commissions");
 }
 
 export async function approveReferralCommission(id: string, formData: FormData) {
