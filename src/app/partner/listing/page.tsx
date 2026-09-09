@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { db } from "@/lib/db";
 import { requirePartner } from "@/lib/auth/dal";
-import { ensurePartnerListing, faqsFromJson, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
+import { ensurePartnerListing, faqsFromJson, operatingHoursFromJson, servicesFromJson, translationsFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
 import { isAiConfigured } from "@/lib/ai/client";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,10 +14,13 @@ import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } f
 
 export default async function PartnerListingPage() {
   const user = await requirePartner();
-  const [listing, siteOrigin] = await Promise.all([
-    ensurePartnerListing(user.id, user.name),
+  const listing = await ensurePartnerListing(user.id, user.name);
+  const [siteOrigin, categories, selectedCategories] = await Promise.all([
     getSiteOrigin(),
+    db.businessCategory.findMany({ orderBy: { name: "asc" } }),
+    db.partnerListingCategory.findMany({ where: { listingId: listing.id }, select: { categoryId: true } }),
   ]);
+  const selectedCategoryIds = selectedCategories.map((entry) => entry.categoryId);
 
   const publicUrl = listing.publishedSnapshot ? `${siteOrigin}/directory/${listing.slug}` : null;
 
@@ -72,6 +76,7 @@ export default async function PartnerListingPage() {
             logoUrl={listing.logoUrl}
             operatingHours={operatingHoursFromJson(listing.operatingHours)}
             aiAvailable={isAiConfigured()}
+            categories={categories}
             values={{
               companyName: listing.companyName,
               tagline: listing.tagline ?? "",
@@ -82,6 +87,8 @@ export default async function PartnerListingPage() {
               location: listing.location ?? "",
               address: listing.address ?? "",
               faqs: faqsFromJson(listing.faqs),
+              categoryIds: selectedCategoryIds,
+              translations: translationsFromJson(listing.translations),
               seoTitle: listing.seoTitle ?? "",
               seoDescription: listing.seoDescription ?? "",
             }}

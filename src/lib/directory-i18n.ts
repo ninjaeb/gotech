@@ -40,6 +40,7 @@ export type DirectoryStrings = {
   heroSubtitle: string;
   searchPlaceholder: string;
   allIndustries: string;
+  allCategories: string;
   noResultsTitle: string;
   noResultsDescription: string;
   viewListing: string;
@@ -118,6 +119,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     heroSubtitle: "Browse trusted businesses in the Gotka partner network and reach out directly.",
     searchPlaceholder: "Search by company or service…",
     allIndustries: "All industries",
+    allCategories: "All categories",
     noResultsTitle: "No partners found",
     noResultsDescription: "Try a different search or industry filter.",
     viewListing: "View details",
@@ -212,6 +214,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     heroSubtitle: "浏览 Gotka 合作伙伴网络中值得信赖的企业，并直接联系他们。",
     searchPlaceholder: "按公司或服务搜索…",
     allIndustries: "所有行业",
+    allCategories: "所有类别",
     noResultsTitle: "未找到合作伙伴",
     noResultsDescription: "请尝试其他搜索词或行业筛选。",
     viewListing: "查看详情",
@@ -306,6 +309,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     heroSubtitle: "Semak imbas perniagaan yang dipercayai dalam rangkaian rakan kongsi Gotka dan hubungi terus.",
     searchPlaceholder: "Cari mengikut syarikat atau perkhidmatan…",
     allIndustries: "Semua industri",
+    allCategories: "Semua kategori",
     noResultsTitle: "Tiada rakan kongsi dijumpai",
     noResultsDescription: "Cuba carian atau penapis industri yang lain.",
     viewListing: "Lihat butiran",

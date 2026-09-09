@@ -19,6 +19,7 @@ import {
   rejectDirectoryListing,
   unpublishDirectoryListing,
 } from "@/app/actions/directory";
+import { createBusinessCategory, deleteBusinessCategory } from "@/app/actions/business-categories";
 import {
   DIRECTORY_LEAD_STATUS_BADGE_CLASSES,
   DIRECTORY_LEAD_STATUS_LABELS,
@@ -44,7 +45,7 @@ function formatOperatingHoursPreview(value: unknown): string[] {
 
 export default async function DirectorySettingsPage() {
   await requireAdmin();
-  const [stats, currency, pendingListings, allListings, recentLeads] = await Promise.all([
+  const [stats, currency, pendingListings, allListings, businessCategories, recentLeads] = await Promise.all([
     getDirectoryOverviewStats(),
     getCurrency(),
     db.partnerListing.findMany({
@@ -55,6 +56,10 @@ export default async function DirectorySettingsPage() {
     db.partnerListing.findMany({
       orderBy: { updatedAt: "desc" },
       include: { partner: { select: { name: true } }, _count: { select: { leads: true } } },
+    }),
+    db.businessCategory.findMany({
+      orderBy: { name: "asc" },
+      include: { _count: { select: { listings: true } } },
     }),
     db.directoryLead.findMany({
       orderBy: { createdAt: "desc" },
@@ -224,6 +229,48 @@ export default async function DirectorySettingsPage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Business categories</CardTitle>
+        </CardHeader>
+        <CardBody className="space-y-4">
+          <form action={createBusinessCategory} className="flex items-center gap-2">
+            <Input name="name" required placeholder="e.g. Web Design" className="!h-8 w-56 text-xs" />
+            <Button type="submit" size="sm">
+              Add
+            </Button>
+          </form>
+          {businessCategories.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No categories yet — add one above for partners to pick from on their listing.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+              {businessCategories.map((category) => (
+                <li key={category.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                  <span className="text-slate-700 dark:text-slate-300">
+                    {category.name}
+                    <span className="ml-2 text-xs text-slate-400">
+                      {category._count.listings} {category._count.listings === 1 ? "listing" : "listings"}
+                    </span>
+                  </span>
+                  <form action={deleteBusinessCategory.bind(null, category.id)}>
+                    <ConfirmSubmitButton
+                      confirmMessage={`Delete "${category.name}"? Listings using it will lose that selection.`}
+                      variant="ghost"
+                      size="sm"
+                      className="!h-auto !p-0 text-xs font-medium text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                    >
+                      Delete
+                    </ConfirmSubmitButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
           )}
         </CardBody>
       </Card>

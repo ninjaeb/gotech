@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import type { Industry, PartnerListing } from "@/generated/prisma/client";
 import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
+import type { DirectoryLocale } from "@/lib/directory-i18n";
 
 // Re-exported for existing server-side imports (actions, pages) that
 // already pull these from "@/lib/directory" — but a "use client" component
@@ -36,6 +37,8 @@ export type PublishedListingSnapshot = {
   address: string | null;
   operatingHours: OperatingHours | null;
   faqs: FaqEntry[];
+  categories: string[];
+  translations: ListingTranslations;
   logoUrl: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
@@ -135,6 +138,48 @@ export function parseFaqsJson(raw: string): FaqEntry[] {
   return faqsFromJson(parsed);
 }
 
+// AI-translated (or hand-edited) copies of tagline/description for the
+// directory's non-English locales — see translateListingContent in
+// src/app/actions/directory.ts. Keyed by DirectoryLocale minus "en": the
+// English fields are the primary tagline/description themselves, never
+// duplicated in here.
+export type ListingTranslations = Partial<Record<Exclude<DirectoryLocale, "en">, { tagline: string; description: string }>>;
+
+const TRANSLATION_LOCALES: Exclude<DirectoryLocale, "en">[] = ["zh", "ms"];
+const MAX_TRANSLATED_TAGLINE_LENGTH = 140;
+
+function sanitizeTranslationEntry(entry: unknown): { tagline: string; description: string } | null {
+  if (!entry || typeof entry !== "object") return null;
+  const raw = entry as Record<string, unknown>;
+  const tagline = typeof raw.tagline === "string" ? raw.tagline.trim().slice(0, MAX_TRANSLATED_TAGLINE_LENGTH) : "";
+  const description = typeof raw.description === "string" ? raw.description.trim() : "";
+  if (!tagline && !description) return null;
+  return { tagline, description };
+}
+
+export function translationsFromJson(value: unknown): ListingTranslations {
+  if (!value || typeof value !== "object") return {};
+  const raw = value as Record<string, unknown>;
+  const result: ListingTranslations = {};
+  for (const locale of TRANSLATION_LOCALES) {
+    const entry = sanitizeTranslationEntry(raw[locale]);
+    if (entry) result[locale] = entry;
+  }
+  return result;
+}
+
+// Parses the translation editor's serialized JSON permissively, same spirit
+// as parseServicesJson/parseFaqsJson.
+export function parseTranslationsJson(raw: string): ListingTranslations {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return {};
+  }
+  return translationsFromJson(parsed);
+}
+
 // The inverse of buildPublishedSnapshot — reads the stored JSON back into a
 // typed snapshot, tolerating a missing/malformed value (never trust a JSON
 // column's shape at the type level) by treating it as "not published".
@@ -153,13 +198,18 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     address: typeof raw.address === "string" ? raw.address : null,
     operatingHours: operatingHoursFromJson(raw.operatingHours),
     faqs: faqsFromJson(raw.faqs),
+    categories: Array.isArray(raw.categories) ? raw.categories.filter((entry): entry is string => typeof entry === "string") : [],
+    translations: translationsFromJson(raw.translations),
     logoUrl: typeof raw.logoUrl === "string" ? raw.logoUrl : null,
     seoTitle: typeof raw.seoTitle === "string" ? raw.seoTitle : null,
     seoDescription: typeof raw.seoDescription === "string" ? raw.seoDescription : null,
   };
 }
 
-export function buildPublishedSnapshot(listing: PartnerListing): PublishedListingSnapshot {
+// categoryNames comes from a separate query (see approveDirectoryListing) —
+// `listing` alone, a bare PartnerListing row, has no relation data to
+// resolve PartnerListingCategory rows into names itself.
+export function buildPublishedSnapshot(listing: PartnerListing, categoryNames: string[]): PublishedListingSnapshot {
   return {
     companyName: listing.companyName,
     tagline: listing.tagline,
@@ -171,6 +221,8 @@ export function buildPublishedSnapshot(listing: PartnerListing): PublishedListin
     address: listing.address,
     operatingHours: operatingHoursFromJson(listing.operatingHours),
     faqs: faqsFromJson(listing.faqs),
+    categories: categoryNames,
+    translations: translationsFromJson(listing.translations),
     logoUrl: listing.logoUrl,
     seoTitle: listing.seoTitle,
     seoDescription: listing.seoDescription,

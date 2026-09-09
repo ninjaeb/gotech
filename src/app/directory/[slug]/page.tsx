@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ChevronDown, Clock, Globe, MapPin } from "lucide-react";
@@ -186,6 +187,14 @@ export default async function DirectoryListingPage({ params }: { params: Promise
   const mapAddress = listing.address || listing.location;
   const pageUrl = `${siteOrigin}/directory/${slug}`;
 
+  // The partner's own tagline/description stay the source of truth — a
+  // translation only stands in for whichever field it actually covers, so a
+  // half-filled translation (tagline only, say) still shows the primary
+  // language's About text rather than leaving it blank.
+  const translation = locale === "zh" || locale === "ms" ? listing.translations[locale] : undefined;
+  const displayTagline = translation?.tagline || listing.tagline;
+  const displayDescription = translation?.description || listing.description;
+
   return (
     <div className="w-full px-4 py-10 sm:px-8">
       <script
@@ -200,45 +209,58 @@ export default async function DirectoryListingPage({ params }: { params: Promise
           dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(listing.faqs) }}
         />
       )}
-      <div className="mb-8 flex flex-wrap items-start gap-4">
-        <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
-          {listing.tagline && <p className="mt-1 text-slate-600 dark:text-slate-300">{listing.tagline}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-base text-slate-500 dark:text-slate-400">
-            {listing.industry && <Badge>{INDUSTRY_LABELS[listing.industry]}</Badge>}
-            {listing.location && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {listing.location}
-              </span>
-            )}
-            {listing.website && (
-              <a
-                href={listing.website}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
-              >
-                <Globe className="h-4 w-4" />
-                {t.websiteLabel}
-              </a>
-            )}
+      <div className="sticky top-0 z-10 -mx-4 mb-8 border-b border-slate-200 bg-white px-4 py-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex flex-wrap items-start gap-4">
+          <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
+            {displayTagline && <p className="mt-1 text-slate-600 dark:text-slate-300">{displayTagline}</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-base text-slate-500 dark:text-slate-400">
+              {listing.industry && (
+                <Link href={`/directory?industry=${listing.industry}`}>
+                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                    {INDUSTRY_LABELS[listing.industry]}
+                  </Badge>
+                </Link>
+              )}
+              {listing.categories.map((category) => (
+                <Link key={category} href={`/directory?category=${encodeURIComponent(category)}`}>
+                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">{category}</Badge>
+                </Link>
+              ))}
+              {listing.location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {listing.location}
+                </span>
+              )}
+              {listing.website && (
+                <a
+                  href={listing.website}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                >
+                  <Globe className="h-4 w-4" />
+                  {t.websiteLabel}
+                </a>
+              )}
+            </div>
           </div>
+          <ShareButton title={listing.companyName} url={pageUrl} />
         </div>
-        <ShareButton title={listing.companyName} url={pageUrl} />
       </div>
 
       <InquiryProvider>
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
-            {listing.description && (
+            {displayDescription && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">{t.aboutHeading}</CardTitle>
                 </CardHeader>
                 <CardBody className="text-base text-slate-600 dark:text-slate-300">
-                  {renderMarkdownLite(listing.description)}
+                  {renderMarkdownLite(displayDescription)}
                 </CardBody>
               </Card>
             )}
@@ -353,7 +375,7 @@ export default async function DirectoryListingPage({ params }: { params: Promise
             )}
           </div>
 
-          <InquiryScrollTarget className="lg:sticky lg:top-6 lg:self-start">
+          <InquiryScrollTarget className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">{t.contactHeading}</CardTitle>
