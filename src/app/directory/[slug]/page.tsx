@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import { DAYS_OF_WEEK, formatOpeningHoursSchema, readPublishedSnapshot, type FaqEntry, type OperatingHours } from "@/lib/directory";
 import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
 import { getDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS, type DirectoryStrings } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, INDUSTRY_LABELS_BY_LOCALE, type DirectoryStrings } from "@/lib/directory-i18n";
+import { translateCategoryName } from "@/lib/directory-category-labels";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,9 @@ function buildJsonLd(
   if (imageUrl) jsonLd.image = imageUrl;
   if (listing.address || listing.location) jsonLd.address = listing.address || listing.location;
   if (listing.website) jsonLd.sameAs = [listing.website];
+  // English regardless of the page's own locale — schema.org's own
+  // vocabulary/consumers (search engines, AI crawlers) expect this field in
+  // a consistent language, unlike the human-visible badge below.
   if (listing.industry) jsonLd.additionalType = INDUSTRY_LABELS[listing.industry];
   if (listing.operatingHours) {
     const openingHours = formatOpeningHoursSchema(listing.operatingHours);
@@ -219,13 +223,15 @@ export default async function DirectoryListingPage({ params }: { params: Promise
               {listing.industry && (
                 <Link href={`/directory?industry=${listing.industry}`}>
                   <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
-                    {INDUSTRY_LABELS[listing.industry]}
+                    {INDUSTRY_LABELS_BY_LOCALE[locale][listing.industry]}
                   </Badge>
                 </Link>
               )}
               {listing.categories.map((category) => (
                 <Link key={category} href={`/directory?category=${encodeURIComponent(category)}`}>
-                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">{category}</Badge>
+                  <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                    {translateCategoryName(category, locale)}
+                  </Badge>
                 </Link>
               ))}
               {listing.location && (

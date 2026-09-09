@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, INDUSTRY_LABELS_BY_LOCALE } from "@/lib/directory-i18n";
+import { translateCategoryName } from "@/lib/directory-category-labels";
 import { readPublishedSnapshot, type PublishedListingSnapshot } from "@/lib/directory";
-import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
+import { INDUSTRIES } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
 import { getSiteOrigin } from "@/lib/site-url";
 
@@ -71,8 +72,8 @@ export default async function DirectoryHomePage({
     <DirectorySearch
       listings={listings}
       industries={INDUSTRIES}
-      industryLabels={INDUSTRY_LABELS}
-      categories={businessCategories.map((row) => row.name)}
+      industryLabels={INDUSTRY_LABELS_BY_LOCALE[locale]}
+      categories={businessCategories.map((row) => ({ value: row.name, label: translateCategoryName(row.name, locale) }))}
       t={t}
       initialQuery={q ?? ""}
       initialIndustry={industry ?? ""}
