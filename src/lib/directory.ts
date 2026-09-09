@@ -138,23 +138,32 @@ export function parseFaqsJson(raw: string): FaqEntry[] {
   return faqsFromJson(parsed);
 }
 
-// AI-translated (or hand-edited) copies of tagline/description for the
-// directory's non-English locales — see translateListingContent in
-// src/app/actions/directory.ts. Keyed by DirectoryLocale minus "en": the
-// English fields are the primary tagline/description themselves, never
-// duplicated in here.
-export type ListingTranslations = Partial<Record<Exclude<DirectoryLocale, "en">, { tagline: string; description: string }>>;
+// AI-translated (or hand-edited) copies of tagline/description/services/
+// faqs for the directory's non-English locales — see translateListingContent
+// in src/app/actions/directory.ts. Keyed by DirectoryLocale minus "en": the
+// English fields are the primary tagline/description/services/faqs
+// themselves, never duplicated in here. A translated service keeps the
+// same price as its English counterpart (price isn't language-specific) —
+// see handleTranslate in partner-listing-form.tsx, which re-attaches it by
+// index right after the AI call returns.
+export type ListingTranslations = Partial<
+  Record<Exclude<DirectoryLocale, "en">, { tagline: string; description: string; services: ServiceEntry[]; faqs: FaqEntry[] }>
+>;
 
 const TRANSLATION_LOCALES: Exclude<DirectoryLocale, "en">[] = ["zh", "ms"];
 const MAX_TRANSLATED_TAGLINE_LENGTH = 140;
 
-function sanitizeTranslationEntry(entry: unknown): { tagline: string; description: string } | null {
+function sanitizeTranslationEntry(
+  entry: unknown,
+): { tagline: string; description: string; services: ServiceEntry[]; faqs: FaqEntry[] } | null {
   if (!entry || typeof entry !== "object") return null;
   const raw = entry as Record<string, unknown>;
   const tagline = typeof raw.tagline === "string" ? raw.tagline.trim().slice(0, MAX_TRANSLATED_TAGLINE_LENGTH) : "";
   const description = typeof raw.description === "string" ? raw.description.trim() : "";
-  if (!tagline && !description) return null;
-  return { tagline, description };
+  const services = servicesFromJson(raw.services);
+  const faqs = faqsFromJson(raw.faqs);
+  if (!tagline && !description && services.length === 0 && faqs.length === 0) return null;
+  return { tagline, description, services, faqs };
 }
 
 export function translationsFromJson(value: unknown): ListingTranslations {
