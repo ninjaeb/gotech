@@ -15,6 +15,7 @@ import {
 } from "@/app/actions/directory";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input, Label, RequiredMark, Select, Textarea } from "@/components/ui/field";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
@@ -345,29 +346,18 @@ export function PartnerListingForm({
             ))}
           </Select>
         </FieldGroup>
-        <FieldGroup label="Business categories" htmlFor="categoryIds-group">
+        <FieldGroup label="Business categories" htmlFor="categoryIds">
           {categories.length === 0 ? (
             <p className="text-sm text-slate-400">No categories yet — an admin can add some from Settings → Directory.</p>
           ) : (
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {categories.map((category, index) => (
-                <label
-                  key={category.id}
-                  htmlFor={`categoryIds-${index}`}
-                  className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
-                >
-                  <input
-                    id={`categoryIds-${index}`}
-                    type="checkbox"
-                    name="categoryIds"
-                    value={category.id}
-                    defaultChecked={current.categoryIds.includes(category.id)}
-                    className="h-4 w-4 rounded border-slate-300 text-led focus:ring-led dark:border-neutral-700"
-                  />
-                  {category.name}
-                </label>
-              ))}
-            </div>
+            <MultiCombobox
+              id="categoryIds"
+              name="categoryIds"
+              options={categories.map((category) => ({ value: category.id, label: category.name }))}
+              defaultValue={current.categoryIds}
+              placeholder="Search categories…"
+              emptyMessage="No matching categories"
+            />
           )}
           <p className="mt-1 text-xs text-slate-400">Optional — helps visitors filter the directory by what you do.</p>
         </FieldGroup>
