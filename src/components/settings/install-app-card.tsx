@@ -16,10 +16,10 @@ function isStandalone() {
   );
 }
 
-type EnvState = { ready: boolean; installed: boolean; isIos: boolean };
+type EnvState = { ready: boolean; installed: boolean; isIos: boolean; isMobile: boolean };
 
 export function InstallAppCard() {
-  const [env, setEnv] = useState<EnvState>({ ready: false, installed: false, isIos: false });
+  const [env, setEnv] = useState<EnvState>({ ready: false, installed: false, isIos: false, isMobile: false });
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
@@ -28,7 +28,17 @@ export function InstallAppCard() {
     // be read after mount — reading it during render would either crash on
     // the server or mismatch the server-rendered HTML during hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEnv({ ready: true, installed: isStandalone(), isIos: /iphone|ipad|ipod/i.test(navigator.userAgent) });
+    setEnv({
+      ready: true,
+      installed: isStandalone(),
+      isIos: /iphone|ipad|ipod/i.test(navigator.userAgent),
+      // Mobile Chrome has no address-bar install icon at all — that's a
+      // desktop-only affordance. Its install option lives in the ⋮ menu
+      // instead, so it needs its own instruction rather than falling into
+      // the desktop copy below and sending someone to look at an address
+      // bar that will never show anything.
+      isMobile: /android|mobile/i.test(navigator.userAgent),
+    });
 
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault();
@@ -80,6 +90,10 @@ export function InstallAppCard() {
         ) : env.isIos ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {'Tap the Share icon in Safari, then "Add to Home Screen".'}
+          </p>
+        ) : env.isMobile ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {'Open the ⋮ menu at the top of your browser and tap "Install app" or "Add to Home Screen".'}
           </p>
         ) : (
           <p className="text-sm text-slate-500 dark:text-slate-400">
