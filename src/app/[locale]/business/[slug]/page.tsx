@@ -310,6 +310,29 @@ export default async function DirectoryListingPage({
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
           </div>
+          {/* Share/Recommend live in the header's top-right corner from sm
+              up — tablet has the same spare width desktop does, nothing
+              here needs lg:'s extra room, so both get the stack. Recommend
+              leads: vouching for someone else's listing is the deliberate,
+              opt-in action, Share is the everyday one right below it.
+              Below sm there's no corner left beside the logo, so the same
+              two buttons render again, full-width side by side, in their
+              own row under the badges instead — see the sm:hidden block
+              below. */}
+          <div className="hidden w-44 shrink-0 flex-col gap-2 sm:flex">
+            {recommendUrl && (
+              <ShareButton
+                title={listing.companyName}
+                url={recommendUrl}
+                message={recommendMessage!}
+                label={t.recommendLabel}
+                icon="recommend"
+                variant="primary"
+                className="w-full bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+              />
+            )}
+            <ShareButton title={listing.companyName} url={pageUrl} label={t.shareLabel} className="w-full" />
+          </div>
         </div>
 
         {/* Its own full-width block below the logo/name row (rather than
@@ -320,9 +343,7 @@ export default async function DirectoryListingPage({
             there's room for both groups on one shared row instead — still
             two flex-wrap groups internally, just laid out side by side
             rather than stacked, wrapping onto a second line together only
-            if a long combination actually runs out of width.
-            Share/Recommend come last, below location/website, rather than
-            up by the name. */}
+            if a long combination actually runs out of width. */}
         {(listing.industry || listing.categories.length > 0 || listing.location || listing.website) && (
           <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:space-y-0">
             {(listing.industry || listing.categories.length > 0) && (
@@ -367,8 +388,14 @@ export default async function DirectoryListingPage({
           </div>
         )}
 
-        <div className="mt-3 flex items-center gap-2">
-          <ShareButton title={listing.companyName} url={pageUrl} />
+        {/* Phone-width fallback for the corner stack above — same two
+            buttons, same order, just a full-width row since there's no
+            room beside the logo down here. flex-wrap is the safety net on
+            the narrowest phones: whitespace-nowrap label text (see
+            ShareButton) won't shrink below its own width, so if both
+            buttons together don't fit one line, the second wraps to its
+            own full-width line rather than clipping. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
           {recommendUrl && (
             <ShareButton
               title={listing.companyName}
@@ -377,9 +404,10 @@ export default async function DirectoryListingPage({
               label={t.recommendLabel}
               icon="recommend"
               variant="primary"
-              className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+              className="flex-1 justify-center bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
             />
           )}
+          <ShareButton title={listing.companyName} url={pageUrl} label={t.shareLabel} className="flex-1 justify-center" />
         </div>
       </div>
 

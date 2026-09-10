@@ -100,16 +100,20 @@ export type DirectoryStrings = {
   websiteLabel: string;
   locationLabel: string;
   // The listing page's "Recommend" affordances for a signed-in business
-  // owner — the small button beside Share, and the floating bottom-bar
-  // pill (see RecommendBar). Both share one referral-tracking link and
-  // this same pre-written message for the email/WhatsApp/native-share
-  // options (Copy link still copies the bare URL). {business} and {url}
-  // are replaced with the listing's name and the tracking link itself —
-  // plain string substitution, not a template literal, since this is
-  // localized data, not code.
+  // owner — the header button, and the floating bottom-bar pill (see
+  // RecommendBar). Both share one referral-tracking link and this same
+  // pre-written message for the email/WhatsApp/native-share options (Copy
+  // link still copies the bare URL). {business} and {url} are replaced
+  // with the listing's name and the tracking link itself — plain string
+  // substitution, not a template literal, since this is localized data,
+  // not code.
   recommendLabel: string;
   recommendBusinessCta: string;
   recommendMessage: string;
+  // The header's plain Share button — ShareButton's own `label` prop
+  // defaults to unlocalized English "Share", so every caller that isn't
+  // fine with that (this one included) passes this instead.
+  shareLabel: string;
   contactHeading: string;
   contactSubheading: string;
   formNameLabel: string;
@@ -207,9 +211,10 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     },
     websiteLabel: "Website",
     locationLabel: "Location",
-    recommendLabel: "Recommend",
+    recommendLabel: "Recommend Business",
     recommendBusinessCta: "Recommend the Business",
     recommendMessage: "I recommend {business} — check them out on the Business Directory: {url}",
+    shareLabel: "Share Business",
     contactHeading: "Get in touch",
     contactSubheading: "Send a message directly to this business — they'll reply to the email address you provide.",
     formNameLabel: "Name",
@@ -314,9 +319,10 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       sunday: "星期日",
     },
     websiteLabel: "网站",
-    recommendLabel: "推荐",
+    recommendLabel: "推荐企业",
     recommendBusinessCta: "推荐这家企业",
     recommendMessage: "我推荐 {business}——快来企业目录看看：{url}",
+    shareLabel: "分享企业",
     locationLabel: "地点",
     contactHeading: "联系我们",
     contactSubheading: "直接给这家企业发送信息——他们会回复您提供的电子邮件地址。",
@@ -422,9 +428,10 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       sunday: "Ahad",
     },
     websiteLabel: "Laman web",
-    recommendLabel: "Syorkan",
+    recommendLabel: "Syorkan Perniagaan",
     recommendBusinessCta: "Syorkan Perniagaan Ini",
     recommendMessage: "Saya syorkan {business} — lihat mereka di Direktori Perniagaan: {url}",
+    shareLabel: "Kongsi Perniagaan",
     locationLabel: "Lokasi",
     contactHeading: "Hubungi kami",
     contactSubheading: "Hantar mesej terus kepada perniagaan ini — mereka akan membalas ke alamat e-mel yang anda berikan.",
