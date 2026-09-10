@@ -336,16 +336,13 @@ export default async function DirectoryListingPage({
         </div>
 
         {/* Its own full-width block below the logo/name row (rather than
-            squeezed into the name column alongside the logo) — at mobile
-            widths that column is narrow enough that even short badges
-            need their own line, so industry+categories and
-            location+website stay two stacked rows there. From sm: up
-            there's room for both groups on one shared row instead — still
-            two flex-wrap groups internally, just laid out side by side
-            rather than stacked, wrapping onto a second line together only
-            if a long combination actually runs out of width. */}
+            squeezed into the name column alongside the logo), industry+
+            categories and location+website always as two stacked rows —
+            each its own flex-wrap group, so a long list of categories or a
+            long address wraps within its own row instead of pushing the
+            other group around. */}
         {(listing.industry || listing.categories.length > 0 || listing.location || listing.website) && (
-          <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:space-y-0">
+          <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400">
             {(listing.industry || listing.categories.length > 0) && (
               <div className="flex flex-wrap items-center gap-2">
                 {listing.industry && (
