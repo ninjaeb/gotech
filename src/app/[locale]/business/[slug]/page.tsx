@@ -309,6 +309,60 @@ export default async function DirectoryListingPage({
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
+            {/* From sm up, industry/category/state/country/website live here
+                — in the same column as the name and tagline, beside the
+                logo — rather than their own full-width row further down,
+                which otherwise leaves the space below a short tagline next
+                to a 200px logo empty. Below sm there's no spare height left
+                in this column for a phone-width logo, so the sm:hidden
+                block after this row repeats the same content as its own
+                full-width row instead. */}
+            {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
+              <div className="mt-3 hidden flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400 sm:flex">
+                {listing.industry && (
+                  <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                      {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
+                    </Badge>
+                  </Link>
+                )}
+                {listing.categories.map((category) => (
+                  <Link key={category} href={categoryPath(slugify(category), resolved)}>
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                      {translateCategoryName(category, resolved)}
+                    </Badge>
+                  </Link>
+                ))}
+                {listing.state && (
+                  <Link
+                    href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                    className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {listing.state}
+                  </Link>
+                )}
+                {listing.country && (
+                  <Link
+                    href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
+                    className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                  >
+                    {listing.country}
+                  </Link>
+                )}
+                {listing.website && (
+                  <a
+                    href={listing.website}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                  >
+                    <Globe className="h-4 w-4" />
+                    {t.websiteLabel}
+                  </a>
+                )}
+              </div>
+            )}
           </div>
           {/* Share/Recommend live in the header's top-right corner from sm
               up — tablet has the same spare width desktop does, nothing
@@ -335,14 +389,12 @@ export default async function DirectoryListingPage({
           </div>
         </div>
 
-        {/* Its own full-width row right under the tagline — industry and
-            category pills, then State/Country (each a link into the
-            directory filtered to that state/country, same pattern as an
-            industry/category pill below), then Website. All one row,
-            flex-wrapping onto more lines together if a long combination
-            runs out of width. */}
+        {/* Phone-width fallback for the sm:+ version tucked into the name
+            column above — same content, same order, just its own
+            full-width row since there's no spare height beside the logo
+            down here. */}
         {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400 sm:hidden">
             {listing.industry && (
               <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
                 <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">

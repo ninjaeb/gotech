@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.76",
+    date: "2026-09-10",
+    title: "Listing header: industry, state, and website move up beside the logo",
+    changes: [
+      "Industry, categories, state, country, and website now sit in the same column as the company name and tagline, beside the logo, instead of their own full-width row further down the header",
+      "Fills the empty space that was otherwise left below a short tagline next to the header's larger logo",
+    ],
+  },
+  {
     version: "1.75",
     date: "2026-09-10",
     title: "AI Auto Create also writes SEO title/description and fetches your logo",
