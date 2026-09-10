@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.75",
+    date: "2026-09-10",
+    title: "AI Auto Create also writes SEO title/description and fetches your logo",
+    changes: [
+      "AI Auto Create now also writes the Search & social preview section's SEO title and description, drafted together with everything else in the same pass",
+      "AI Auto Create now also fills in your logo, copied straight from your Google Maps listing's own photo when it has one",
+    ],
+  },
+  {
     version: "1.74",
     date: "2026-09-10",
     title: "Share/Recommend buttons moved into the listing header",

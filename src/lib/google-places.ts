@@ -17,6 +17,14 @@ const MAX_REVIEW_CHARS = 300;
 // checked before one is spliced into a request path.
 const PLACE_ID_PATTERN = /^[A-Za-z0-9_-]{5,400}$/;
 
+// A photo's resource name, e.g. "places/ChIJ.../photos/AUacS..." — same
+// URL-safety concern as a place id, checked before it's spliced into the
+// Photo Media request path below.
+const PHOTO_NAME_PATTERN = /^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/;
+// Wide enough for a crisp logo, small enough to comfortably clear
+// MAX_PHOTO_BYTES (src/lib/photo.ts) once JPEG-compressed.
+const LOGO_PHOTO_MAX_WIDTH_PX = 800;
+
 // Google's own catch-all types, present on nearly every place — noise for
 // the AI compared to the specific ones ("print_shop", "web_designer").
 const GENERIC_PLACE_TYPES = new Set(["point_of_interest", "establishment"]);
@@ -59,6 +67,10 @@ export type PlaceDetails = {
   hoursDescriptions: string[];
   operatingHours: OperatingHours | null;
   reviews: string[];
+  // Resource name of the listing's own cover photo (Google orders `photos`
+  // with the most representative one first) — fetchPlacePhoto below turns
+  // this into actual image bytes; null when the place has no photos at all.
+  photoName: string | null;
 };
 
 type LocalizedText = { text?: string; languageCode?: string };
@@ -81,6 +93,7 @@ type RawPlace = {
   userRatingCount?: number;
   regularOpeningHours?: { periods?: RawOpeningPeriod[]; weekdayDescriptions?: string[] };
   reviews?: { text?: LocalizedText }[];
+  photos?: { name?: string }[];
 };
 
 async function placesRequest<T>(
@@ -170,6 +183,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
       "userRatingCount",
       "regularOpeningHours",
       "reviews",
+      "photos",
     ].join(","),
   });
 
@@ -196,7 +210,39 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
     hoursDescriptions: raw.regularOpeningHours?.weekdayDescriptions ?? [],
     operatingHours: operatingHoursFromGooglePeriods(raw.regularOpeningHours?.periods ?? []),
     reviews,
+    photoName: raw.photos?.[0]?.name ?? null,
   };
+}
+
+// Turns a photo's resource name (PlaceDetails.photoName) into actual image
+// bytes — a separate request from getPlaceDetails since Places only ever
+// hands back a photo *reference*, never the bytes themselves. Best-effort:
+// returns null on any failure (bad content-type, network error, non-2xx)
+// rather than throwing, since a missing logo shouldn't fail the whole AI
+// Auto Create call any more than an unreadable website does.
+export async function fetchPlacePhoto(photoName: string): Promise<{ buffer: Buffer; contentType: string } | null> {
+  if (!PHOTO_NAME_PATTERN.test(photoName)) return null;
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const response = await fetch(
+      `${PLACES_ENDPOINT}/${photoName}/media?maxWidthPx=${LOGO_PHOTO_MAX_WIDTH_PX}`,
+      {
+        headers: { "X-Goog-Api-Key": apiKey },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        cache: "no-store",
+      },
+    );
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
+    if (!contentType || !contentType.startsWith("image/")) return null;
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length === 0) return null;
+    return { buffer, contentType };
+  } catch {
+    return null;
+  }
 }
 
 // Google numbers days Sunday-first (0 = Sunday); DAYS_OF_WEEK is Monday-first.
