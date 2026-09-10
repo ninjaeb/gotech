@@ -32,6 +32,8 @@ export function AiAutoCreatePanel({
   getContext,
   onCreated,
   formId,
+  onTranslate,
+  translating,
 }: {
   placesAvailable: boolean;
   defaultQuery: string;
@@ -43,6 +45,12 @@ export function AiAutoCreatePanel({
   // because this panel now renders as a sibling of that <form> (to sit
   // beside Public URL in the editor's first row), not a descendant of it.
   formId: string;
+  // The language tabs' own "Translate with AI" trigger (see
+  // partner-listing-form.tsx's handleTranslate) — passed in rather than
+  // duplicated here, so Auto AI Translate below is a second entry point to
+  // the exact same action/state, not a second implementation of it.
+  onTranslate: () => void;
+  translating: boolean;
 }) {
   const [query, setQuery] = useState(defaultQuery);
   const [results, setResults] = useState<PlaceSearchResult[] | null>(null);
@@ -223,10 +231,16 @@ export function AiAutoCreatePanel({
           <Sparkles className="h-4 w-4" />
           {creating ? "Creating…" : "AI Auto Create"}
         </Button>
+        <Button type="button" variant="secondary" onClick={onTranslate} disabled={translating}>
+          <Sparkles className="h-4 w-4" />
+          {translating ? "Translating…" : "Auto AI Translate"}
+        </Button>
         <p className="text-xs text-slate-400">
           {creating
             ? "Reading the Google listing and website, then writing — this can take up to a minute."
-            : "Replaces About, tagline, Products & services, FAQ, industry, categories, hours, and address with a fresh AI draft."}
+            : translating
+              ? "Translating your English content into Chinese and Malay — this can take a moment."
+              : "AI Auto Create replaces About, tagline, Products & services, FAQ, industry, categories, hours, and address. Auto AI Translate fills in the Chinese and Malay tabs from your English content."}
         </p>
       </div>
     </section>
