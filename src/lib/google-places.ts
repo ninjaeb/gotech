@@ -100,6 +100,17 @@ async function placesRequest<T>(
     } catch {
       // Non-JSON error body — the status-only message above is all there is.
     }
+    // A key restricted by HTTP referrer ("Websites" in Google Cloud
+    // Console) only ever works for requests made directly by a browser
+    // (e.g. the Maps JavaScript API) — this call runs server-side (a
+    // Next.js Server Action) and so carries no Referer header at all,
+    // which Google reports back as a blocked "referer <empty>". Left as
+    // Google's own wording alone, that reads like a bug in this app rather
+    // than a key-configuration mismatch, so it's spelled out here instead.
+    if (/referer/i.test(message)) {
+      message +=
+        " This key is restricted by website (HTTP referrer) in Google Cloud Console, but these requests run on the server, which sends no referrer — change the key's Application restriction to IP addresses (or None) instead.";
+    }
     throw new Error(message);
   }
   return (await response.json()) as T;

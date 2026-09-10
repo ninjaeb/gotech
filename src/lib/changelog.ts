@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.72",
+    date: "2026-09-10",
+    title: "AI Auto Create: dynamic Maps search, Website field moved in",
+    changes: [
+      "Your business on Google Maps now searches live as you type — no more Search button to click",
+      "The Website field now lives inside the AI Auto Business Details Creation section itself, right where it gets filled in from",
+      "A Google Maps key blocked by an HTTP referrer restriction now explains why (these requests run on the server, which sends no referrer) instead of just showing Google's raw error",
+    ],
+  },
+  {
     version: "1.71",
     date: "2026-09-09",
     title: "Listing editor: AI Auto Business Details Creation",
