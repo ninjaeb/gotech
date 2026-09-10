@@ -305,7 +305,15 @@ export default async function DirectoryListingPage({
       )}
       <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
-          <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-[200px] w-[200px] text-4xl" />
+          {/* 96px below sm — a fixed 200px logo left too little width for
+              the name column beside it on a phone screen, to the point a
+              longer company name could clip instead of wrapping. Full
+              200px from sm up, where there's room for both. */}
+          <ListingLogo
+            name={listing.companyName}
+            logoUrl={listing.logoUrl}
+            className="h-24 w-24 text-2xl sm:h-[200px] sm:w-[200px] sm:text-4xl"
+          />
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
@@ -316,46 +324,57 @@ export default async function DirectoryListingPage({
                 to a 200px logo empty. Below sm there's no spare height left
                 in this column for a phone-width logo, so the sm:hidden
                 block after this row repeats the same content as its own
-                full-width row instead. */}
+                full-width row instead. Industry/category, state/country,
+                and website are three separate lines (each still its own
+                flex-wrap row, for a long combination within one group)
+                rather than one shared wrapping row. */}
             {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
-              <div className="mt-3 hidden flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400 sm:flex">
-                {listing.industry && (
-                  <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                      {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
-                    </Badge>
-                  </Link>
+              <div className="mt-3 hidden flex-col gap-2 sm:flex">
+                {(listing.industry || listing.categories.length > 0) && (
+                  <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+                    {listing.industry && (
+                      <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
+                        <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                          {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
+                        </Badge>
+                      </Link>
+                    )}
+                    {listing.categories.map((category) => (
+                      <Link key={category} href={categoryPath(slugify(category), resolved)}>
+                        <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                          {translateCategoryName(category, resolved)}
+                        </Badge>
+                      </Link>
+                    ))}
+                  </div>
                 )}
-                {listing.categories.map((category) => (
-                  <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                      {translateCategoryName(category, resolved)}
-                    </Badge>
-                  </Link>
-                ))}
-                {listing.state && (
-                  <Link
-                    href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
-                    className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    {listing.state}
-                  </Link>
-                )}
-                {listing.country && (
-                  <Link
-                    href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
-                    className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
-                  >
-                    {listing.country}
-                  </Link>
+                {(listing.state || listing.country) && (
+                  <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+                    {listing.state && (
+                      <Link
+                        href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                        className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                      >
+                        <MapPin className="h-4 w-4" />
+                        {listing.state}
+                      </Link>
+                    )}
+                    {listing.country && (
+                      <Link
+                        href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
+                        className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                      >
+                        {listing.country}
+                      </Link>
+                    )}
+                  </div>
                 )}
                 {listing.website && (
                   <a
                     href={listing.website}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                    className="inline-flex items-center gap-1 text-base text-petrol hover:underline dark:text-petrol-light"
                   >
                     <Globe className="h-4 w-4" />
                     {t.websiteLabel}
@@ -390,48 +409,57 @@ export default async function DirectoryListingPage({
         </div>
 
         {/* Phone-width fallback for the sm:+ version tucked into the name
-            column above — same content, same order, just its own
-            full-width row since there's no spare height beside the logo
-            down here. */}
+            column above — same content, same order (industry/category,
+            then state/country, then website, each its own line), just its
+            own full-width block since there's no spare height beside the
+            logo down here. */}
         {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400 sm:hidden">
-            {listing.industry && (
-              <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                  {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
-                </Badge>
-              </Link>
+          <div className="mt-3 flex flex-col gap-2 sm:hidden">
+            {(listing.industry || listing.categories.length > 0) && (
+              <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+                {listing.industry && (
+                  <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                      {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
+                    </Badge>
+                  </Link>
+                )}
+                {listing.categories.map((category) => (
+                  <Link key={category} href={categoryPath(slugify(category), resolved)}>
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                      {translateCategoryName(category, resolved)}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
             )}
-            {listing.categories.map((category) => (
-              <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                  {translateCategoryName(category, resolved)}
-                </Badge>
-              </Link>
-            ))}
-            {listing.state && (
-              <Link
-                href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
-                className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
-              >
-                <MapPin className="h-4 w-4" />
-                {listing.state}
-              </Link>
-            )}
-            {listing.country && (
-              <Link
-                href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
-                className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
-              >
-                {listing.country}
-              </Link>
+            {(listing.state || listing.country) && (
+              <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+                {listing.state && (
+                  <Link
+                    href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                    className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    {listing.state}
+                  </Link>
+                )}
+                {listing.country && (
+                  <Link
+                    href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
+                    className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
+                  >
+                    {listing.country}
+                  </Link>
+                )}
+              </div>
             )}
             {listing.website && (
               <a
                 href={listing.website}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                className="inline-flex items-center gap-1 text-base text-petrol hover:underline dark:text-petrol-light"
               >
                 <Globe className="h-4 w-4" />
                 {t.websiteLabel}

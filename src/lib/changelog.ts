@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.77",
+    date: "2026-09-10",
+    title: "Listing header: state/website on their own lines, smaller mobile logo",
+    changes: [
+      "State/country and website now each sit on their own line below the industry/category tags, instead of sharing one wrapping row",
+      "The header logo is smaller on phones (96px) and full-size on tablet and desktop (200px) — fixes the company name clipping instead of wrapping on narrow screens",
+    ],
+  },
+  {
     version: "1.76",
     date: "2026-09-10",
     title: "Listing header: industry, state, and website move up beside the logo",
