@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import {
   generateListingFaqs,
@@ -63,7 +63,6 @@ export function PartnerListingForm({
   values,
   logoUrl,
   operatingHours,
-  timezone,
   status,
   aiAvailable,
   placesAvailable,
@@ -75,7 +74,6 @@ export function PartnerListingForm({
   values: ListingFormValues;
   logoUrl: string | null;
   operatingHours: OperatingHours | null;
-  timezone: string | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
   placesAvailable: boolean;
@@ -129,16 +127,16 @@ export function PartnerListingForm({
     if (state && "success" in state) toast.success("Draft saved.");
   }, [state, toast]);
 
-  // Company name stays a plain defaultValue input (unchanged below) — it's
-  // only grounding context for the AI actions, never written by one, so
-  // reading it live off the form via FormData when needed is enough. Every
-  // field AI Auto Create can fill in (see handleAutoCreated) is controlled
-  // state instead, so one result can land in all of them at once.
+  // Every field AI Auto Create can fill in (see handleAutoCreated) is
+  // controlled state, so one result can land in all of them at once.
   const formRef = useRef<HTMLFormElement>(null);
+  const [companyName, setCompanyName] = useState(current.companyName);
   const [tagline, setTagline] = useState(current.tagline);
   const [website, setWebsite] = useState(current.website);
   const [industry, setIndustry] = useState(current.industry);
   const [address, setAddress] = useState(current.address);
+  const [addrState, setAddrState] = useState(current.state);
+  const [country, setCountry] = useState(current.country);
   const [categoryIds, setCategoryIds] = useState<string[]>(current.categoryIds);
   const [description, setDescription] = useState(current.description);
   const [services, setServices] = useState<ServiceEntry[]>(current.services);
@@ -148,20 +146,6 @@ export function PartnerListingForm({
   // Auto Create actually shows, instead of being ignored as a prop change.
   const [hours, setHours] = useState(operatingHours);
   const [hoursKey, setHoursKey] = useState(0);
-  // The browser's own timezone never changes at runtime, so — same
-  // reasoning, same pattern as ShareButton's nativeShareAvailable — this
-  // needs no real subscription, just a way to read it after hydration
-  // without the server (which has no browser timezone to agree with) and
-  // client disagreeing about the very first render. Only ever used as a
-  // fallback (see timezoneValue below): a zone the partner's already saved
-  // is never silently overwritten by it.
-  const detectedTimezone = useSyncExternalStore(
-    () => () => {},
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
-    () => "",
-  );
-  const [timezoneInput, setTimezoneInput] = useState(timezone ?? "");
-  const timezoneValue = timezoneInput || detectedTimezone;
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [translations, setTranslations] = useState<ListingTranslations>(current.translations);
@@ -199,7 +183,7 @@ export function PartnerListingForm({
   function contextFromForm(): { companyName: string; industry: string } {
     const formData = new FormData(formRef.current ?? undefined);
     return {
-      companyName: String(formData.get("companyName") || ""),
+      companyName,
       industry: String(formData.get("industry") || ""),
     };
   }
@@ -328,6 +312,7 @@ export function PartnerListingForm({
   // Google listing with no hours, say, leaves hours the partner already set
   // alone rather than wiping them.
   function handleAutoCreated(details: AutoCreatedListingDetails) {
+    if (details.companyName) setCompanyName(details.companyName);
     if (details.tagline) setTagline(details.tagline);
     if (details.description) setDescription(details.description);
     if (details.industry) setIndustry(details.industry);
@@ -336,6 +321,8 @@ export function PartnerListingForm({
     if (details.faqs.length > 0) setFaqs(details.faqs);
     if (details.website) setWebsite(details.website);
     if (details.address) setAddress(details.address);
+    if (details.state) setAddrState(details.state);
+    if (details.country) setCountry(details.country);
     if (details.operatingHours) {
       setHours(details.operatingHours);
       setHoursKey((key) => key + 1);
@@ -359,13 +346,13 @@ export function PartnerListingForm({
           <AiAutoCreatePanel
             formId={LISTING_FORM_ID}
             placesAvailable={placesAvailable}
-            defaultQuery={current.companyName}
+            defaultQuery={companyName}
             website={website}
             onWebsiteChange={(site) => {
               setWebsite(site);
               setJustSaved(false);
             }}
-            getContext={() => ({ companyName: contextFromForm().companyName })}
+            getContext={() => ({ companyName })}
             onCreated={handleAutoCreated}
             onTranslate={handleTranslate}
             translating={translating}
@@ -398,9 +385,52 @@ export function PartnerListingForm({
       >
 
       <div>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label className="mb-0">Search &amp; social preview</Label>
+          {aiAvailable && (
+            <button
+              type="button"
+              onClick={handleGenerateSeoMeta}
+              disabled={generatingSeoMeta}
+              className={buttonClasses("ghost", "sm", "shrink-0")}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {generatingSeoMeta ? "Generating…" : "Generate with AI"}
+            </button>
+          )}
+        </div>
+        <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
+          <FieldGroup label="SEO title" htmlFor="seoTitle">
+            <Input
+              id="seoTitle"
+              name="seoTitle"
+              value={seoTitle}
+              onChange={(event) => setSeoTitle(event.target.value)}
+              placeholder={`${companyName || "Your company"} | Business Directory`}
+              maxLength={100}
+            />
+          </FieldGroup>
+          <FieldGroup label="SEO description" htmlFor="seoDescription">
+            <Textarea
+              id="seoDescription"
+              name="seoDescription"
+              rows={2}
+              value={seoDescription}
+              onChange={(event) => setSeoDescription(event.target.value)}
+              placeholder="Shown in search results and when your link is shared — one or two sentences."
+              maxLength={300}
+            />
+          </FieldGroup>
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          Optional — leave blank to use your tagline and About text automatically.
+        </p>
+      </div>
+
+      <div>
         <Label htmlFor="logo">Logo</Label>
         <div className="flex items-center gap-4">
-          <ListingLogo name={current.companyName || "?"} logoUrl={removeLogo ? null : logoPreview} className="h-14 w-14 text-lg" />
+          <ListingLogo name={companyName || "?"} logoUrl={removeLogo ? null : logoPreview} className="h-14 w-14 text-lg" />
           <div className="flex-1 space-y-2">
             <input
               id="logo"
@@ -470,7 +500,13 @@ export function PartnerListingForm({
           panel doesn't render, so the field still needs to exist somewhere. */}
       <div className={cn("grid gap-4", aiAvailable ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
         <FieldGroup label="Company name" htmlFor="companyName" required>
-          <Input id="companyName" name="companyName" required defaultValue={current.companyName} />
+          <Input
+            id="companyName"
+            name="companyName"
+            required
+            value={companyName}
+            onChange={(event) => setCompanyName(event.target.value)}
+          />
           {companyNameError && <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{companyNameError}</p>}
         </FieldGroup>
 
@@ -571,6 +607,27 @@ export function PartnerListingForm({
       </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        <FieldGroup label="State / province" htmlFor="state">
+          <Input
+            id="state"
+            name="state"
+            value={addrState}
+            onChange={(event) => setAddrState(event.target.value)}
+            placeholder="Selangor"
+          />
+        </FieldGroup>
+        <FieldGroup label="Country" htmlFor="country">
+          <Input
+            id="country"
+            name="country"
+            value={country}
+            onChange={(event) => setCountry(event.target.value)}
+            placeholder="Malaysia"
+          />
+        </FieldGroup>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <div hidden={activeTab !== "en"}>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <Label htmlFor="description" className="mb-0">
@@ -643,21 +700,6 @@ export function PartnerListingForm({
           <p className="mt-1 text-xs text-slate-400">
             Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
             Preview to see how it&apos;ll look.
-          </p>
-        </div>
-
-        <div>
-          <Label htmlFor="timezone">Timezone</Label>
-          <Input
-            id="timezone"
-            name="timezone"
-            value={timezoneValue}
-            onChange={(event) => setTimezoneInput(event.target.value)}
-            placeholder="Asia/Kuala_Lumpur"
-          />
-          <p className="mt-1 text-xs text-slate-400">
-            Detected from your browser — correct it if this business is somewhere else. Used to show visitors
-            whether you&apos;re open right now.
           </p>
         </div>
 
@@ -742,49 +784,6 @@ export function PartnerListingForm({
             Optional — shown on your listing as a Q&amp;A section, and helps your page surface in AI search answers.
           </p>
         </div>
-      </div>
-
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label className="mb-0">Search &amp; social preview</Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleGenerateSeoMeta}
-              disabled={generatingSeoMeta}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {generatingSeoMeta ? "Generating…" : "Generate with AI"}
-            </button>
-          )}
-        </div>
-        <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
-          <FieldGroup label="SEO title" htmlFor="seoTitle">
-            <Input
-              id="seoTitle"
-              name="seoTitle"
-              value={seoTitle}
-              onChange={(event) => setSeoTitle(event.target.value)}
-              placeholder={`${current.companyName || "Your company"} | Business Directory`}
-              maxLength={100}
-            />
-          </FieldGroup>
-          <FieldGroup label="SEO description" htmlFor="seoDescription">
-            <Textarea
-              id="seoDescription"
-              name="seoDescription"
-              rows={2}
-              value={seoDescription}
-              onChange={(event) => setSeoDescription(event.target.value)}
-              placeholder="Shown in search results and when your link is shared — one or two sentences."
-              maxLength={300}
-            />
-          </FieldGroup>
-        </div>
-        <p className="mt-1 text-xs text-slate-400">
-          Optional — leave blank to use your tagline and About text automatically.
-        </p>
       </div>
 
       {generalError && <p className="text-sm text-rose-600 dark:text-rose-400">{generalError}</p>}

@@ -19,6 +19,7 @@ const partnerProfileSchema = z.object({
     .trim()
     .optional()
     .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
+  timezone: z.string().trim().optional(),
 });
 
 export type PartnerProfileState = { error: string } | { success: true } | undefined;
@@ -41,6 +42,7 @@ export async function updatePartnerProfile(
     email: formData.get("email"),
     title: formData.get("title"),
     phone: formData.get("phone") || undefined,
+    timezone: formData.get("timezone") || undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -59,6 +61,7 @@ export async function updatePartnerProfile(
       email: parsed.data.email,
       title: parsed.data.title || null,
       phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null,
+      timezone: parsed.data.timezone || null,
     },
   });
 

@@ -37,7 +37,11 @@ export type PublishedListingSnapshot = {
   website: string | null;
   location: string | null;
   address: string | null;
+  state: string | null;
+  country: string | null;
   operatingHours: OperatingHours | null;
+  // The partner ACCOUNT's own timezone (User.timezone) as of publish time —
+  // not per-listing; see buildPublishedSnapshot's partnerTimezone parameter.
   timezone: string | null;
   faqs: FaqEntry[];
   categories: string[];
@@ -208,6 +212,8 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     website: typeof raw.website === "string" ? raw.website : null,
     location: typeof raw.location === "string" ? raw.location : null,
     address: typeof raw.address === "string" ? raw.address : null,
+    state: typeof raw.state === "string" ? raw.state : null,
+    country: typeof raw.country === "string" ? raw.country : null,
     operatingHours: operatingHoursFromJson(raw.operatingHours),
     timezone: typeof raw.timezone === "string" ? raw.timezone : null,
     faqs: faqsFromJson(raw.faqs),
@@ -221,8 +227,16 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
 
 // categoryNames comes from a separate query (see approveDirectoryListing) —
 // `listing` alone, a bare PartnerListing row, has no relation data to
-// resolve PartnerListingCategory rows into names itself.
-export function buildPublishedSnapshot(listing: PartnerListing, categoryNames: string[]): PublishedListingSnapshot {
+// resolve PartnerListingCategory rows into names itself. partnerTimezone is
+// the owning User's own timezone (see publishListing in
+// src/app/actions/directory.ts) — timezone is an account-level setting now
+// (User.timezone, editable from the Profile page), not a PartnerListing
+// column, so it has to be passed in rather than read off `listing` itself.
+export function buildPublishedSnapshot(
+  listing: PartnerListing,
+  categoryNames: string[],
+  partnerTimezone: string | null,
+): PublishedListingSnapshot {
   return {
     companyName: listing.companyName,
     tagline: listing.tagline,
@@ -232,8 +246,10 @@ export function buildPublishedSnapshot(listing: PartnerListing, categoryNames: s
     website: listing.website,
     location: listing.location,
     address: listing.address,
+    state: listing.state,
+    country: listing.country,
     operatingHours: operatingHoursFromJson(listing.operatingHours),
-    timezone: listing.timezone,
+    timezone: partnerTimezone,
     faqs: faqsFromJson(listing.faqs),
     categories: categoryNames,
     translations: translationsFromJson(listing.translations),

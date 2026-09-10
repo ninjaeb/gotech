@@ -1,11 +1,17 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { updatePartnerProfile } from "@/app/actions/partner-profile";
-import { Label, Input, RequiredMark } from "@/components/ui/field";
+import { Label, Input, RequiredMark, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { PHONE_FORMAT_HINT } from "@/lib/phone";
 import { useActionToast } from "@/components/ui/toast";
+
+// A fixed list of IANA zone names, the same in every environment (unlike
+// the *current* zone below, it doesn't depend on where the browser
+// actually is) — safe to compute once, and identically on the server and
+// the client, so it can never cause a hydration mismatch.
+const TIMEZONES = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
 
 export function PartnerProfileForm({
   name,
@@ -13,15 +19,31 @@ export function PartnerProfileForm({
   email,
   title,
   phone,
+  timezone,
 }: {
   name: string;
   companyName: string | null;
   email: string;
   title: string | null;
   phone: string | null;
+  timezone: string | null;
 }) {
   const [state, formAction, pending] = useActionState(updatePartnerProfile, undefined);
   useActionToast(state, "Profile updated.", { toastErrors: false });
+
+  // The browser's own timezone never changes at runtime, so this needs no
+  // real subscription, just a way to read it after hydration without the
+  // server (which has no browser timezone to agree with) and client
+  // disagreeing about the very first render. Only ever used as a fallback
+  // (see timezoneValue below): a zone the partner's already saved is never
+  // silently overwritten by it.
+  const detectedTimezone = useSyncExternalStore(
+    () => () => {},
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => "",
+  );
+  const [timezoneInput, setTimezoneInput] = useState(timezone ?? "");
+  const timezoneValue = timezoneInput || detectedTimezone;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -61,6 +83,23 @@ export function PartnerProfileForm({
         <p className="mt-1 text-xs text-slate-400">
           {PHONE_FORMAT_HINT} Used to WhatsApp you when a directory inquiry comes in — never shown on your public
           listing, and never given to visitors.
+        </p>
+      </div>
+
+      <div>
+        <Label htmlFor="timezone">Timezone</Label>
+        <Select id="timezone" name="timezone" value={timezoneValue} onChange={(event) => setTimezoneInput(event.target.value)}>
+          <option value="">Select a timezone…</option>
+          {!TIMEZONES.includes(timezoneValue) && timezoneValue && <option value={timezoneValue}>{timezoneValue}</option>}
+          {TIMEZONES.map((zone) => (
+            <option key={zone} value={zone}>
+              {zone}
+            </option>
+          ))}
+        </Select>
+        <p className="mt-1 text-xs text-slate-400">
+          Detected from your browser — correct it if you&apos;re somewhere else. Used to show visitors whether your
+          listings are open right now.
         </p>
       </div>
 

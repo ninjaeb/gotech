@@ -177,6 +177,8 @@ const listingSchema = z.object({
     .refine((value) => !value || INDUSTRIES.includes(value as Industry), { message: "Invalid industry" }),
   website: z.string().trim().optional(),
   address: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  country: z.string().trim().optional(),
   seoTitle: z.string().trim().max(100).optional(),
   seoDescription: z.string().trim().max(300).optional(),
 });
@@ -189,6 +191,8 @@ export type ListingFormValues = {
   industry: string;
   website: string;
   address: string;
+  state: string;
+  country: string;
   faqs: FaqEntry[];
   categoryIds: string[];
   translations: ListingTranslations;
@@ -248,6 +252,8 @@ function extractListingFormValues(formData: FormData): ListingFormValues {
     industry: stringField(formData, "industry"),
     website: stringField(formData, "website"),
     address: stringField(formData, "address"),
+    state: stringField(formData, "state"),
+    country: stringField(formData, "country"),
     faqs: parseFaqsJson(stringField(formData, "faqs")),
     categoryIds: formData.getAll("categoryIds").filter((value): value is string => typeof value === "string"),
     translations: extractTranslations(formData),
@@ -539,6 +545,11 @@ export async function searchBusinessOnGoogleMaps(query: string): Promise<AiResul
 }
 
 export type AutoCreatedListingDetails = {
+  // From the selected Google Maps listing's own name — never AI-written,
+  // same "copy the fact, don't have the model write it" treatment as
+  // address/operatingHours below. Unset when the partner typed a website
+  // instead of picking a place.
+  companyName: string | null;
   tagline: string;
   description: string;
   industry: string;
@@ -547,6 +558,8 @@ export type AutoCreatedListingDetails = {
   faqs: FaqEntry[];
   website: string | null;
   address: string | null;
+  state: string | null;
+  country: string | null;
   operatingHours: OperatingHours | null;
   // Which inputs actually contributed, so the editor can say so when a
   // website was given but couldn't be read.
@@ -698,6 +711,7 @@ export async function autoCreateListingDetails(input: {
   return {
     status: "ok",
     data: {
+      companyName: place?.name ?? null,
       tagline: result.data.tagline.trim().slice(0, MAX_TAGLINE_LENGTH),
       description: result.data.description.trim(),
       industry: INDUSTRIES.includes(result.data.industry.trim() as Industry) ? result.data.industry.trim() : "",
@@ -706,6 +720,8 @@ export async function autoCreateListingDetails(input: {
       faqs: faqsFromJson(result.data.faqs),
       website,
       address: place?.address ?? null,
+      state: place?.state ?? null,
+      country: place?.country ?? null,
       operatingHours: place?.operatingHours ?? null,
       sources: { googleMaps: place !== null, website: pages.length > 0 },
     },
@@ -796,8 +812,9 @@ async function saveListingFields(
         industry: (parsed.data.industry || null) as Industry | null,
         website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
         address: parsed.data.address || null,
+        state: parsed.data.state || null,
+        country: parsed.data.country || null,
         operatingHours: parseOperatingHoursFormData(formData),
-        timezone: stringField(formData, "timezone").trim() || null,
         faqs: parseFaqsJson(stringField(formData, "faqs")),
         translations: extractTranslations(formData),
         seoTitle: parsed.data.seoTitle || null,
@@ -1072,7 +1089,7 @@ export async function replyToDirectoryLead(
 async function publishListing(id: string) {
   const listing = await db.partnerListing.findUniqueOrThrow({
     where: { id },
-    include: { categories: { include: { category: true } } },
+    include: { categories: { include: { category: true } }, partner: { select: { timezone: true } } },
   });
   return db.partnerListing.update({
     where: { id },
@@ -1084,6 +1101,7 @@ async function publishListing(id: string) {
       publishedSnapshot: buildPublishedSnapshot(
         listing,
         listing.categories.map((entry) => entry.category.name),
+        listing.partner.timezone,
       ),
     },
   });

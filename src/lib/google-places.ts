@@ -40,6 +40,14 @@ export type PlaceDetails = {
   id: string;
   name: string;
   address: string | null;
+  // Parsed out of Google's addressComponents (see findAddressComponent
+  // below) rather than sliced out of the formatted address string — more
+  // reliable across countries whose address formats order these
+  // differently, and lets the editor auto-fill its own separate
+  // State/Country fields (see handleAutoCreated in
+  // partner-listing-form.tsx) without a partner having to type them by hand.
+  state: string | null;
+  country: string | null;
   website: string | null;
   phone: string | null;
   googleMapsUrl: string | null;
@@ -56,11 +64,13 @@ export type PlaceDetails = {
 type LocalizedText = { text?: string; languageCode?: string };
 type RawPeriodPoint = { day?: number; hour?: number; minute?: number };
 export type RawOpeningPeriod = { open?: RawPeriodPoint; close?: RawPeriodPoint };
+type RawAddressComponent = { longText?: string; shortText?: string; types?: string[] };
 
 type RawPlace = {
   id?: string;
   displayName?: LocalizedText;
   formattedAddress?: string;
+  addressComponents?: RawAddressComponent[];
   websiteUri?: string;
   internationalPhoneNumber?: string;
   googleMapsUri?: string;
@@ -132,6 +142,15 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResult[]> 
     }));
 }
 
+// Google's addressComponents is a flat, unordered list tagged with one or
+// more `types` each — this just finds the one component carrying the given
+// type (e.g. "administrative_area_level_1" for state/province, "country")
+// and returns its full name. longText over shortText: "Selangor"/"Malaysia"
+// reads better on a public listing than "MY".
+function findAddressComponent(components: RawAddressComponent[], type: string): string | null {
+  return components.find((component) => component.types?.includes(type))?.longText?.trim() || null;
+}
+
 export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
   if (!isValidPlaceId(placeId)) throw new Error("Invalid Google Maps place.");
   const raw = await placesRequest<RawPlace>(`/places/${placeId}?languageCode=en`, {
@@ -140,6 +159,7 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
       "id",
       "displayName",
       "formattedAddress",
+      "addressComponents",
       "websiteUri",
       "internationalPhoneNumber",
       "googleMapsUri",
@@ -163,6 +183,8 @@ export async function getPlaceDetails(placeId: string): Promise<PlaceDetails> {
     id: raw.id ?? placeId,
     name: raw.displayName?.text?.trim() || "Unnamed place",
     address: raw.formattedAddress?.trim() || null,
+    state: findAddressComponent(raw.addressComponents ?? [], "administrative_area_level_1"),
+    country: findAddressComponent(raw.addressComponents ?? [], "country"),
     website: raw.websiteUri?.trim() || null,
     phone: raw.internationalPhoneNumber?.trim() || null,
     googleMapsUrl: raw.googleMapsUri?.trim() || null,
