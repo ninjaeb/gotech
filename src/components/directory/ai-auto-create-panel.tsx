@@ -31,6 +31,7 @@ export function AiAutoCreatePanel({
   onWebsiteChange,
   getContext,
   onCreated,
+  formId,
 }: {
   placesAvailable: boolean;
   defaultQuery: string;
@@ -38,6 +39,10 @@ export function AiAutoCreatePanel({
   onWebsiteChange: (website: string) => void;
   getContext: () => { companyName: string };
   onCreated: (details: AutoCreatedListingDetails) => void;
+  // Id of the listing form this panel's Website field submits with — needed
+  // because this panel now renders as a sibling of that <form> (to sit
+  // beside Public URL in the editor's first row), not a descendant of it.
+  formId: string;
 }) {
   const [query, setQuery] = useState(defaultQuery);
   const [results, setResults] = useState<PlaceSearchResult[] | null>(null);
@@ -196,6 +201,7 @@ export function AiAutoCreatePanel({
         <Input
           id="website"
           name="website"
+          form={formId}
           value={website}
           onChange={(event) => onWebsiteChange(event.target.value)}
           placeholder="acme.com"

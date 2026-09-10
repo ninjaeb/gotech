@@ -22,6 +22,7 @@ import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
+import { PartnerSlugForm } from "@/components/directory/partner-slug-form";
 import { ServicesEditor } from "@/components/directory/services-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
@@ -55,6 +56,8 @@ function servicesContextText(services: ServiceEntry[]): string {
     .join("\n");
 }
 
+const LISTING_FORM_ID = "partner-listing-form";
+
 export function PartnerListingForm({
   listingId,
   values,
@@ -64,6 +67,8 @@ export function PartnerListingForm({
   aiAvailable,
   placesAvailable,
   categories,
+  slug,
+  siteOrigin,
 }: {
   listingId: string;
   values: ListingFormValues;
@@ -73,6 +78,8 @@ export function PartnerListingForm({
   aiAvailable: boolean;
   placesAvailable: boolean;
   categories: { id: string; name: string }[];
+  slug: string;
+  siteOrigin: string;
 }) {
   const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
@@ -322,36 +329,55 @@ export function PartnerListingForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-5"
-      // Native change/input events bubble here from any plain field the
-      // visitor edits after a save — the signal that "Saved" is stale, so
-      // the button re-enables. Content that changes without a native event
-      // (an AI rewrite/translate/generate/auto-create response, or a
-      // MarkdownLiteEditor toolbar click, both of which just call a setState
-      // setter directly) clears it explicitly at the point of change instead
-      // — see handleRewriteDescription and friends, handleAutoCreated, and
-      // updateTranslation/updateTranslatedServices/updateTranslatedFaqs
-      // above. Doesn't catch every custom widget's own button clicks
-      // (categories, FAQ/service row add-remove), but those are rare to
-      // touch alone without also editing a plain field nearby.
-      onChange={() => setJustSaved(false)}
-    >
-      {aiAvailable && (
-        <AiAutoCreatePanel
-          placesAvailable={placesAvailable}
-          defaultQuery={current.companyName}
-          website={website}
-          onWebsiteChange={(site) => {
-            setWebsite(site);
-            setJustSaved(false);
-          }}
-          getContext={() => ({ companyName: contextFromForm().companyName })}
-          onCreated={handleAutoCreated}
-        />
-      )}
+    <>
+      {/* Public URL and AI Auto Create sit side by side as the editor's
+          first row. PartnerSlugForm is its own independent <form> (a
+          separate server action from the listing form below), so it can't
+          nest inside the listing <form> — it's rendered here as a sibling
+          instead. AiAutoCreatePanel isn't a form itself, but its Website
+          field submits as part of the listing form via the `form`
+          attribute (see LISTING_FORM_ID) since it now lives outside that
+          form's DOM subtree too. */}
+      <div className={cn("mb-5 grid items-start gap-6", aiAvailable && "lg:grid-cols-2")}>
+        <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
+          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
+        </div>
+
+        {aiAvailable && (
+          <AiAutoCreatePanel
+            formId={LISTING_FORM_ID}
+            placesAvailable={placesAvailable}
+            defaultQuery={current.companyName}
+            website={website}
+            onWebsiteChange={(site) => {
+              setWebsite(site);
+              setJustSaved(false);
+            }}
+            getContext={() => ({ companyName: contextFromForm().companyName })}
+            onCreated={handleAutoCreated}
+          />
+        )}
+      </div>
+
+      <form
+        id={LISTING_FORM_ID}
+        ref={formRef}
+        action={formAction}
+        className="space-y-5"
+        // Native change/input events bubble here from any plain field the
+        // visitor edits after a save — the signal that "Saved" is stale, so
+        // the button re-enables. Content that changes without a native event
+        // (an AI rewrite/translate/generate/auto-create response, or a
+        // MarkdownLiteEditor toolbar click, both of which just call a setState
+        // setter directly) clears it explicitly at the point of change instead
+        // — see handleRewriteDescription and friends, handleAutoCreated, and
+        // updateTranslation/updateTranslatedServices/updateTranslatedFaqs
+        // above. Doesn't catch every custom widget's own button clicks
+        // (categories, FAQ/service row add-remove), but those are rare to
+        // touch alone without also editing a plain field nearby.
+        onChange={() => setJustSaved(false)}
+      >
 
       <div>
         <Label htmlFor="logo">Logo</Label>
@@ -754,6 +780,7 @@ export function PartnerListingForm({
           {submitPending ? "Submitting…" : status === "PENDING_REVIEW" ? "Awaiting review" : "Submit for review"}
         </Button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }
