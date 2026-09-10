@@ -182,6 +182,17 @@ model User {
   whatsAppBroadcasts                     WhatsAppBroadcast[]
   partnerListings                        PartnerListing[]
   directoryLeadReplies                   DirectoryLeadReply[]
+
+  // Business-portal CRM — this account's own Companies/Contacts/Deals/Tasks
+  // (see the PartnerCompany/PartnerContact/PartnerDeal/PartnerTask models
+  // below). Unrelated to partnerListings above (the directory listings this
+  // account runs) and to referredDeals/referredDirectoryLeads (Gotka's own
+  // lead-attribution bookkeeping).
+  partnerCompanies     PartnerCompany[]
+  partnerContacts      PartnerContact[]
+  partnerDeals         PartnerDeal[]
+  partnerTasks         PartnerTask[]
+  assignedPartnerTasks PartnerTaskAssignee[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -1777,4 +1788,151 @@ model DirectoryLeadReply {
   authorId String
 
   @@index([leadId])
+}
+
+// ============================================================================
+// Business-portal CRM — a lightweight Companies/Contacts/Deals/Tasks module
+// for partner accounts to run their own client-management workflow from
+// /business-portal. Deliberately separate models from the internal CRM
+// above (Company/Contact/Deal/Task): those belong to Gotka staff's own
+// pipeline and are shared team-wide, while every model below is scoped to
+// exactly one partner account via `partnerId` and must never be visible to
+// another account (enforced by filtering every query on partnerId — see
+// requirePartnerAction in src/lib/auth/dal.ts — not by the schema itself).
+// Not to be confused with Deal.referredById/DirectoryLead.referredById,
+// which attribute a lead to a referring partner's /r/<code> link for
+// Gotka's own commission accounting — an unrelated concept from a
+// different partner potentially managing an unrelated record here.
+// ============================================================================
+
+enum PartnerDealStatus {
+  OPEN
+  WON
+  LOST
+}
+
+model PartnerCompany {
+  id        String    @id @default(cuid())
+  name      String
+  industry  Industry?
+  phone     String?
+  website   String?
+  address   String?
+  notes     String?   @db.Text
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  contacts PartnerContact[]
+  deals    PartnerDeal[]
+  tasks    PartnerTask[]
+
+  @@index([partnerId])
+  @@index([partnerId, name])
+}
+
+model PartnerContact {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String?
+  email     String?
+  phone     String?
+  title     String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  company   PartnerCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId String?
+
+  deals PartnerDeal[]
+  tasks PartnerTask[]
+
+  @@index([partnerId])
+  @@index([companyId])
+  @@index([partnerId, lastName, firstName])
+}
+
+model PartnerDeal {
+  id                String            @id @default(cuid())
+  title             String
+  value             Decimal           @default(0) @db.Decimal(12, 2)
+  status            PartnerDealStatus @default(OPEN)
+  expectedCloseDate DateTime?
+  notes             String?           @db.Text
+  wonAt             DateTime?
+  lostAt            DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  company   PartnerCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  companyId String?
+
+  contact   PartnerContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId String?
+
+  tasks PartnerTask[]
+
+  @@index([partnerId])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([partnerId, status])
+}
+
+model PartnerTask {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  partner   User   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  partnerId String
+
+  company   PartnerCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId String?
+
+  contact   PartnerContact? @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contactId String?
+
+  deal   PartnerDeal? @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String?
+
+  assignees PartnerTaskAssignee[]
+
+  @@index([partnerId])
+  @@index([companyId])
+  @@index([contactId])
+  @@index([dealId])
+  @@index([partnerId, dueDate])
+}
+
+// Who's responsible for a PartnerTask — a join table from day one (same
+// convention as the internal CRM's TaskAssignee) even though a
+// business-portal account is a single login today, so a future teammate
+// added under the same account can be assigned without a breaking
+// migration later. Every assignee must belong to the task's own partner
+// account; enforced in src/app/actions/business-crm.ts, not the schema.
+model PartnerTaskAssignee {
+  id String @id @default(cuid())
+
+  task   PartnerTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }

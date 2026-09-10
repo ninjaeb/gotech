@@ -1228,3 +1228,23 @@ export async function unpublishDirectoryListing(id: string): Promise<void> {
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
 }
+
+// Reassigns a listing to a different partner account — e.g. the original
+// signup was a placeholder/duplicate, or the business itself changed
+// hands. Only ownership changes here: status, publishedSnapshot, and
+// everything else about the listing stay exactly as they were, so a
+// published listing stays live under its new owner without needing
+// re-approval.
+export async function transferDirectoryListing(id: string, formData: FormData): Promise<void> {
+  await requireAdminAction();
+  const newPartnerId = String(formData.get("newPartnerId") ?? "").trim();
+  if (!newPartnerId) {
+    throw new Error("Pick a partner to transfer this listing to.");
+  }
+  const newPartner = await db.user.findUnique({ where: { id: newPartnerId }, select: { id: true, role: true } });
+  if (!newPartner || newPartner.role !== "PARTNER") {
+    throw new Error("That account isn't a partner.");
+  }
+  await db.partnerListing.update({ where: { id }, data: { partnerId: newPartnerId } });
+  revalidatePath("/system/settings/directory");
+}
