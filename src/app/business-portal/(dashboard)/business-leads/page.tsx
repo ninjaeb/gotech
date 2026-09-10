@@ -38,7 +38,7 @@ export default async function PartnerDirectoryLeadsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Directory leads" description="Inquiries sent through your public listings" />
+      <PageHeader title="Business Leads" description="Inquiries sent through your public listings" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="New" value={stats.new.toString()} icon={Inbox} accent="sky" />
@@ -76,7 +76,7 @@ export default async function PartnerDirectoryLeadsPage() {
                   {leads.map((lead) => (
                     <tr key={lead.id}>
                       <td className="py-2.5 pr-3">
-                        <Link href={`/business-portal/directory-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
+                        <Link href={`/business-portal/business-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
                           <p className="font-medium text-slate-800 dark:text-slate-200">{lead.name}</p>
                           {lead.company && <p className="text-xs text-slate-400">{lead.company}</p>}
                         </Link>

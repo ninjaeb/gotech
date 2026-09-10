@@ -981,8 +981,8 @@ export async function updateDirectoryLeadStatus(leadId: string, formData: FormDa
     },
   });
   revalidatePath("/business-portal");
-  revalidatePath("/business-portal/directory-leads");
-  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
+  revalidatePath("/business-portal/business-leads");
+  revalidatePath(`/business-portal/business-leads/${lead.id}`);
 }
 
 const leadDetailsSchema = z.object({
@@ -1014,7 +1014,7 @@ export async function updateDirectoryLeadDetails(
     data: { value: parsed.data.value, notes: parsed.data.notes || null },
   });
   revalidatePath("/business-portal");
-  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
+  revalidatePath(`/business-portal/business-leads/${lead.id}`);
   return { success: true };
 }
 
@@ -1057,7 +1057,7 @@ export async function replyToDirectoryLead(
     }),
   ]);
 
-  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
+  revalidatePath(`/business-portal/business-leads/${lead.id}`);
   if (!result.sent) return { error: `Saved, but the email didn't send: ${result.error}` };
   return { success: true };
 }

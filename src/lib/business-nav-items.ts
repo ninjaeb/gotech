@@ -8,7 +8,7 @@
 export const BUSINESS_NAV_ITEMS = [
   { href: "/business-portal", label: "Overview" },
   { href: "/business-portal/listings", label: "My listings" },
-  { href: "/business-portal/directory-leads", label: "Directory leads" },
+  { href: "/business-portal/business-leads", label: "Business Leads" },
   { href: "/business-portal/profile", label: "Profile" },
 ] as const;
 
