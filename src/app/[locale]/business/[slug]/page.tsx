@@ -305,7 +305,7 @@ export default async function DirectoryListingPage({
       )}
       <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
-          <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
+          <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-[200px] w-[200px] text-4xl" />
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
@@ -329,14 +329,14 @@ export default async function DirectoryListingPage({
               <div className="flex flex-wrap items-center gap-2">
                 {listing.industry && (
                   <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                    <Badge className="bg-petrol px-3 py-1.5 text-base font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
                       {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
                     </Badge>
                   </Link>
                 )}
                 {listing.categories.map((category) => (
                   <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                    <Badge className="bg-petrol px-3 py-1.5 text-base font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
                       {translateCategoryName(category, resolved)}
                     </Badge>
                   </Link>
@@ -497,7 +497,7 @@ export default async function DirectoryListingPage({
                   <iframe
                     title={`${listing.companyName} on the map`}
                     src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}&output=embed`}
-                    className="h-64 w-full rounded-md border-0"
+                    className="h-96 w-full rounded-md border-0"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />

@@ -7,9 +7,9 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 
 export default async function PartnerProfilePage() {
   const user = await requirePartner();
-  const { phone, companyName } = await db.user.findUniqueOrThrow({
+  const { phone, companyName, timezone } = await db.user.findUniqueOrThrow({
     where: { id: user.id },
-    select: { phone: true, companyName: true },
+    select: { phone: true, companyName: true, timezone: true },
   });
 
   return (
@@ -27,6 +27,7 @@ export default async function PartnerProfilePage() {
             email={user.email}
             title={user.title}
             phone={phone}
+            timezone={timezone}
           />
         </CardBody>
       </Card>

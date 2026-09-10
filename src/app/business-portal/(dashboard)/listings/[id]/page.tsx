@@ -73,7 +73,6 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
             status={listing.status}
             logoUrl={listing.logoUrl}
             operatingHours={operatingHoursFromJson(listing.operatingHours)}
-            timezone={listing.timezone}
             aiAvailable={isAiConfigured()}
             placesAvailable={isGooglePlacesConfigured()}
             categories={categories}
@@ -87,6 +86,8 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
               industry: listing.industry ?? "",
               website: listing.website ?? "",
               address: listing.address ?? "",
+              state: listing.state ?? "",
+              country: listing.country ?? "",
               faqs: faqsFromJson(listing.faqs),
               categoryIds: selectedCategoryIds,
               translations: translationsFromJson(listing.translations),
