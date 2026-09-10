@@ -29,7 +29,7 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={[
-          { label: "Directory leads", href: "/business-portal/directory-leads" },
+          { label: "Business Leads", href: "/business-portal/business-leads" },
           { label: lead.listing.companyName },
           { label: lead.name },
         ]}

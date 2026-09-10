@@ -13,7 +13,7 @@ import type { DirectoryLead, PartnerListing } from "@/generated/prisma/client";
 // proactive notifier in this app (see src/lib/whatsapp.ts) — the lead
 // itself is already saved either way, this is best-effort on top of that.
 export async function notifyPartnerOfNewLead(listing: PartnerListing, lead: DirectoryLead): Promise<void> {
-  const path = `/business-portal/directory-leads/${lead.id}`;
+  const path = `/business-portal/business-leads/${lead.id}`;
   await notifyDirectoryLeadViaWhatsApp(listing.partnerId, lead.name, lead.company ?? "", path);
 
   const sender = await getNewsletterSender();

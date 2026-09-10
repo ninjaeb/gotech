@@ -274,7 +274,7 @@ export default async function PartnerOverviewPage() {
               value={directoryStats.new.toString()}
               icon={Inbox}
               accent="sky"
-              href="/business-portal/directory-leads"
+              href="/business-portal/business-leads"
             />
             <StatCard label="Won" value={directoryStats.won.toString()} icon={Store} accent="emerald" />
             <StatCard
