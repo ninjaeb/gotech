@@ -1,5 +1,4 @@
-import { createPartnerContact } from "@/app/actions/partner-contacts";
-import { PartnerContactForm } from "@/components/business-crm/partner-contact-form";
+import { NewPartnerContactForm } from "@/components/business-crm/new-partner-contact-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { requireCompletePartnerProfile } from "@/lib/auth/dal";
@@ -26,7 +25,7 @@ export default async function NewPartnerContactPage({
       />
       <Card>
         <CardBody>
-          <PartnerContactForm action={createPartnerContact} companies={companies} defaultCompanyId={companyId} submitLabel="Create contact" />
+          <NewPartnerContactForm companies={companies} defaultCompanyId={companyId} />
         </CardBody>
       </Card>
     </div>

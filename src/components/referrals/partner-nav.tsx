@@ -12,14 +12,17 @@ function isActive(pathname: string, href: string): boolean {
   return href === "/business-portal" ? pathname === "/business-portal" : pathname.startsWith(href);
 }
 
-// The business portal's own nav — always a hamburger (there's no inline
-// row on wide screens the way this used to split), same click-outside +
-// Escape + dropdown-panel pattern as DirectoryNavMenu (src/components/
-// directory/directory-nav-menu.tsx), ShareButton, and NotificationBell.
-// Grouped to match how a partner thinks about the two sites they can move
-// between: a link out to the public directory, then their own listing
-// pages nested under "My Business", then their referral relationship with
-// Gotka nested under "Partnership", then sign out.
+// The business portal's own nav — a hamburger dropdown only below the `sm`
+// breakpoint, where there's no room for PartnerSidebar's persistent 240px
+// rail (src/components/referrals/partner-sidebar.tsx handles `sm` and up —
+// see partner-layout.tsx, which renders both and lets Tailwind's own
+// responsive classes pick one). Same click-outside + Escape + dropdown-
+// panel pattern as DirectoryNavMenu (src/components/directory/
+// directory-nav-menu.tsx), ShareButton, and NotificationBell. Grouped to
+// match how a partner thinks about the two sites they can move between: a
+// link out to the public directory, then their own listing pages nested
+// under "My Business", then their referral relationship with Gotka nested
+// under "Partnership", then sign out.
 export function PartnerNavMenu({
   signOutAction,
   locale,
@@ -53,7 +56,7 @@ export function PartnerNavMenu({
     "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-neutral-800";
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative sm:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
