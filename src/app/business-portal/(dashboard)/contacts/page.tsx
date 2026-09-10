@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Users } from "lucide-react";
+import { Plus, Upload, Users } from "lucide-react";
 import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
@@ -22,10 +22,16 @@ export default async function PartnerContactsPage() {
         title="Contacts"
         description={`${contacts.length} ${contacts.length === 1 ? "contact" : "contacts"}`}
         actions={
-          <Link href="/business-portal/contacts/new" className={buttonClasses()}>
-            <Plus className="h-4 w-4" />
-            New contact
-          </Link>
+          <>
+            <Link href="/business-portal/contacts/import" className={buttonClasses("secondary")}>
+              <Upload className="h-4 w-4" />
+              Import
+            </Link>
+            <Link href="/business-portal/contacts/new" className={buttonClasses()}>
+              <Plus className="h-4 w-4" />
+              New contact
+            </Link>
+          </>
         }
       />
 
