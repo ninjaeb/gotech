@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.79",
+    date: "2026-09-10",
+    title: "Admin: transfer a listing to a different partner account",
+    changes: [
+      "Settings → Directory's \"All listings\" table now has a Transfer control on each listing — pick another partner account and it immediately becomes that listing's owner",
+      "Everything else about the listing (status, published page, leads) stays exactly as it was — only who manages it changes",
+    ],
+  },
+  {
     version: "1.78",
     date: "2026-09-10",
     title: "Listing header: website back beside state/country on mobile",

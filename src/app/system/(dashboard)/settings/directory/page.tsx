@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
-import { Input } from "@/components/ui/field";
+import { Input, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ListingLogo } from "@/components/directory/listing-logo";
@@ -18,6 +18,7 @@ import { DirectoryApprovalSettingsForm } from "@/components/directory/directory-
 import {
   approveDirectoryListing,
   rejectDirectoryListing,
+  transferDirectoryListing,
   unpublishDirectoryListing,
 } from "@/app/actions/directory";
 import { deleteBusinessCategory } from "@/app/actions/business-categories";
@@ -46,7 +47,7 @@ function formatOperatingHoursPreview(value: unknown): string[] {
 
 export default async function DirectorySettingsPage() {
   await requireAdmin();
-  const [stats, currency, approvalMode, pendingListings, allListings, businessCategories, recentLeads] = await Promise.all([
+  const [stats, currency, approvalMode, pendingListings, allListings, partners, businessCategories, recentLeads] = await Promise.all([
     getDirectoryOverviewStats(),
     getCurrency(),
     getDirectoryApprovalMode(),
@@ -58,6 +59,13 @@ export default async function DirectorySettingsPage() {
     db.partnerListing.findMany({
       orderBy: { updatedAt: "desc" },
       include: { partner: { select: { name: true } }, _count: { select: { leads: true } } },
+    }),
+    // For the "Transfer" picker on each listing row below — every partner
+    // account a listing could be reassigned to.
+    db.user.findMany({
+      where: { role: "PARTNER" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, email: true },
     }),
     db.businessCategory.findMany({
       orderBy: { name: "asc" },
@@ -192,11 +200,14 @@ export default async function DirectorySettingsPage() {
                     <th className="py-2 pr-3 font-medium">Partner</th>
                     <th className="py-2 pr-3 font-medium">Status</th>
                     <th className="py-2 pr-3 font-medium">Leads</th>
+                    <th className="py-2 pr-3 font-medium">Transfer to</th>
                     <th className="py-2 pr-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
-                  {allListings.map((listing) => (
+                  {allListings.map((listing) => {
+                    const otherPartners = partners.filter((partner) => partner.id !== listing.partnerId);
+                    return (
                     <tr key={listing.id}>
                       <td className="py-2.5 pr-3">
                         <p className="font-medium text-slate-800 dark:text-slate-200">{listing.companyName}</p>
@@ -208,6 +219,35 @@ export default async function DirectorySettingsPage() {
                         </Badge>
                       </td>
                       <td className="py-2.5 pr-3 text-slate-600 dark:text-slate-300">{listing._count.leads}</td>
+                      <td className="py-2.5 pr-3">
+                        {otherPartners.length > 0 ? (
+                          <form
+                            action={transferDirectoryListing.bind(null, listing.id)}
+                            className="flex items-center gap-1.5"
+                          >
+                            <Select name="newPartnerId" required defaultValue="" className="!h-8 w-44 text-xs">
+                              <option value="" disabled>
+                                Choose partner…
+                              </option>
+                              {otherPartners.map((partner) => (
+                                <option key={partner.id} value={partner.id}>
+                                  {partner.name} — {partner.email}
+                                </option>
+                              ))}
+                            </Select>
+                            <ConfirmSubmitButton
+                              confirmMessage={`Transfer "${listing.companyName}" to a different partner account? That account will immediately see and manage it instead of ${listing.partner.name}.`}
+                              variant="secondary"
+                              size="sm"
+                              className="!h-8 shrink-0 text-xs"
+                            >
+                              Transfer
+                            </ConfirmSubmitButton>
+                          </form>
+                        ) : (
+                          <span className="text-xs text-slate-400">No other partners yet</span>
+                        )}
+                      </td>
                       <td className="py-2.5 pr-3 text-right">
                         <div className="flex justify-end gap-2">
                           {listing.publishedSnapshot && (
@@ -235,7 +275,8 @@ export default async function DirectorySettingsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
