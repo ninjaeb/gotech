@@ -16,30 +16,32 @@ export default async function PartnerProfilePage() {
     <div className="space-y-6">
       <PageHeader title="Profile" description="Your own login — name, email, contact phone, and password." />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Account details</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <PartnerProfileForm
-            name={user.name}
-            companyName={companyName}
-            email={user.email}
-            title={user.title}
-            phone={phone}
-            timezone={timezone}
-          />
-        </CardBody>
-      </Card>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account details</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <PartnerProfileForm
+              name={user.name}
+              companyName={companyName}
+              email={user.email}
+              title={user.title}
+              phone={phone}
+              timezone={timezone}
+            />
+          </CardBody>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Change your password</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <ChangePasswordForm />
-        </CardBody>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Change your password</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <ChangePasswordForm />
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

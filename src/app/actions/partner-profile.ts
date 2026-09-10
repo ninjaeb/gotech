@@ -22,7 +22,13 @@ const partnerProfileSchema = z.object({
   timezone: z.string().trim().optional(),
 });
 
-export type PartnerProfileState = { error: string } | { success: true } | undefined;
+// success carries the timezone just saved — the one field the form shows
+// through a controlled input, so it needs a value to sync to right after a
+// save. Next's own action-triggered page refresh (revalidatePath) resolves
+// too late for that: it can still hand the client a render generated just
+// before this mutation landed, one save behind. Returning it directly here
+// sidesteps that race entirely.
+export type PartnerProfileState = { error: string } | { success: true; timezone: string | null } | undefined;
 
 // Self-service, scoped to the caller's own row only — never takes a
 // userId, unlike updateUserDetails (which is how an admin edits anyone
@@ -66,5 +72,5 @@ export async function updatePartnerProfile(
   });
 
   revalidatePath("/business-portal/profile");
-  return { success: true };
+  return { success: true, timezone: parsed.data.timezone || null };
 }

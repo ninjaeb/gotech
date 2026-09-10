@@ -333,14 +333,17 @@ export function PartnerListingForm({
 
   return (
     <>
-      {/* AI Auto Create and Public URL sit side by side as the editor's
-          first row, AI on the left. PartnerSlugForm is its own independent
-          <form> (a separate server action from the listing form below), so
-          it can't nest inside the listing <form> — it's rendered here as a
-          sibling instead. AiAutoCreatePanel isn't a form itself, but its
-          Website field submits as part of the listing form via the `form`
-          attribute (see LISTING_FORM_ID) since it now lives outside that
-          form's DOM subtree too. */}
+      {/* AI Auto Create and the Public URL/Search & social preview box sit
+          side by side as the editor's first row, AI on the left. Public URL
+          and Search & social preview share this one box (rather than being
+          two stacked boxes) since they're both about how the listing is
+          found/shared, not its content. Neither can nest inside the listing
+          <form> below: PartnerSlugForm is its own independent <form> (a
+          separate server action), and the SEO fields, though logically part
+          of the listing, need to live outside that form's DOM subtree to
+          sit next to it here — both submit via the `form` attribute (see
+          LISTING_FORM_ID) instead, same trick AiAutoCreatePanel's Website
+          field below uses for the same reason. */}
       <div className={cn("mb-5 grid items-start gap-6", aiAvailable && "lg:grid-cols-2")}>
         {aiAvailable && (
           <AiAutoCreatePanel
@@ -362,6 +365,51 @@ export function PartnerListingForm({
         <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
           <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
+
+          <div className="mt-4 border-t border-slate-200 pt-4 dark:border-neutral-800">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <Label className="mb-0">Search &amp; social preview</Label>
+              {aiAvailable && (
+                <button
+                  type="button"
+                  onClick={handleGenerateSeoMeta}
+                  disabled={generatingSeoMeta}
+                  className={buttonClasses("ghost", "sm", "shrink-0")}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {generatingSeoMeta ? "Generating…" : "Generate with AI"}
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              <FieldGroup label="SEO title" htmlFor="seoTitle">
+                <Input
+                  id="seoTitle"
+                  name="seoTitle"
+                  form={LISTING_FORM_ID}
+                  value={seoTitle}
+                  onChange={(event) => setSeoTitle(event.target.value)}
+                  placeholder={`${companyName || "Your company"} | Business Directory`}
+                  maxLength={100}
+                />
+              </FieldGroup>
+              <FieldGroup label="SEO description" htmlFor="seoDescription">
+                <Textarea
+                  id="seoDescription"
+                  name="seoDescription"
+                  form={LISTING_FORM_ID}
+                  rows={2}
+                  value={seoDescription}
+                  onChange={(event) => setSeoDescription(event.target.value)}
+                  placeholder="Shown in search results and when your link is shared — one or two sentences."
+                  maxLength={300}
+                />
+              </FieldGroup>
+            </div>
+            <p className="mt-1 text-xs text-slate-400">
+              Optional — leave blank to use your tagline and About text automatically.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -383,49 +431,6 @@ export function PartnerListingForm({
         // touch alone without also editing a plain field nearby.
         onChange={() => setJustSaved(false)}
       >
-
-      <div>
-        <div className="mb-1.5 flex items-center justify-between gap-2">
-          <Label className="mb-0">Search &amp; social preview</Label>
-          {aiAvailable && (
-            <button
-              type="button"
-              onClick={handleGenerateSeoMeta}
-              disabled={generatingSeoMeta}
-              className={buttonClasses("ghost", "sm", "shrink-0")}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {generatingSeoMeta ? "Generating…" : "Generate with AI"}
-            </button>
-          )}
-        </div>
-        <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-neutral-800">
-          <FieldGroup label="SEO title" htmlFor="seoTitle">
-            <Input
-              id="seoTitle"
-              name="seoTitle"
-              value={seoTitle}
-              onChange={(event) => setSeoTitle(event.target.value)}
-              placeholder={`${companyName || "Your company"} | Business Directory`}
-              maxLength={100}
-            />
-          </FieldGroup>
-          <FieldGroup label="SEO description" htmlFor="seoDescription">
-            <Textarea
-              id="seoDescription"
-              name="seoDescription"
-              rows={2}
-              value={seoDescription}
-              onChange={(event) => setSeoDescription(event.target.value)}
-              placeholder="Shown in search results and when your link is shared — one or two sentences."
-              maxLength={300}
-            />
-          </FieldGroup>
-        </div>
-        <p className="mt-1 text-xs text-slate-400">
-          Optional — leave blank to use your tagline and About text automatically.
-        </p>
-      </div>
 
       <div>
         <Label htmlFor="logo">Logo</Label>
