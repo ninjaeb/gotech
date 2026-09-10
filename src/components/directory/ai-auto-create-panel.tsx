@@ -47,7 +47,7 @@ export function AiAutoCreatePanel({
   formId: string;
   // The language tabs' own "Translate with AI" trigger (see
   // partner-listing-form.tsx's handleTranslate) — passed in rather than
-  // duplicated here, so Auto AI Translate below is a second entry point to
+  // duplicated here, so AI Auto Translate below is a second entry point to
   // the exact same action/state, not a second implementation of it.
   onTranslate: () => void;
   translating: boolean;
@@ -233,14 +233,14 @@ export function AiAutoCreatePanel({
         </Button>
         <Button type="button" variant="secondary" onClick={onTranslate} disabled={translating}>
           <Sparkles className="h-4 w-4" />
-          {translating ? "Translating…" : "Auto AI Translate"}
+          {translating ? "Translating…" : "AI Auto Translate"}
         </Button>
         <p className="text-xs text-slate-400">
           {creating
             ? "Reading the Google listing and website, then writing — this can take up to a minute."
             : translating
               ? "Translating your English content into Chinese and Malay — this can take a moment."
-              : "AI Auto Create replaces About, tagline, Products & services, FAQ, industry, categories, hours, and address. Auto AI Translate fills in the Chinese and Malay tabs from your English content."}
+              : "AI Auto Create replaces About, tagline, Products & services, FAQ, industry, categories, hours, and address. AI Auto Translate fills in the Chinese and Malay tabs from your English content."}
         </p>
       </div>
     </section>
