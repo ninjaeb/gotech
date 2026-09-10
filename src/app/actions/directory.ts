@@ -285,8 +285,8 @@ function parseOperatingHoursFormData(formData: FormData): OperatingHours {
   return result;
 }
 
-// A data: URL in exactly photoDataUrl's own shape — matches what aiLogo
-// below carries.
+// A data: URL in exactly photoDataUrl's own shape — matches what
+// logoDataUrl below carries.
 const DATA_URL_PATTERN = /^data:([a-zA-Z0-9.+-]+\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/]+=*)$/;
 
 async function parseListingLogo(formData: FormData): Promise<{ logoUrl?: string | null }> {
@@ -304,20 +304,23 @@ async function parseListingLogo(formData: FormData): Promise<{ logoUrl?: string 
   if (formData.get("removeLogo") === "on") {
     return { logoUrl: null };
   }
-  // AI Auto Create's own fetched logo (see logoFromPlace) rides along as a
-  // hidden field rather than a real file input, since a script can't
-  // populate a file <input> the way a partner's own picker does. Already
-  // in photoDataUrl's exact shape when it left the server, but it's still
+  // A logo that arrived as a data: URL rather than a real file upload —
+  // either a partner's own pick, already cropped client-side (see
+  // LogoCropDialog/handleCropApply in partner-listing-form.tsx), or AI Auto
+  // Create's own fetched logo (see logoFromPlace) — rides along as a
+  // hidden field, since neither a canvas crop nor a script can populate a
+  // file <input> the way a partner's own picker does. Already in
+  // photoDataUrl's exact shape when it was produced, but it's still
   // partner-suppliable input by the time it comes back here, so it's
   // re-validated the same as an uploaded file rather than trusted as-is.
   // Silently ignored (not thrown) if tampered with — falls through to no
-  // logo change, same as if AI Auto Create had never run.
-  const aiLogo = stringField(formData, "aiLogo");
-  if (aiLogo) {
-    const match = DATA_URL_PATTERN.exec(aiLogo);
+  // logo change, same as if neither had run.
+  const logoDataUrl = stringField(formData, "logoDataUrl");
+  if (logoDataUrl) {
+    const match = DATA_URL_PATTERN.exec(logoDataUrl);
     const buffer = match ? Buffer.from(match[2], "base64") : null;
     if (match && buffer && buffer.length > 0 && buffer.length <= MAX_PHOTO_BYTES && ALLOWED_PHOTO_TYPES.has(match[1])) {
-      return { logoUrl: aiLogo };
+      return { logoUrl: logoDataUrl };
     }
   }
   return {};
