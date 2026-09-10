@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.74",
+    date: "2026-09-10",
+    title: "Share/Recommend buttons moved into the listing header",
+    changes: [
+      "Share and Recommend now sit in the listing page header's top-right corner, next to the logo and name, instead of their own row below the category and location badges",
+      "On tablet and desktop they're stacked — Recommend Business above Share Business; on phones they show as their own row below the badges (or stack if the screen's too narrow to fit both side by side)",
+      "The Share button now has a proper \"Share Business\" label in English, Chinese, and Malay, instead of always showing English \"Share\"",
+    ],
+  },
+  {
     version: "1.73",
     date: "2026-09-10",
     title: "Operating hours upgrades, AI Auto Translate, editor layout",
