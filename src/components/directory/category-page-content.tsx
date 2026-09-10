@@ -102,6 +102,8 @@ export async function CategoryPageContent({
         initialQuery={q}
         initialIndustry=""
         initialCategory={category}
+        initialState=""
+        initialCountry=""
         directoryUrl={pageUrl}
         heading={heading}
         subheading={description}

@@ -1607,7 +1607,6 @@ model PartnerListing {
   services    Json // ServiceEntry[] (src/lib/directory.ts) — {title, description, price}, tolerant of an older listing's plain string[]
   industry    Industry?
   website     String?
-  location    String? // short display text, e.g. "Kuala Lumpur, Malaysia"
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   // State/province and country, split out from `address` — set by hand or
   // auto-filled from Google Places' address components (see

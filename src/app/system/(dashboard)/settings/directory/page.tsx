@@ -134,7 +134,6 @@ export default async function DirectorySettingsPage() {
                   )}
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                     {listing.industry && <span>{INDUSTRY_LABELS[listing.industry]}</span>}
-                    {listing.location && <span>{listing.location}</span>}
                     {listing.website && <span>{listing.website}</span>}
                   </div>
                   {listing.address && (

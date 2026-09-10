@@ -165,7 +165,7 @@ function buildJsonLd(
   const description = listing.seoDescription?.trim() || stripMarkdownLiteToPlainText(listing.description) || listing.tagline;
   if (description) jsonLd.description = description;
   if (imageUrl) jsonLd.image = imageUrl;
-  if (listing.address || listing.location) jsonLd.address = listing.address || listing.location;
+  if (listing.address) jsonLd.address = listing.address;
   if (listing.website) jsonLd.sameAs = [listing.website];
   // English regardless of the page's own locale — schema.org's own
   // vocabulary/consumers (search engines, AI crawlers) expect this field in
@@ -257,7 +257,7 @@ export default async function DirectoryListingPage({
 
   const siteOrigin = await getSiteOrigin();
   const t = DIRECTORY_STRINGS[resolved];
-  const mapAddress = listing.address || listing.location;
+  const mapAddress = listing.address;
   const pageUrl = `${siteOrigin}${directoryListingPath(resolved, slug)}`;
 
   const recommender = await getRecommendingPartner();
@@ -310,17 +310,16 @@ export default async function DirectoryListingPage({
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
           </div>
-        </div>
-
-        {/* Its own full-width row right under the tagline (rather than
-            squeezed into the name column alongside the logo, or tucked
-            into the header's top-right corner) — Share/Recommend, State,
-            Country, and Website together, flex-wrapping onto more lines as
-            a group if a long combination runs out of width. Recommend
-            leads (vouching for someone else's listing is the deliberate,
-            opt-in action) with Share right after (the everyday one). */}
-        {(recommendUrl || listing.state || listing.country || listing.website) && (
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-base text-slate-500 dark:text-slate-400">
+          {/* Share/Recommend live in the header's top-right corner from sm
+              up — tablet has the same spare width desktop does, nothing
+              here needs lg:'s extra room, so both get the stack. Recommend
+              leads: vouching for someone else's listing is the deliberate,
+              opt-in action, Share is the everyday one right below it.
+              Below sm there's no corner left beside the logo, so the same
+              two buttons render again, full-width side by side, in their
+              own row under the badges instead — see the sm:hidden block
+              below. */}
+          <div className="hidden w-44 shrink-0 flex-col gap-2 sm:flex">
             {recommendUrl && (
               <ShareButton
                 title={listing.companyName}
@@ -329,12 +328,52 @@ export default async function DirectoryListingPage({
                 label={t.recommendLabel}
                 icon="recommend"
                 variant="primary"
-                className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+                className="w-full bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
               />
             )}
-            <ShareButton title={listing.companyName} url={pageUrl} label={t.shareLabel} />
-            {listing.state && <span>{listing.state}</span>}
-            {listing.country && <span>{listing.country}</span>}
+            <ShareButton title={listing.companyName} url={pageUrl} label={t.shareLabel} className="w-full" />
+          </div>
+        </div>
+
+        {/* Its own full-width row right under the tagline — industry and
+            category pills, then State/Country (each a link into the
+            directory filtered to that state/country, same pattern as an
+            industry/category pill below), then Website. All one row,
+            flex-wrapping onto more lines together if a long combination
+            runs out of width. */}
+        {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
+            {listing.industry && (
+              <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
+                <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                  {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
+                </Badge>
+              </Link>
+            )}
+            {listing.categories.map((category) => (
+              <Link key={category} href={categoryPath(slugify(category), resolved)}>
+                <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
+                  {translateCategoryName(category, resolved)}
+                </Badge>
+              </Link>
+            ))}
+            {listing.state && (
+              <Link
+                href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
+              >
+                <MapPin className="h-4 w-4" />
+                {listing.state}
+              </Link>
+            )}
+            {listing.country && (
+              <Link
+                href={`${directoryHomePath(resolved)}?country=${encodeURIComponent(listing.country)}`}
+                className="hover:text-petrol hover:underline dark:hover:text-petrol-light"
+              >
+                {listing.country}
+              </Link>
+            )}
             {listing.website && (
               <a
                 href={listing.website}
@@ -349,39 +388,27 @@ export default async function DirectoryListingPage({
           </div>
         )}
 
-        {/* Industry+categories and location, each its own stacked row —
-            location no longer shares a row with Website, which moved up
-            into the details row above. */}
-        {(listing.industry || listing.categories.length > 0 || listing.location) && (
-          <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400">
-            {(listing.industry || listing.categories.length > 0) && (
-              <div className="flex flex-wrap items-center gap-2">
-                {listing.industry && (
-                  <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                      {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
-                    </Badge>
-                  </Link>
-                )}
-                {listing.categories.map((category) => (
-                  <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                    <Badge className="bg-petrol px-2.5 py-1 text-sm font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
-                      {translateCategoryName(category, resolved)}
-                    </Badge>
-                  </Link>
-                ))}
-              </div>
-            )}
-            {listing.location && (
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-1">
-                  <MapPin className="h-4 w-4" />
-                  {listing.location}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Phone-width fallback for the corner stack above — same two
+            buttons, same order, just a full-width row since there's no
+            room beside the logo down here. flex-wrap is the safety net on
+            the narrowest phones: whitespace-nowrap label text (see
+            ShareButton) won't shrink below its own width, so if both
+            buttons together don't fit one line, the second wraps to its
+            own full-width line rather than clipping. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2 sm:hidden">
+          {recommendUrl && (
+            <ShareButton
+              title={listing.companyName}
+              url={recommendUrl}
+              message={recommendMessage!}
+              label={t.recommendLabel}
+              icon="recommend"
+              variant="primary"
+              className="flex-1 justify-center bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+            />
+          )}
+          <ShareButton title={listing.companyName} url={pageUrl} label={t.shareLabel} className="flex-1 justify-center" />
+        </div>
       </div>
 
       <InquiryProvider>
