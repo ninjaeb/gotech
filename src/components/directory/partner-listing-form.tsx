@@ -383,7 +383,7 @@ export function PartnerListingForm({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
         <div className="inline-flex rounded-md bg-slate-100 p-0.5 dark:bg-neutral-800">
           {LANGUAGE_TABS.map((tab) => (
             <button
@@ -562,7 +562,11 @@ export function PartnerListingForm({
           </p>
         </div>
         <div hidden={activeTab !== "zh"}>
-          <Label htmlFor="zhDescription">About</Label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="zhDescription" className="mb-0">
+              About
+            </Label>
+          </div>
           <MarkdownLiteEditor
             id="zhDescription"
             name="zhDescription"
@@ -570,10 +574,19 @@ export function PartnerListingForm({
             rows={5}
             value={translations.zh?.description ?? ""}
             onChange={(value) => updateTranslation("zh", "description", value)}
+            placeholder="What does your business do?"
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
+            Preview to see how it&apos;ll look.
+          </p>
         </div>
         <div hidden={activeTab !== "ms"}>
-          <Label htmlFor="msDescription">About</Label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="msDescription" className="mb-0">
+              About
+            </Label>
+          </div>
           <MarkdownLiteEditor
             id="msDescription"
             name="msDescription"
@@ -581,7 +594,12 @@ export function PartnerListingForm({
             rows={5}
             value={translations.ms?.description ?? ""}
             onChange={(value) => updateTranslation("ms", "description", value)}
+            placeholder="What does your business do?"
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
+            Preview to see how it&apos;ll look.
+          </p>
         </div>
 
         <div>
