@@ -20,6 +20,7 @@ import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { AiAutoCreatePanel } from "@/components/directory/ai-auto-create-panel";
 import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { LogoCropDialog } from "@/components/directory/logo-crop-dialog";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
 import { PartnerSlugForm } from "@/components/directory/partner-slug-form";
@@ -84,12 +85,16 @@ export function PartnerListingForm({
   const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
   const [removeLogo, setRemoveLogo] = useState(false);
-  // AI Auto Create's fetched logo (see logoFromPlace in the action) — a
-  // data: URL, same shape as a manually-picked file produces, carried to
-  // Save via the aiLogo hidden field below since a script can't populate a
-  // file <input> the way a partner's own picker does. logoPreview above
-  // still drives what's actually shown; this just rides along for Save.
-  const [aiLogoDataUrl, setAiLogoDataUrl] = useState<string | null>(null);
+  // The logo as a data: URL, whenever it isn't a plain file-input upload —
+  // either AI Auto Create's own fetched logo (see logoFromPlace in the
+  // action), or a partner's own upload once they've cropped it (see
+  // handleLogoChange/handleCropApply below). Carried to Save via the
+  // logoDataUrl hidden field below since neither a script nor a canvas
+  // crop can populate a file <input> the way a partner's own picker does.
+  // logoPreview above still drives what's actually shown; this just rides
+  // along for Save.
+  const [pendingLogoDataUrl, setPendingLogoDataUrl] = useState<string | null>(null);
+  const [cropImageUrl, setCropImageUrl] = useState<string | null>(null);
   const [submitPending, startSubmitTransition] = useTransition();
   const toast = useToast();
 
@@ -167,17 +172,32 @@ export function PartnerListingForm({
   const [generatingSeoMeta, startGenerateSeoMeta] = useTransition();
   const [translating, startTranslate] = useTransition();
 
+  // Opens the crop dialog on the picked file rather than using it as-is —
+  // see handleCropApply/handleCropCancel below for what happens next. The
+  // file input's own value is cleared immediately: its selection has
+  // already been captured as an object URL for the dialog, nothing further
+  // reads the input itself (the file never rides directly to Save — see
+  // handleCropApply), and clearing it lets the same file be re-picked
+  // later (e.g. after Cancel) without that being a no-op change event.
   function handleLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
+    setCropImageUrl(URL.createObjectURL(file));
+  }
+
+  function handleCropCancel() {
+    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+    setCropImageUrl(null);
+  }
+
+  function handleCropApply(dataUrl: string) {
+    if (cropImageUrl) URL.revokeObjectURL(cropImageUrl);
+    setCropImageUrl(null);
     setRemoveLogo(false);
-    // A real file input always wins on Save (see parseListingLogo) even
-    // without this, but clearing it too avoids the stale value hanging
-    // around in state for no reason once the partner's picked their own.
-    setAiLogoDataUrl(null);
-    const reader = new FileReader();
-    reader.onload = () => setLogoPreview(typeof reader.result === "string" ? reader.result : null);
-    reader.readAsDataURL(file);
+    setLogoPreview(dataUrl);
+    setPendingLogoDataUrl(dataUrl);
+    setJustSaved(false);
   }
 
   function handleSubmitForReview() {
@@ -349,7 +369,7 @@ export function PartnerListingForm({
     if (details.seoDescription) setSeoDescription(details.seoDescription);
     if (details.logoUrl) {
       setLogoPreview(details.logoUrl);
-      setAiLogoDataUrl(details.logoUrl);
+      setPendingLogoDataUrl(details.logoUrl);
       setRemoveLogo(false);
     }
     setActiveTab("en");
@@ -462,12 +482,14 @@ export function PartnerListingForm({
         <div className="flex items-center gap-4">
           <ListingLogo name={companyName || "?"} logoUrl={removeLogo ? null : logoPreview} className="h-14 w-14 text-lg" />
           <div className="flex-1 space-y-2">
-            {/* A real file input can't be populated from JS the way a
-                partner's own picker fills it, so AI Auto Create's fetched
-                logo (see handleAutoCreated) rides to Save as this plain
-                hidden field instead — parseListingLogo only uses it when
-                the file input above is empty. */}
-            <input type="hidden" name="aiLogo" value={aiLogoDataUrl ?? ""} />
+            {/* handleLogoChange sends whatever's picked here straight to
+                LogoCropDialog and clears the input right away — a real
+                file input can't be populated from JS the way a crop's
+                canvas output (or AI Auto Create's own fetched logo — see
+                handleAutoCreated) needs to ride to Save, so both go
+                through this hidden field instead; parseListingLogo only
+                falls back to the file input when it's empty. */}
+            <input type="hidden" name="logoDataUrl" value={pendingLogoDataUrl ?? ""} />
             <input
               id="logo"
               name="logo"
@@ -476,7 +498,9 @@ export function PartnerListingForm({
               onChange={handleLogoChange}
               className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 dark:text-slate-400 dark:file:bg-neutral-800 dark:file:text-slate-200 dark:hover:file:bg-neutral-700"
             />
-            <p className="text-xs text-slate-500 dark:text-slate-400">JPEG, PNG, WebP, or GIF, under 3MB.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              JPEG, PNG, WebP, or GIF, under 3MB — crop, zoom, and rotate it before it&apos;s saved.
+            </p>
             {logoPreview && !removeLogo && (
               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
@@ -492,6 +516,8 @@ export function PartnerListingForm({
           </div>
         </div>
       </div>
+
+      {cropImageUrl && <LogoCropDialog imageUrl={cropImageUrl} onCancel={handleCropCancel} onApply={handleCropApply} />}
 
       <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
         <div className="inline-flex rounded-md bg-slate-100 p-0.5 dark:bg-neutral-800">
