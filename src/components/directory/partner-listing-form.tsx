@@ -343,11 +343,12 @@ export function PartnerListingForm({
         <AiAutoCreatePanel
           placesAvailable={placesAvailable}
           defaultQuery={current.companyName}
-          getContext={() => ({ companyName: contextFromForm().companyName, website })}
-          onWebsiteFound={(site) => {
+          website={website}
+          onWebsiteChange={(site) => {
             setWebsite(site);
             setJustSaved(false);
           }}
+          getContext={() => ({ companyName: contextFromForm().companyName })}
           onCreated={handleAutoCreated}
         />
       )}
@@ -419,7 +420,11 @@ export function PartnerListingForm({
         industry, categories, hours, and more) applies to all languages.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Website is normally a field inside AiAutoCreatePanel above (it's
+          both the source and the target of that section's auto-fill) — this
+          is only the fallback when AI isn't configured at all and that
+          panel doesn't render, so the field still needs to exist somewhere. */}
+      <div className={cn("grid gap-4", aiAvailable ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
         <FieldGroup label="Company name" htmlFor="companyName" required>
           <Input id="companyName" name="companyName" required defaultValue={current.companyName} />
           {companyNameError && <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{companyNameError}</p>}
@@ -460,15 +465,17 @@ export function PartnerListingForm({
           </FieldGroup>
         </div>
 
-        <FieldGroup label="Website" htmlFor="website">
-          <Input
-            id="website"
-            name="website"
-            value={website}
-            onChange={(event) => setWebsite(event.target.value)}
-            placeholder="acme.com"
-          />
-        </FieldGroup>
+        {!aiAvailable && (
+          <FieldGroup label="Website" htmlFor="website">
+            <Input
+              id="website"
+              name="website"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              placeholder="acme.com"
+            />
+          </FieldGroup>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
