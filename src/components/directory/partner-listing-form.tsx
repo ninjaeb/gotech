@@ -330,20 +330,15 @@ export function PartnerListingForm({
 
   return (
     <>
-      {/* Public URL and AI Auto Create sit side by side as the editor's
-          first row. PartnerSlugForm is its own independent <form> (a
-          separate server action from the listing form below), so it can't
-          nest inside the listing <form> — it's rendered here as a sibling
-          instead. AiAutoCreatePanel isn't a form itself, but its Website
-          field submits as part of the listing form via the `form`
+      {/* AI Auto Create and Public URL sit side by side as the editor's
+          first row, AI on the left. PartnerSlugForm is its own independent
+          <form> (a separate server action from the listing form below), so
+          it can't nest inside the listing <form> — it's rendered here as a
+          sibling instead. AiAutoCreatePanel isn't a form itself, but its
+          Website field submits as part of the listing form via the `form`
           attribute (see LISTING_FORM_ID) since it now lives outside that
           form's DOM subtree too. */}
       <div className={cn("mb-5 grid items-start gap-6", aiAvailable && "lg:grid-cols-2")}>
-        <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
-          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
-          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
-        </div>
-
         {aiAvailable && (
           <AiAutoCreatePanel
             formId={LISTING_FORM_ID}
@@ -356,8 +351,15 @@ export function PartnerListingForm({
             }}
             getContext={() => ({ companyName: contextFromForm().companyName })}
             onCreated={handleAutoCreated}
+            onTranslate={handleTranslate}
+            translating={translating}
           />
         )}
+
+        <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
+          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
+        </div>
       </div>
 
       <form

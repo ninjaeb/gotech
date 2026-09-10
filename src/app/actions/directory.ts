@@ -268,7 +268,7 @@ function parseOperatingHoursFormData(formData: FormData): OperatingHours {
     const open = formData.get(`hours-${day}-open`);
     const close = formData.get(`hours-${day}-close`);
     const isOpen =
-      status === "open" &&
+      (status === "open" || status === "24h") &&
       typeof open === "string" &&
       isValidTimeString(open) &&
       typeof close === "string" &&
