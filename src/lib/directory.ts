@@ -1,13 +1,15 @@
 import { db } from "@/lib/db";
 import type { Industry, PartnerListing, Prisma } from "@/generated/prisma/client";
 import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
+import { slugify } from "@/lib/slug";
 import type { DirectoryLocale } from "@/lib/directory-i18n";
 
 // Re-exported for existing server-side imports (actions, pages) that
 // already pull these from "@/lib/directory" — but a "use client" component
-// needing DAYS_OF_WEEK/OperatingHours etc. at runtime (not just as a type)
-// must import them from "@/lib/operating-hours" directly, never from here:
-// this module's own top-level `db` import can't be bundled for the browser.
+// needing DAYS_OF_WEEK/OperatingHours/slugify etc. at runtime (not just as
+// a type) must import them from "@/lib/operating-hours"/"@/lib/slug"
+// directly, never from here: this module's own top-level `db` import can't
+// be bundled for the browser.
 export {
   currentDayInTimezone,
   DAYS_OF_WEEK,
@@ -21,6 +23,7 @@ export {
   type DayOfWeek,
   type OperatingHours,
 } from "@/lib/operating-hours";
+export { isValidSlugFormat, slugify } from "@/lib/slug";
 
 // The only shape the public directory ever reads — a snapshot of a
 // listing's public fields as they were the last time an admin approved
@@ -265,28 +268,6 @@ export function normalizeWebsiteUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return trimmed;
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-}
-
-const MIN_SLUG_LENGTH = 3;
-const MAX_SLUG_LENGTH = 60;
-const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
-
-// Exported so both generateListingSlug below and a partner's own slug edit
-// (see updateListingSlug in src/app/actions/directory.ts) normalize the
-// same way — typing "My Company!!" becomes "my-company" either way, rather
-// than rejecting it and making the partner figure out valid syntax by hand.
-export function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "") // strip combining accents so "Jose" -> "jose"
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, MAX_SLUG_LENGTH);
-}
-
-export function isValidSlugFormat(value: string): boolean {
-  return value.length >= MIN_SLUG_LENGTH && value.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.test(value);
 }
 
 // Schema.org CollectionPage/ItemList markup for the directory's own listing

@@ -137,6 +137,11 @@ export function PartnerListingForm({
   // controlled state, so one result can land in all of them at once.
   const formRef = useRef<HTMLFormElement>(null);
   const [companyName, setCompanyName] = useState(current.companyName);
+  // Distinct from `companyName` above (which also tracks the partner's own
+  // typing in that field) — only ever set from an AI Auto Create result, so
+  // PartnerSlugForm's own auto-suggested slug (see its autoSlugSource prop)
+  // reacts to a fresh company name AI just found, not to every keystroke.
+  const [autoSlugSource, setAutoSlugSource] = useState<string | undefined>(undefined);
   const [tagline, setTagline] = useState(current.tagline);
   const [website, setWebsite] = useState(current.website);
   const [industry, setIndustry] = useState(current.industry);
@@ -322,7 +327,10 @@ export function PartnerListingForm({
   // Google listing with no hours, say, leaves hours the partner already set
   // alone rather than wiping them.
   function handleAutoCreated(details: AutoCreatedListingDetails) {
-    if (details.companyName) setCompanyName(details.companyName);
+    if (details.companyName) {
+      setCompanyName(details.companyName);
+      setAutoSlugSource(details.companyName);
+    }
     if (details.tagline) setTagline(details.tagline);
     if (details.description) setDescription(details.description);
     if (details.industry) setIndustry(details.industry);
@@ -381,7 +389,7 @@ export function PartnerListingForm({
 
         <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
           <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
-          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
+          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} autoSlugSource={autoSlugSource} />
 
           <div className="mt-4 border-t border-slate-200 pt-4 dark:border-neutral-800">
             <div className="mb-1.5 flex items-center justify-between gap-2">

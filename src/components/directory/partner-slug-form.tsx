@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { updateListingSlug } from "@/app/actions/directory";
 import { directoryListingPath } from "@/lib/directory-i18n";
+import { slugify } from "@/lib/slug";
 import { Label } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 
@@ -10,10 +11,20 @@ export function PartnerSlugForm({
   listingId,
   slug,
   siteOrigin,
+  autoSlugSource,
 }: {
   listingId: string;
   slug: string;
   siteOrigin: string;
+  // The company name AI Auto Create just found (see handleAutoCreated in
+  // partner-listing-form.tsx) — suggests a URL from it, same as a partner
+  // typing it in by hand would, rather than leaving the slug this listing
+  // was created with (generated from the partner's own account name, which
+  // rarely matches the actual business). Only ever pre-fills the input;
+  // still requires its own explicit Update address click to save, same as
+  // any other edit here — AI Auto Create writes content, never a live URL,
+  // without a partner's own confirmation.
+  autoSlugSource?: string;
 }) {
   const [state, formAction, pending] = useActionState(updateListingSlug.bind(null, listingId), undefined);
   const [value, setValue] = useState(slug);
@@ -27,6 +38,12 @@ export function PartnerSlugForm({
   if (state !== lastSyncedState) {
     setLastSyncedState(state);
     if (state && "success" in state) setValue(state.slug);
+  }
+
+  const [lastSyncedAutoSlugSource, setLastSyncedAutoSlugSource] = useState(autoSlugSource);
+  if (autoSlugSource !== lastSyncedAutoSlugSource) {
+    setLastSyncedAutoSlugSource(autoSlugSource);
+    if (autoSlugSource) setValue(slugify(autoSlugSource));
   }
 
   const prefix = `${siteOrigin}${directoryListingPath("en", "")}`;
