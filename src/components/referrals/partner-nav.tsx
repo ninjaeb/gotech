@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
+import { BUSINESS_NAV_ITEMS, PARTNERSHIP_NAV_ITEMS } from "@/lib/business-nav-items";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/business" ? pathname === "/business" : pathname.startsWith(href);
@@ -16,8 +16,9 @@ function isActive(pathname: string, href: string): boolean {
 // Escape + dropdown-panel pattern as DirectoryNavMenu (src/components/
 // directory/directory-nav-menu.tsx), ShareButton, and NotificationBell.
 // Grouped to match how a partner thinks about the two sites they can move
-// between: a link out to the public directory, then every portal page
-// nested under "My Business", then sign out.
+// between: a link out to the public directory, then their own listing
+// pages nested under "My Business", then their referral relationship with
+// Gotka nested under "Partnership", then sign out.
 export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | Promise<void> }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -70,6 +71,21 @@ export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | 
             My Business
           </div>
           {BUSINESS_NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className={cn(itemClasses, "pl-5", isActive(pathname, item.href) && "text-petrol dark:text-petrol-light")}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          <div className="border-t border-slate-100 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-neutral-800 dark:text-slate-500">
+            Partnership
+          </div>
+          {PARTNERSHIP_NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
