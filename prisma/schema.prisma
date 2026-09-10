@@ -144,6 +144,14 @@ model User {
   referralCode           String?  @unique
   referralCommissionRate Decimal? @db.Decimal(5, 2)
 
+  // The partner's own business name — only meaningful for role PARTNER.
+  // Separate from any one PartnerListing.companyName (a partner can run
+  // more than one listing): set at signup, and, for a Google sign-up that
+  // skipped the pre-redirect form fields, backfilled by the profile-
+  // completion gate (see requireCompleteBusinessProfile in
+  // src/lib/auth/dal.ts) before the dashboard is reachable.
+  companyName String?
+
   emailAccount                           EmailAccount?
   deals                                  Deal[]
   referredDeals                          Deal[]                              @relation("DealReferredBy")
@@ -1593,6 +1601,14 @@ model PartnerListing {
   location    String? // short display text, e.g. "Kuala Lumpur, Malaysia"
   address     String?   @db.Text // fuller street address, for the map embed and schema.org markup
   operatingHours Json? // OperatingHours (src/lib/directory.ts) — one entry per day of week, each either a single open/close time range or null (closed)
+  // IANA zone name (e.g. "Asia/Kuala_Lumpur") that operatingHours' plain
+  // "HH:mm" times are in — needed to say whether this listing is open
+  // *right now* (see isOpenNow in src/lib/operating-hours.ts) regardless of
+  // the visitor's own timezone. Defaults client-side to the browser's own
+  // detected zone when a partner first opens the editor (see
+  // OperatingHoursEditor); null just means "never set", same tolerant
+  // pattern as operatingHours itself.
+  timezone String?
   faqs        Json? // FaqEntry[] (src/lib/directory.ts) — {question, answer}; also emitted as FAQPage JSON-LD for SEO/GEO
   translations Json? // ListingTranslations (src/lib/directory.ts) — {zh?: {tagline, description, services, faqs}, ms?: {...}}; AI-translated (or hand-edited) copies of tagline/description/services/faqs for the directory's non-English locales, shown in place of the fields above when a visitor is browsing in that language
   logoUrl     String?   @db.LongText // data: URL, same as Contact.photoUrl

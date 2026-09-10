@@ -39,17 +39,18 @@ async function getDirectoryViewer(): Promise<DirectoryViewer> {
 // The site-like header/footer (sticky nav, language + theme switches,
 // hamburger menu, footer tagline) shared by every public-facing partner
 // page — the directory itself, its listing pages, and the two forms that
-// sit outside it (/directory/signup and /business/login) — rather than the
-// minimal centered-card wrapper the CRM's own /system/login and internal
-// forms use. A partner filling in a form should feel like they're on the
-// same site the whole way through, not dropped onto a bare page.
+// sit outside it (the locale-prefixed .../business/signup and the bare
+// /business/login) — rather than the minimal centered-card wrapper the
+// CRM's own /system/login and internal forms use. A partner filling in a
+// form should feel like they're on the same site the whole way through,
+// not dropped onto a bare page.
 export async function DirectoryChrome({
   children,
   locale: localeProp,
   forceAnonymousNav = false,
 }: {
   children: React.ReactNode;
-  // Every /[locale]/directory/... page passes its own already-validated URL
+  // Every /[locale]/business/... page passes its own already-validated URL
   // segment here, so the header renders in exactly that language with no
   // extra cookie lookup. Omitted by pages outside the locale-prefixed tree
   // (currently just /business/login, which still shares this same header)
@@ -69,9 +70,9 @@ export async function DirectoryChrome({
     forceAnonymousNav ? Promise.resolve(null) : getDirectoryViewer(),
   ]);
   const t = DIRECTORY_STRINGS[locale];
-  // Points into the real /[locale]/directory/... tree when the current
-  // page already knows its locale; otherwise the old bare /directory/*
-  // URL, which now just permanently redirects there anyway (see
+  // Points into the real /[locale]/business/... tree when the current page
+  // already knows its locale; otherwise the old bare /directory/* URL,
+  // which now just permanently redirects there anyway (see
   // src/app/directory/page.tsx) — one extra hop only from a page like
   // /business/login that isn't part of the locale-prefixed tree itself.
   const directoryHref = localeProp ? directoryHomePath(localeProp) : "/directory";

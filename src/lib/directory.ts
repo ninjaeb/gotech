@@ -9,9 +9,11 @@ import type { DirectoryLocale } from "@/lib/directory-i18n";
 // must import them from "@/lib/operating-hours" directly, never from here:
 // this module's own top-level `db` import can't be bundled for the browser.
 export {
+  currentDayInTimezone,
   DAYS_OF_WEEK,
   formatOpeningHoursSchema,
   groupOperatingHours,
+  isOpenNow,
   isValidTimeString,
   operatingHoursFromJson,
   type DayGroup,
@@ -36,6 +38,7 @@ export type PublishedListingSnapshot = {
   location: string | null;
   address: string | null;
   operatingHours: OperatingHours | null;
+  timezone: string | null;
   faqs: FaqEntry[];
   categories: string[];
   translations: ListingTranslations;
@@ -206,6 +209,7 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     location: typeof raw.location === "string" ? raw.location : null,
     address: typeof raw.address === "string" ? raw.address : null,
     operatingHours: operatingHoursFromJson(raw.operatingHours),
+    timezone: typeof raw.timezone === "string" ? raw.timezone : null,
     faqs: faqsFromJson(raw.faqs),
     categories: Array.isArray(raw.categories) ? raw.categories.filter((entry): entry is string => typeof entry === "string") : [],
     translations: translationsFromJson(raw.translations),
@@ -229,6 +233,7 @@ export function buildPublishedSnapshot(listing: PartnerListing, categoryNames: s
     location: listing.location,
     address: listing.address,
     operatingHours: operatingHoursFromJson(listing.operatingHours),
+    timezone: listing.timezone,
     faqs: faqsFromJson(listing.faqs),
     categories: categoryNames,
     translations: translationsFromJson(listing.translations),
@@ -336,7 +341,7 @@ export async function findCategoryBySlug(categorySlug: string): Promise<string |
 }
 
 // A partner account can list more than one business (see
-// src/app/business/(dashboard)/listings) — every listing row belongs to
+// src/app/business-portal/(dashboard)/listings) — every listing row belongs to
 // exactly one partner, but a partner can own several. Ordered oldest-first
 // so a partner's listings stay in a stable, predictable order across visits
 // rather than reshuffling as they're edited (updatedAt would do that).

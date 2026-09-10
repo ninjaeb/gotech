@@ -15,6 +15,6 @@ export async function deleteBusinessCategory(id: string): Promise<void> {
   await requireAdminAction();
   await db.businessCategory.delete({ where: { id } });
   revalidatePath("/system/settings/directory");
-  revalidatePath("/business/listings");
-  revalidatePath("/business/listings/[id]", "layout");
+  revalidatePath("/business-portal/listings");
+  revalidatePath("/business-portal/listings/[id]", "layout");
 }

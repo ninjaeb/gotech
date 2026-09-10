@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
+import { directoryHomePath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 function isActive(pathname: string, href: string): boolean {
-  return href === "/business" ? pathname === "/business" : pathname.startsWith(href);
+  return href === "/business-portal" ? pathname === "/business-portal" : pathname.startsWith(href);
 }
 
 // The business portal's own nav — always a hamburger (there's no inline
@@ -18,7 +19,13 @@ function isActive(pathname: string, href: string): boolean {
 // Grouped to match how a partner thinks about the two sites they can move
 // between: a link out to the public directory, then every portal page
 // nested under "My Business", then sign out.
-export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | Promise<void> }) {
+export function PartnerNavMenu({
+  signOutAction,
+  locale,
+}: {
+  signOutAction: () => void | Promise<void>;
+  locale: DirectoryLocale;
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +69,7 @@ export function PartnerNavMenu({ signOutAction }: { signOutAction: () => void | 
           role="menu"
           className="absolute right-0 z-30 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <Link href="/directory" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+          <Link href={directoryHomePath(locale)} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
             Business Directory
           </Link>
 

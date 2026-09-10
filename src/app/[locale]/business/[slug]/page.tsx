@@ -4,8 +4,10 @@ import type { Metadata } from "next";
 import { ChevronDown, Clock, Globe, MapPin } from "lucide-react";
 import { db } from "@/lib/db";
 import {
+  currentDayInTimezone,
   DAYS_OF_WEEK,
   formatOpeningHoursSchema,
+  isOpenNow,
   readPublishedSnapshot,
   slugify,
   type FaqEntry,
@@ -217,9 +219,13 @@ type HoursRow = { day: string; label: string; status: string; isToday: boolean }
 // collapsing consecutive matching days into a range — this is the display
 // table on the detail page; buildJsonLd's own openingHours still uses the
 // compact grouped form, which is what schema.org actually wants.
-function buildHoursRows(hours: OperatingHours, t: DirectoryStrings): HoursRow[] {
+function buildHoursRows(hours: OperatingHours, t: DirectoryStrings, timezone: string | null): HoursRow[] {
+  // Prefer the listing's own timezone for "today" — an older listing with
+  // none set falls back to the server's local day rather than showing no
+  // highlight at all.
   const jsDay = new Date().getDay(); // 0 (Sun) .. 6 (Sat)
-  const todayKey = DAYS_OF_WEEK[(jsDay + 6) % 7]; // rotate to our Monday-first order
+  const serverTodayKey = DAYS_OF_WEEK[(jsDay + 6) % 7]; // rotate to our Monday-first order
+  const todayKey = (timezone && currentDayInTimezone(timezone)) || serverTodayKey;
   return DAYS_OF_WEEK.map((day) => {
     const isToday = day === todayKey;
     const dayHours = hours[day];
@@ -302,7 +308,7 @@ export default async function DirectoryListingPage({
           <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-24 w-24 text-2xl" />
           <div className="min-w-0 flex-1">
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
-            {displayTagline && <p className="mt-1 text-lg text-slate-600 dark:text-slate-300">{displayTagline}</p>}
+            {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
           </div>
           {/* Full width on mobile so flex-wrap gives this its own line
               below the logo/name instead of squeezing the name column
@@ -328,11 +334,14 @@ export default async function DirectoryListingPage({
         {/* Its own full-width block below the logo/name row (rather than
             squeezed into the name column alongside the logo) — at mobile
             widths that column is narrow enough that even short badges
-            wrapped one per line; the full card width comfortably fits
-            industry+categories together, and location+website together,
-            each as their own row. */}
+            need their own line, so industry+categories and
+            location+website stay two stacked rows there. From sm: up
+            there's room for both groups on one shared row instead — still
+            two flex-wrap groups internally, just laid out side by side
+            rather than stacked, wrapping onto a second line together only
+            if a long combination actually runs out of width. */}
         {(listing.industry || listing.categories.length > 0 || listing.location || listing.website) && (
-          <div className="mt-3 space-y-2 text-lg text-slate-500 dark:text-slate-400">
+          <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:space-y-0">
             {(listing.industry || listing.categories.length > 0) && (
               <div className="flex flex-wrap items-center gap-2">
                 {listing.industry && (
@@ -382,9 +391,9 @@ export default async function DirectoryListingPage({
             {displayDescription && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">{t.aboutHeading}</CardTitle>
+                  <CardTitle className="text-base">{t.aboutHeading}</CardTitle>
                 </CardHeader>
-                <CardBody className="text-lg text-slate-600 dark:text-slate-300">
+                <CardBody className="text-base text-slate-600 dark:text-slate-300">
                   {renderMarkdownLite(displayDescription)}
                 </CardBody>
               </Card>
@@ -400,7 +409,7 @@ export default async function DirectoryListingPage({
                 {displayServices.length > 0 && (
                   <Card id="services" className="scroll-mt-32">
                     <CardHeader>
-                      <CardTitle className="text-xl">{t.servicesHeading}</CardTitle>
+                      <CardTitle className="text-base">{t.servicesHeading}</CardTitle>
                     </CardHeader>
                     <CardBody>
                       <ServiceList services={displayServices} />
@@ -409,17 +418,33 @@ export default async function DirectoryListingPage({
                 )}
                 {listing.operatingHours && (
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-1.5 text-xl">
+                    <CardHeader className="gap-2">
+                      <CardTitle className="flex items-center gap-1.5 text-base">
                         <Clock className="h-4 w-4 text-slate-400" />
                         {t.hoursHeading}
                       </CardTitle>
+                      {listing.timezone &&
+                        (() => {
+                          const openNow = isOpenNow(listing.operatingHours, listing.timezone);
+                          if (openNow === null) return null;
+                          return (
+                            <Badge
+                              className={
+                                openNow
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                                  : "bg-slate-100 text-slate-500 dark:bg-neutral-800 dark:text-slate-400"
+                              }
+                            >
+                              {openNow ? t.hoursOpenNowBadge : t.hoursClosedNowBadge}
+                            </Badge>
+                          );
+                        })()}
                     </CardHeader>
                     <CardBody>
                       <div className="overflow-hidden rounded-md border border-slate-200 dark:border-neutral-800">
-                        <table className="w-full text-lg">
+                        <table className="w-full text-base">
                           <tbody>
-                            {buildHoursRows(listing.operatingHours, t).map((row) => (
+                            {buildHoursRows(listing.operatingHours, t, listing.timezone).map((row) => (
                               <tr
                                 key={row.day}
                                 className={cn(
@@ -457,7 +482,7 @@ export default async function DirectoryListingPage({
             {mapAddress && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">{t.visitHeading}</CardTitle>
+                  <CardTitle className="text-base">{t.visitHeading}</CardTitle>
                 </CardHeader>
                 <CardBody className="space-y-4">
                   {listing.address && (
@@ -465,7 +490,7 @@ export default async function DirectoryListingPage({
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapAddress.replace(/\n/g, ", "))}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-start gap-2 text-lg text-slate-600 hover:text-petrol hover:underline dark:text-slate-300 dark:hover:text-petrol-light"
+                      className="flex items-start gap-2 text-base text-slate-600 hover:text-petrol hover:underline dark:text-slate-300 dark:hover:text-petrol-light"
                     >
                       <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
                       <span className="whitespace-pre-wrap">{listing.address}</span>
@@ -485,7 +510,7 @@ export default async function DirectoryListingPage({
             {displayFaqs.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl">{t.faqHeading}</CardTitle>
+                  <CardTitle className="text-base">{t.faqHeading}</CardTitle>
                 </CardHeader>
                 <CardBody className="space-y-2">
                   {displayFaqs.map((faq, index) => (
@@ -493,11 +518,11 @@ export default async function DirectoryListingPage({
                       key={index}
                       className="group rounded-md border border-slate-200 px-3 py-2 dark:border-neutral-800"
                     >
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-lg font-semibold text-slate-900 marker:content-none dark:text-slate-100">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-base font-semibold text-slate-900 marker:content-none dark:text-slate-100">
                         {faq.question}
                         <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
                       </summary>
-                      <p className="mt-2 text-lg text-slate-600 dark:text-slate-300">{faq.answer}</p>
+                      <p className="mt-2 text-base text-slate-600 dark:text-slate-300">{faq.answer}</p>
                     </details>
                   ))}
                 </CardBody>
@@ -508,10 +533,10 @@ export default async function DirectoryListingPage({
           <InquiryScrollTarget id="contact" className="scroll-mt-32 lg:sticky lg:top-32 lg:self-start">
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl">{t.contactHeading}</CardTitle>
+                <CardTitle className="text-base">{t.contactHeading}</CardTitle>
               </CardHeader>
               <CardBody>
-                <p className="mb-4 text-lg text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
+                <p className="mb-4 text-base text-slate-500 dark:text-slate-400">{t.contactSubheading}</p>
                 <DirectoryLeadForm slug={slug} locale={resolved} />
               </CardBody>
             </Card>

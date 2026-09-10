@@ -9,6 +9,7 @@ import { isValidPhoneFormat, normalizePhone, PHONE_FORMAT_HINT } from "@/lib/pho
 
 const partnerProfileSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
+  companyName: z.string().trim().min(1, "Company name is required"),
   email: z.string().trim().toLowerCase().min(1, "Email is required").refine(isValidEmailFormat, {
     message: "Enter a valid email address",
   }),
@@ -36,6 +37,7 @@ export async function updatePartnerProfile(
 
   const parsed = partnerProfileSchema.safeParse({
     name: formData.get("name"),
+    companyName: formData.get("companyName"),
     email: formData.get("email"),
     title: formData.get("title"),
     phone: formData.get("phone") || undefined,
@@ -53,12 +55,13 @@ export async function updatePartnerProfile(
     where: { id: partner.id },
     data: {
       name: parsed.data.name,
+      companyName: parsed.data.companyName,
       email: parsed.data.email,
       title: parsed.data.title || null,
       phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null,
     },
   });
 
-  revalidatePath("/business/profile");
+  revalidatePath("/business-portal/profile");
   return { success: true };
 }

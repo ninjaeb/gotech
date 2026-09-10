@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Inbox, Handshake, Trophy, Wallet } from "lucide-react";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getDirectoryLeadStatsForPartner } from "@/lib/directory";
 import { getCurrency } from "@/lib/settings";
@@ -17,7 +17,7 @@ import { DIRECTORY_LEAD_STATUS_BADGE_CLASSES, DIRECTORY_LEAD_STATUS_LABELS } fro
 // reason to make a partner with several businesses flip between separate
 // per-listing inbox pages to see all their inquiries.
 export default async function PartnerDirectoryLeadsPage() {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const [stats, currency, leads] = await Promise.all([
     getDirectoryLeadStatsForPartner(user.id),
     getCurrency(),
@@ -55,7 +55,7 @@ export default async function PartnerDirectoryLeadsPage() {
               title="No leads yet."
               description="Once someone sends an inquiry through one of your listings, it shows up here."
               action={
-                <Link href="/business/listings" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
+                <Link href="/business-portal/listings" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
                   Go to My listings
                 </Link>
               }
@@ -76,7 +76,7 @@ export default async function PartnerDirectoryLeadsPage() {
                   {leads.map((lead) => (
                     <tr key={lead.id}>
                       <td className="py-2.5 pr-3">
-                        <Link href={`/business/directory-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
+                        <Link href={`/business-portal/directory-leads/${lead.id}`} className="hover:text-petrol dark:hover:text-petrol-light">
                           <p className="font-medium text-slate-800 dark:text-slate-200">{lead.name}</p>
                           {lead.company && <p className="text-xs text-slate-400">{lead.company}</p>}
                         </Link>

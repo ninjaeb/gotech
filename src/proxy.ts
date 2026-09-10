@@ -3,9 +3,9 @@ import { decrypt } from "@/lib/auth/session";
 import { decryptPortalSession } from "@/lib/portal/session";
 import { decryptBusinessSession } from "@/lib/business/session";
 
-// Routes logged-out visitors can reach at all. /business/login is handled
-// entirely separately, in proxyBusinessRoute below, since it checks a
-// different cookie.
+// Routes logged-out visitors can reach at all. /business-portal/login is
+// handled entirely separately, in proxyBusinessRoute below, since it
+// checks a different cookie.
 const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // Routes that stay public even for a logged-in user — e.g. a shared quote
 // link, which staff previewing it shouldn't get bounced away from.
@@ -21,19 +21,34 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // /system/login instead of serving JS / accepting the cross-origin POST,
 // which a <script> tag or CORS preflight can't follow usefully. /r/ is a partner's
 // referral link (src/app/r/[code]/route.ts) — followed by strangers, who
-// then land on the marketing site, never here. /directory is the public
-// partner directory — a bare, un-prefixed URL there is just a permanent
-// redirect now (src/app/directory/page.tsx); the real content lives under
-// its own locale prefix, /en|/zh|/ms/directory (src/app/[locale]/directory)
-// — browsed and its lead form submitted by visitors with no login at all.
-// /api/directory-images/ serves a listing's About-field images, embedded on
-// that same public page.
+// then land on the marketing site, never here. The public partner
+// directory lives under its own locale prefix, /en|/zh|/ms/business
+// (src/app/[locale]/business, renamed from /directory for a friendlier
+// public URL) — browsed and its lead form submitted by visitors with no
+// login at all. Unrelated to the signed-in partner portal, which lives at
+// /business-portal (gated by proxyBusinessRoute below) — the two used to
+// share the bare word "business" before the portal moved off it
+// specifically to avoid that confusion. The bare /directory and
+// locale-prefixed /en|/zh|/ms/directory paths are now just permanent
+// redirects into the paths above (src/app/directory/,
+// src/app/[locale]/directory/) for old links/bookmarks, but need to stay
+// listed here too so *they* aren't blocked from running their own
+// redirect logic. The bare /business is the same story on the portal
+// side — its own old URL, now just a permanent redirect into
+// /business-portal (see src/app/business/) — and needs to stay listed for
+// the same reason: it has to run before any session check, since a
+// partner following an old link has no `system_session` to satisfy one.
+// Safe to match as a plain prefix even though "/business-portal" also
+// starts with "/business" — every /business-portal/* request already
+// returned via proxyBusinessRoute above before reaching this list at all.
+// /api/directory-images/ serves a listing's About-field images, embedded
+// on that same public page.
 // /api/auth/google is the "Continue with Google" redirect-out-and-back
 // (src/app/api/auth/google, .../callback) kicked off from both
-// /directory/signup and /business/login — the visitor has no session yet
-// when they click it, so without this prefix the proxy would bounce the
-// POST (and Google's own redirect back to the callback) to a login page
-// before either request ever reached its handler.
+// /<locale>/business/signup and /business-portal/login — the visitor has
+// no session yet when they click it, so without this prefix the proxy
+// would bounce the POST (and Google's own redirect back to the callback)
+// to a login page before either request ever reached its handler.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
   "/r/",
@@ -44,6 +59,10 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/en/directory",
   "/zh/directory",
   "/ms/directory",
+  "/en/business",
+  "/zh/business",
+  "/ms/business",
+  "/business",
   "/testimonial/",
   "/embed/",
   "/unsubscribe/",
@@ -81,26 +100,26 @@ async function proxyPortalRoute(request: NextRequest, pathname: string) {
   return NextResponse.next();
 }
 
-// The business portal (/business/*) is a third, independent visitor type
-// with its own cookie and signing key (see src/lib/business/session.ts),
+// The business portal (/business-portal/*) is a third, independent visitor
+// type with its own cookie and signing key (see src/lib/business/session.ts),
 // handled entirely separately before the staff-session logic below — same
 // isolation, same reasoning, as the client portal's own proxyPortalRoute:
 // a staff `system_session` cookie can't substitute for a `business_session`
 // and is never even inspected for these paths, and vice versa for every
 // other route. This is what lets a browser stay signed into /system and
-// /business at the same time.
-const BUSINESS_AUTH_ONLY_PUBLIC_ROUTES = ["/business/login"];
+// /business-portal at the same time.
+const BUSINESS_AUTH_ONLY_PUBLIC_ROUTES = ["/business-portal/login"];
 
 async function proxyBusinessRoute(request: NextRequest, pathname: string) {
   const isAuthOnlyPublic = BUSINESS_AUTH_ONLY_PUBLIC_ROUTES.includes(pathname);
   const session = await decryptBusinessSession(request.cookies.get("business_session")?.value);
 
   if (!isAuthOnlyPublic && !session?.userId) {
-    return NextResponse.redirect(new URL("/business/login", request.url));
+    return NextResponse.redirect(new URL("/business-portal/login", request.url));
   }
 
   if (isAuthOnlyPublic && session?.userId) {
-    return NextResponse.redirect(new URL("/business", request.url));
+    return NextResponse.redirect(new URL("/business-portal", request.url));
   }
 
   return NextResponse.next();
@@ -134,14 +153,14 @@ export async function proxy(request: NextRequest) {
   // NextRequest in middleware) rather than bouncing through the bare
   // /directory redirect stub (src/app/directory/page.tsx) a second time.
   if (pathname === "/") {
-    return NextResponse.redirect(new URL(`/${resolveDirectoryLocaleFromRequest(request)}/directory`, request.url));
+    return NextResponse.redirect(new URL(`/${resolveDirectoryLocaleFromRequest(request)}/business`, request.url));
   }
 
   if (pathname === "/portal" || pathname.startsWith("/portal/")) {
     return proxyPortalRoute(request, pathname);
   }
 
-  if (pathname === "/business" || pathname.startsWith("/business/")) {
+  if (pathname === "/business-portal" || pathname.startsWith("/business-portal/")) {
     return proxyBusinessRoute(request, pathname);
   }
 

@@ -18,7 +18,7 @@ const STATE_COOKIE = "google_oauth_state";
 // redirect back to the browser here needs to use that same origin, or the
 // visitor ends up bounced to a URL only the server itself can reach.
 function failure(siteOrigin: string, code: string, returnTo: "signup" | "login" = "signup") {
-  const path = returnTo === "login" ? "/business/login" : "/directory/signup";
+  const path = returnTo === "login" ? "/business-portal/login" : "/directory/signup";
   const url = new URL(path, siteOrigin);
   url.searchParams.set("error", code);
   return NextResponse.redirect(url);

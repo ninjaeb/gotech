@@ -31,14 +31,14 @@ export const getCurrentUser = cache(async () => {
 // separate cookie and signing key from the staff session above, so a
 // browser can be signed into /system and /business at once. Mirrors
 // verifySession/getCurrentUser exactly, just sourced from that cookie and
-// redirecting to /business/login instead of /system/login when it's
+// redirecting to /business-portal/login instead of /system/login when it's
 // missing. Deliberately doesn't check role === "PARTNER" here (same as
 // getCurrentUser not checking role === "ADMIN") — that's each require*
 // function's own job below.
 export const verifyBusinessSession = cache(async () => {
   const session = await getBusinessSessionPayload();
   if (!session?.userId) {
-    redirect("/business/login");
+    redirect("/business-portal/login");
   }
   return session;
 });
@@ -47,10 +47,19 @@ export const getCurrentBusinessUser = cache(async () => {
   const session = await verifyBusinessSession();
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      title: true,
+      role: true,
+      sectionLayout: true,
+      phone: true,
+      companyName: true,
+    },
   });
   if (!user) {
-    redirect("/business/login");
+    redirect("/business-portal/login");
   }
   return user;
 });
@@ -61,7 +70,7 @@ export const TECHNICAL_HOME = "/system/tasks";
 // Partners (external referrers) only ever get the business portal — see
 // src/lib/referrals.ts. The (dashboard) layout bounces them here too, so no
 // CRM page is reachable for that role even without its own explicit gate.
-export const PARTNER_HOME = "/business";
+export const PARTNER_HOME = "/business-portal";
 
 // Where a given role belongs when it lands somewhere it shouldn't (or right
 // after logging in). ADMIN and SALES share the dashboard as their home —
@@ -83,14 +92,30 @@ export async function requireAdmin() {
 
 // For the business portal's Server Components — reads the business
 // session (see getCurrentBusinessUser above), not the staff one. Redirects
-// to /business/login rather than homeForRole on a role mismatch: a valid
+// to /business-portal/login rather than homeForRole on a role mismatch: a valid
 // business_session cookie whose user's role has since changed away from
 // PARTNER needs to sign in again at its own front door, not get bounced
 // into /system where it has no staff session to land on anyway.
 export async function requirePartner() {
   const user = await getCurrentBusinessUser();
   if (user.role !== "PARTNER") {
-    redirect("/business/login");
+    redirect("/business-portal/login");
+  }
+  return user;
+}
+
+// Same as requirePartner, plus a one-time detour to /business-portal/profile for
+// an account missing phone/companyName — mainly a Google sign-up that
+// skipped the pre-redirect form fields (see the callback route), since the
+// password signup form requires all three up front. Every dashboard page
+// but the profile page itself calls this instead of requirePartner, so a
+// partner can't reach the rest of the portal (or its notification-carrying
+// phone number) with a half-filled account; the profile page keeps calling
+// requirePartner plainly; redirecting it here too would loop.
+export async function requireCompletePartnerProfile() {
+  const user = await requirePartner();
+  if (!user.name.trim() || !user.phone || !user.companyName) {
+    redirect("/business-portal/profile");
   }
   return user;
 }

@@ -33,7 +33,7 @@ export function DirectoryApprovalSettingsForm({ mode }: { mode: DirectoryApprova
     <form action={formAction} className="space-y-4">
       <div className="max-w-sm">
         <Label htmlFor="mode">When a listing goes live</Label>
-        <Select id="mode" name="mode" defaultValue={mode}>
+        <Select key={mode} id="mode" name="mode" defaultValue={mode}>
           {APPROVAL_MODE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
