@@ -19,6 +19,7 @@ import {
   INDUSTRY_LABELS_BY_LOCALE,
   directoryHomePath,
   directoryListingPath,
+  formatRecommendMessage,
   type DirectoryStrings,
 } from "@/lib/directory-i18n";
 import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
@@ -258,6 +259,9 @@ export default async function DirectoryListingPage({
     recommender && recommender.id !== listing.partnerId
       ? directoryReferralUrl(siteOrigin, recommender.referralCode, slug, resolved)
       : null;
+  const recommendMessage = recommendUrl
+    ? formatRecommendMessage(t.recommendMessage, listing.companyName, recommendUrl)
+    : null;
 
   // The partner's own tagline/description/services/faqs stay the source of
   // truth — a translation only stands in for whichever field it actually
@@ -311,6 +315,7 @@ export default async function DirectoryListingPage({
               <ShareButton
                 title={listing.companyName}
                 url={recommendUrl}
+                message={recommendMessage!}
                 label={t.recommendLabel}
                 icon="recommend"
                 variant="primary"
@@ -514,7 +519,14 @@ export default async function DirectoryListingPage({
         </div>
       </InquiryProvider>
 
-      {recommendUrl && <RecommendBar title={listing.companyName} url={recommendUrl} label={t.recommendBusinessCta} />}
+      {recommendUrl && (
+        <RecommendBar
+          title={listing.companyName}
+          url={recommendUrl}
+          message={recommendMessage!}
+          label={t.recommendBusinessCta}
+        />
+      )}
 
       {/* Mobile only — on lg+ the Get in touch card is already visible in
           the sticky right-hand column, so this would just duplicate it. */}

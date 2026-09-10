@@ -35,6 +35,13 @@ export function directoryListingPath(locale: DirectoryLocale, slug: string): str
 
 export const DEFAULT_DIRECTORY_LOCALE: DirectoryLocale = "en";
 
+// Fills in DirectoryStrings.recommendMessage's {business}/{url} tokens —
+// see that field's own comment for why this is plain substitution rather
+// than a template literal built where the message is used.
+export function formatRecommendMessage(template: string, business: string, url: string): string {
+  return template.replace("{business}", business).replace("{url}", url);
+}
+
 export type DirectoryLeadFormErrorCode =
   | "name_required"
   | "email_required"
@@ -80,9 +87,15 @@ export type DirectoryStrings = {
   locationLabel: string;
   // The listing page's "Recommend" affordances for a signed-in business
   // owner — the small button beside Share, and the floating bottom-bar
-  // pill (see RecommendBar). Both share one referral-tracking link.
+  // pill (see RecommendBar). Both share one referral-tracking link and
+  // this same pre-written message for the email/WhatsApp/native-share
+  // options (Copy link still copies the bare URL). {business} and {url}
+  // are replaced with the listing's name and the tracking link itself —
+  // plain string substitution, not a template literal, since this is
+  // localized data, not code.
   recommendLabel: string;
   recommendBusinessCta: string;
+  recommendMessage: string;
   contactHeading: string;
   contactSubheading: string;
   formNameLabel: string;
@@ -179,6 +192,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     locationLabel: "Location",
     recommendLabel: "Recommend",
     recommendBusinessCta: "Recommend the Business",
+    recommendMessage: "I recommend {business} — check them out on the Business Directory: {url}",
     contactHeading: "Get in touch",
     contactSubheading: "Send a message directly to this business — they'll reply to the email address you provide.",
     formNameLabel: "Name",
@@ -282,6 +296,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     websiteLabel: "网站",
     recommendLabel: "推荐",
     recommendBusinessCta: "推荐这家企业",
+    recommendMessage: "我推荐 {business}——快来企业目录看看：{url}",
     locationLabel: "地点",
     contactHeading: "联系我们",
     contactSubheading: "直接给这家企业发送信息——他们会回复您提供的电子邮件地址。",
@@ -386,6 +401,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     websiteLabel: "Laman web",
     recommendLabel: "Syorkan",
     recommendBusinessCta: "Syorkan Perniagaan Ini",
+    recommendMessage: "Saya syorkan {business} — lihat mereka di Direktori Perniagaan: {url}",
     locationLabel: "Lokasi",
     contactHeading: "Hubungi kami",
     contactSubheading: "Hantar mesej terus kepada perniagaan ini — mereka akan membalas ke alamat e-mel yang anda berikan.",

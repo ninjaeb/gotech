@@ -12,13 +12,24 @@ import { ShareButton } from "@/components/directory/share-button";
 // Get in touch — see the listing page), so the pill floats just above that
 // rather than covering it; from sm up that jump bar is gone and the pill
 // gets a proper strip of its own along the bottom edge.
-export function RecommendBar({ title, url, label }: { title: string; url: string; label: string }) {
+export function RecommendBar({
+  title,
+  url,
+  message,
+  label,
+}: {
+  title: string;
+  url: string;
+  message: string;
+  label: string;
+}) {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-20 z-30 flex justify-center px-4 sm:bottom-0 sm:border-t sm:border-slate-200 sm:bg-white/95 sm:py-3 sm:backdrop-blur dark:sm:border-neutral-800 dark:sm:bg-neutral-900/95">
       <div className="pointer-events-auto">
         <ShareButton
           title={title}
           url={url}
+          message={message}
           label={label}
           icon="recommend"
           variant="primary"

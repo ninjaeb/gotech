@@ -13,12 +13,15 @@ import { cn } from "@/lib/utils";
 // the native sheet is also on offer.
 //
 // The same menu doubles as the listing page's "Recommend" button (see
-// RecommendBar): identical options, just a different label/icon and a
-// referral-tracking URL instead of the plain page URL — so the only
-// difference between "share" and "recommend" is which link goes out.
+// RecommendBar): identical options, just a different label/icon, a
+// referral-tracking URL instead of the plain page URL, and (via `message`)
+// a pre-written recommendation instead of the generic "<title> <url>" —
+// so the only difference between "share" and "recommend" is which link
+// and wording go out.
 export function ShareButton({
   title,
   url,
+  message,
   label = "Share",
   icon = "share",
   variant = "secondary",
@@ -29,6 +32,11 @@ export function ShareButton({
 }: {
   title: string;
   url: string;
+  // Overrides the email body / WhatsApp text / native-share text with a
+  // fuller message (already including the link) instead of just "<title>
+  // <url>" — used for Recommend's "I recommend {business}..." copy.
+  // Copy link is unaffected either way — it always copies the bare `url`.
+  message?: string;
   label?: string;
   icon?: "share" | "recommend";
   variant?: ButtonVariant;
@@ -84,7 +92,7 @@ export function ShareButton({
 
   async function handleNativeShare() {
     try {
-      await navigator.share({ title, url });
+      await navigator.share({ title, text: message, url });
     } catch {
       // User cancelled the share sheet, or the browser refused — either
       // way there's nothing useful to show for it.
@@ -92,8 +100,9 @@ export function ShareButton({
     setOpen(false);
   }
 
-  const mailtoHref = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(url)}`;
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`;
+  const shareText = message ?? `${title} ${url}`;
+  const mailtoHref = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(message ?? url)}`;
+  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
   const TriggerIcon = icon === "recommend" ? ThumbsUp : Share2;
   const triggerIconClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
 

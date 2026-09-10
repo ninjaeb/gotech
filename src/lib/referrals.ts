@@ -1,6 +1,9 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { getReferralSettings } from "@/lib/settings";
+import { firstHopValue } from "@/lib/site-url";
+import { directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
 import type { DirectoryLeadStatus } from "@/generated/prisma/client";
 
 // The referral program's shared logic — see the comment block above
@@ -15,22 +18,49 @@ import type { DirectoryLeadStatus } from "@/generated/prisma/client";
 // URL can't smuggle anything odd into a submission.
 export const REFERRAL_CODE_PATTERN = /^[a-z0-9-]{3,40}$/;
 
-// Set by /r/<code>?l=<slug> (a "Recommend this business" link) on the way
-// into a directory listing, and read back by submitDirectoryLead so an
-// inquiry sent from that listing is credited to the recommender. A cookie
-// rather than a ?ref= query param like the marketing-site path uses: the
-// visitor may browse a few directory pages before writing in, and a URL
-// param wouldn't survive that. Thirty days, matching the usual attribution
+// Set by a "Recommend this business" link (see directoryReferralUrl and
+// src/app/[locale]/directory/[slug]/r/[code]/route.ts) on the way into a
+// directory listing, and read back by submitDirectoryLead so an inquiry
+// sent from that listing is credited to the recommender. A cookie rather
+// than a ?ref= query param like the marketing-site path uses: the visitor
+// may browse a few directory pages before writing in, and a URL param
+// wouldn't survive that. Thirty days, matching the usual attribution
 // window for this kind of link.
 export const DIRECTORY_REFERRAL_COOKIE = "directory_ref";
 export const DIRECTORY_REFERRAL_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
 
-// The link a partner hands out when recommending someone else's listing —
-// see src/app/r/[code]/route.ts for what it does on the way through. Carries
-// the recommender's current directory language so the visitor lands in
-// the same one they were shown.
-export function directoryReferralUrl(siteOrigin: string, code: string, slug: string, locale: string): string {
-  return `${siteOrigin}/r/${encodeURIComponent(code)}?l=${encodeURIComponent(slug)}&lang=${encodeURIComponent(locale)}`;
+// The link a partner hands out when recommending someone else's listing:
+// the listing's own canonical URL with one more segment, so it reads like
+// part of the site (and the business's name right there in the path) —
+// e.g. /en/directory/acme-sdn-bhd/r/eugene-test1 — instead of an opaque
+// query string. See src/app/[locale]/directory/[slug]/r/[code]/route.ts
+// for what it does on the way through.
+export function directoryReferralUrl(siteOrigin: string, code: string, slug: string, locale: DirectoryLocale): string {
+  return `${siteOrigin}${directoryListingPath(locale, slug)}/r/${encodeURIComponent(code)}`;
+}
+
+// Shared by both /r/<code> (the plain marketing link) and the listing
+// recommend link above — a one-way hash of the IP, never the address
+// itself, is enough to approximate unique visitors later without holding
+// PII. Best-effort: a logging failure must never turn into a broken link
+// for the visitor.
+export async function logReferralClick(
+  request: NextRequest,
+  partnerId: string,
+  listingId: string | null,
+): Promise<void> {
+  const ip = firstHopValue(request.headers.get("x-forwarded-for"));
+  await db.referralClick
+    .create({
+      data: {
+        partnerId,
+        listingId,
+        ipHash: ip ? createHash("sha256").update(ip).digest("hex").slice(0, 32) : null,
+        userAgent: request.headers.get("user-agent")?.slice(0, 191) ?? null,
+        referer: request.headers.get("referer")?.slice(0, 191) ?? null,
+      },
+    })
+    .catch((error) => console.error("Failed to log referral click:", error));
 }
 
 // "jane-x7k2": the partner's first name for recognizability (a partner is
