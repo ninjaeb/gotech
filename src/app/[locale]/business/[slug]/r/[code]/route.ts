@@ -5,7 +5,7 @@ import { getSiteOrigin } from "@/lib/site-url";
 import { resolveDirectoryLocale } from "@/lib/directory-locale";
 import { DEFAULT_DIRECTORY_LOCALE, directoryHomePath, directoryListingPath } from "@/lib/directory-i18n";
 
-// A "Recommend this business" link — /<locale>/directory/<slug>/r/<code>,
+// A "Recommend this business" link — /<locale>/business/<slug>/r/<code>,
 // built by directoryReferralUrl (src/lib/referrals.ts) — the listing's own
 // canonical URL plus one more segment, so the link reads like part of the
 // site (business name included) rather than an opaque tracking path like

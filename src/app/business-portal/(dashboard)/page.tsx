@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Banknote, Handshake, Inbox, MousePointerClick, Store, ThumbsUp, Trophy, UserPlus, Wallet } from "lucide-react";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { generateReferralCode, getPartnerStats, getRecommendationBreakdown, referredDealStatus } from "@/lib/referrals";
 import { getDirectoryLeadStatsForPartner, listPartnerListings } from "@/lib/directory";
@@ -30,7 +30,7 @@ async function ensureReferralCode(userId: string, name: string): Promise<string>
 }
 
 export default async function PartnerOverviewPage() {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const [code, stats, currency, settings, siteOrigin, recommendations, recentLeads, listings] = await Promise.all([
     ensureReferralCode(user.id, user.name),
     getPartnerStats(user.id),
@@ -100,7 +100,7 @@ export default async function PartnerOverviewPage() {
           description="Inquiries sent through your link"
           icon={UserPlus}
           accent="indigo"
-          href="/business/leads"
+          href="/business-portal/leads"
         />
         <StatCard
           label="Deals won"
@@ -115,7 +115,7 @@ export default async function PartnerOverviewPage() {
           description="All commissions, before payouts"
           icon={Handshake}
           accent="emerald"
-          href="/business/commissions"
+          href="/business-portal/commissions"
         />
         <StatCard
           label="Available to withdraw"
@@ -123,7 +123,7 @@ export default async function PartnerOverviewPage() {
           description={stats.pending > 0 ? `${formatCurrencyExact(stats.pending, currency)} awaiting approval` : "Approved, not yet requested"}
           icon={Wallet}
           accent="orange"
-          href="/business/commissions"
+          href="/business-portal/commissions"
         />
         <StatCard
           label="Paid out"
@@ -163,7 +163,7 @@ export default async function PartnerOverviewPage() {
           )}
           {stats.leads > recentLeads.length && (
             <p className="mt-3 text-right text-xs">
-              <Link href="/business/leads" className="text-petrol hover:underline dark:text-petrol-light">
+              <Link href="/business-portal/leads" className="text-petrol hover:underline dark:text-petrol-light">
                 See all {stats.leads} leads
               </Link>
             </p>
@@ -248,7 +248,7 @@ export default async function PartnerOverviewPage() {
       <Card>
         <CardHeader>
           <CardTitle>Directory listings</CardTitle>
-          <Link href="/business/listings" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
+          <Link href="/business-portal/listings" className="text-sm font-medium text-petrol hover:underline dark:text-petrol-light">
             Manage listings
           </Link>
         </CardHeader>
@@ -256,7 +256,7 @@ export default async function PartnerOverviewPage() {
           {listings.length === 0 ? (
             <p className="text-sm text-slate-500 dark:text-slate-400">
               You haven&apos;t created a listing yet —{" "}
-              <Link href="/business/listings" className="text-petrol hover:underline dark:text-petrol-light">
+              <Link href="/business-portal/listings" className="text-petrol hover:underline dark:text-petrol-light">
                 create one
               </Link>{" "}
               to get on the public directory.
@@ -274,7 +274,7 @@ export default async function PartnerOverviewPage() {
               value={directoryStats.new.toString()}
               icon={Inbox}
               accent="sky"
-              href="/business/directory-leads"
+              href="/business-portal/directory-leads"
             />
             <StatCard label="Won" value={directoryStats.won.toString()} icon={Store} accent="emerald" />
             <StatCard

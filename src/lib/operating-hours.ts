@@ -68,6 +68,70 @@ export function groupOperatingHours(hours: OperatingHours): DayGroup[] {
   return groups;
 }
 
+const WEEKDAY_ABBR_TO_DAY: Record<string, DayOfWeek> = {
+  Mon: "monday",
+  Tue: "tuesday",
+  Wed: "wednesday",
+  Thu: "thursday",
+  Fri: "friday",
+  Sat: "saturday",
+  Sun: "sunday",
+};
+
+// The shared read behind both isOpenNow and currentDayInTimezone below —
+// today's day-of-week and minutes-since-midnight, as a clock in
+// `timezone` would show them right now. Returns null for an invalid IANA
+// zone name (Intl throws on those) rather than guessing.
+function currentDayAndMinutes(timezone: string, now: Date): { day: DayOfWeek; minutes: number } | null {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "short",
+      hour: "numeric",
+      minute: "numeric",
+      hourCycle: "h23",
+    }).formatToParts(now);
+  } catch {
+    return null;
+  }
+
+  const day = WEEKDAY_ABBR_TO_DAY[parts.find((part) => part.type === "weekday")?.value ?? ""];
+  const hour = Number(parts.find((part) => part.type === "hour")?.value);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value);
+  if (!day || Number.isNaN(hour) || Number.isNaN(minute)) return null;
+  return { day, minutes: hour * 60 + minute };
+}
+
+// Today's day-of-week as a clock in `timezone` would show it right now —
+// what a listing page uses to highlight "today"'s row in its hours table
+// instead of the server's own local day, which is meaningless to a
+// visitor (see the listing page's buildHoursRows). Null for an invalid
+// zone or when there's no zone at all (an older listing that predates
+// this field) — the caller falls back to the server's own day.
+export function currentDayInTimezone(timezone: string, now: Date = new Date()): DayOfWeek | null {
+  return currentDayAndMinutes(timezone, now)?.day ?? null;
+}
+
+// Whether a listing is open right this moment, in ITS OWN timezone — not
+// the visitor's, since "open now" is a property of the business's actual
+// clock, wherever the page happens to be loaded from. `now` defaults to
+// the real current time but takes an override for tests. Returns null
+// (rather than guessing) when `timezone` isn't a valid IANA zone name, so
+// a caller can just skip the badge instead of showing a wrong one.
+// Same-day open/close only, same as the rest of this model (no listing
+// stores an overnight range that crosses midnight).
+export function isOpenNow(hours: OperatingHours, timezone: string, now: Date = new Date()): boolean | null {
+  const current = currentDayAndMinutes(timezone, now);
+  if (!current) return null;
+
+  const todayHours = hours[current.day];
+  if (!todayHours) return false;
+  const [openHour, openMinute] = todayHours.open.split(":").map(Number);
+  const [closeHour, closeMinute] = todayHours.close.split(":").map(Number);
+  return current.minutes >= openHour * 60 + openMinute && current.minutes < closeHour * 60 + closeMinute;
+}
+
 const DAY_ABBREVIATIONS: Record<DayOfWeek, string> = {
   monday: "Mo",
   tuesday: "Tu",

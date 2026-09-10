@@ -3,7 +3,7 @@ import { Banknote, Handshake, Inbox, Store } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getDirectoryOverviewStats, groupOperatingHours, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
-import { DIRECTORY_STRINGS } from "@/lib/directory-i18n";
+import { DEFAULT_DIRECTORY_LOCALE, DIRECTORY_STRINGS, directoryHomePath, directoryListingPath } from "@/lib/directory-i18n";
 import { getCurrency, getDirectoryApprovalMode } from "@/lib/settings";
 import { formatCurrencyExact, formatDate } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
@@ -77,7 +77,7 @@ export default async function DirectorySettingsPage() {
         title="Partner directory"
         description="Review partner listings and see how their inquiries are going"
         actions={
-          <Link href="/directory" target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+          <Link href={directoryHomePath(DEFAULT_DIRECTORY_LOCALE)} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400">
             View public directory
           </Link>
         }
@@ -213,7 +213,7 @@ export default async function DirectorySettingsPage() {
                         <div className="flex justify-end gap-2">
                           {listing.publishedSnapshot && (
                             <Link
-                              href={`/directory/${listing.slug}`}
+                              href={directoryListingPath(DEFAULT_DIRECTORY_LOCALE, listing.slug)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"

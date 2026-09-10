@@ -9,11 +9,13 @@ import { useActionToast } from "@/components/ui/toast";
 
 export function PartnerProfileForm({
   name,
+  companyName,
   email,
   title,
   phone,
 }: {
   name: string;
+  companyName: string | null;
   email: string;
   title: string | null;
   phone: string | null;
@@ -29,6 +31,14 @@ export function PartnerProfileForm({
           <RequiredMark />
         </Label>
         <Input id="name" name="name" required defaultValue={name} />
+      </div>
+
+      <div>
+        <Label htmlFor="companyName">
+          Company name
+          <RequiredMark />
+        </Label>
+        <Input id="companyName" name="companyName" required defaultValue={companyName ?? ""} />
       </div>
 
       <div>

@@ -95,12 +95,12 @@ export function DirectoryNavMenu({
               business viewer's own "back to directory" link uses below —
               this is the state that link was missing from: a visitor
               browsing an outside-the-shell page like /directory/signup or
-              /business/login had no way back into the directory itself. */}
+              /business-portal/login had no way back into the directory itself. */}
               <Link href={directoryHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <Store className="h-4 w-4 shrink-0 text-slate-400" />
                 {directoryLabel}
               </Link>
-              <Link href="/business/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+              <Link href="/business-portal/login" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <LogIn className="h-4 w-4 shrink-0 text-slate-400" />
                 {loginLabel}
               </Link>
@@ -151,7 +151,7 @@ export function DirectoryNavMenu({
             // business_session cookie, entirely separate from the staff
             // session this viewer state implies (see directory-chrome.tsx),
             // so routing a staff member through /business first would just
-            // bounce them to /business/login instead of anywhere useful.
+            // bounce them to /business-portal/login instead of anywhere useful.
             <Link href="/system" role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
               <LayoutDashboard className="h-4 w-4 shrink-0 text-slate-400" />
               {goToCrmLabel}

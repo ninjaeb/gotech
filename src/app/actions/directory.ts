@@ -61,7 +61,7 @@ function isDirectoryLocale(value: unknown): value is DirectoryLocale {
 // (see directory-language-switcher.tsx) — this just keeps the "last
 // preferred language" cookie current for whenever there's no URL segment
 // to read it from instead: a fresh "/" visit, an old un-prefixed bookmark
-// (src/app/directory/page.tsx's redirect), or /business/login, which
+// (src/app/directory/page.tsx's redirect), or /business-portal/login, which
 // shares this same header but isn't part of the locale-prefixed tree.
 // path: "/" (not just "/directory") so it's readable from all of those.
 export async function setDirectoryLocale(locale: string): Promise<void> {
@@ -721,8 +721,8 @@ export async function autoCreateListingDetails(input: {
 export async function createListingAction(): Promise<never> {
   const partner = await requirePartnerAction();
   const listing = await createPartnerListing(partner.id, partner.name);
-  revalidatePath("/business/listings");
-  redirect(`/business/listings/${listing.id}`);
+  revalidatePath("/business-portal/listings");
+  redirect(`/business-portal/listings/${listing.id}`);
 }
 
 type ListingSaveResult =
@@ -797,6 +797,7 @@ async function saveListingFields(
         website: parsed.data.website ? normalizeWebsiteUrl(parsed.data.website) : null,
         address: parsed.data.address || null,
         operatingHours: parseOperatingHoursFormData(formData),
+        timezone: stringField(formData, "timezone").trim() || null,
         faqs: parseFaqsJson(stringField(formData, "faqs")),
         translations: extractTranslations(formData),
         seoTitle: parsed.data.seoTitle || null,
@@ -829,9 +830,9 @@ export async function saveDirectoryListing(
   const result = await saveListingFields(partner, listingId, formData);
   if (!result.ok) return { error: result.error, field: result.field, values: result.values };
 
-  revalidatePath("/business");
-  revalidatePath("/business/listings");
-  revalidatePath(`/business/listings/${listingId}`);
+  revalidatePath("/business-portal");
+  revalidatePath("/business-portal/listings");
+  revalidatePath(`/business-portal/listings/${listingId}`);
   if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
   return { success: true };
 }
@@ -871,7 +872,7 @@ export async function updateListingSlug(
   }
 
   await db.partnerListing.update({ where: { id: listing.id }, data: { slug: normalized } });
-  revalidatePath(`/business/listings/${listingId}`);
+  revalidatePath(`/business-portal/listings/${listingId}`);
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
   revalidatePath(`/directory/${normalized}`);
@@ -939,9 +940,9 @@ export async function submitDirectoryListingForReview(
     revalidatePath(`/directory/${published.slug}`);
   }
 
-  revalidatePath("/business");
-  revalidatePath("/business/listings");
-  revalidatePath(`/business/listings/${listingId}`);
+  revalidatePath("/business-portal");
+  revalidatePath("/business-portal/listings");
+  revalidatePath(`/business-portal/listings/${listingId}`);
   revalidatePath("/system/settings/directory");
   return { success: true, published: !needsReview };
 }
@@ -979,9 +980,9 @@ export async function updateDirectoryLeadStatus(leadId: string, formData: FormDa
       closedAt,
     },
   });
-  revalidatePath("/business");
-  revalidatePath("/business/directory-leads");
-  revalidatePath(`/business/directory-leads/${lead.id}`);
+  revalidatePath("/business-portal");
+  revalidatePath("/business-portal/directory-leads");
+  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
 }
 
 const leadDetailsSchema = z.object({
@@ -1012,8 +1013,8 @@ export async function updateDirectoryLeadDetails(
     where: { id: lead.id },
     data: { value: parsed.data.value, notes: parsed.data.notes || null },
   });
-  revalidatePath("/business");
-  revalidatePath(`/business/directory-leads/${lead.id}`);
+  revalidatePath("/business-portal");
+  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
   return { success: true };
 }
 
@@ -1056,7 +1057,7 @@ export async function replyToDirectoryLead(
     }),
   ]);
 
-  revalidatePath(`/business/directory-leads/${lead.id}`);
+  revalidatePath(`/business-portal/directory-leads/${lead.id}`);
   if (!result.sent) return { error: `Saved, but the email didn't send: ${result.error}` };
   return { success: true };
 }

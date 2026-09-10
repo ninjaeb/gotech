@@ -1,5 +1,5 @@
 import { Banknote, Handshake, Wallet } from "lucide-react";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getPartnerStats } from "@/lib/referrals";
 import { getCurrency } from "@/lib/settings";
@@ -12,7 +12,7 @@ import { CommissionStatusBadge, WithdrawalStatusBadge } from "@/components/refer
 import { WithdrawalRequestForm } from "@/components/referrals/withdrawal-request-form";
 
 export default async function PartnerCommissionsPage() {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const [currency, stats, commissions, withdrawals] = await Promise.all([
     getCurrency(),
     getPartnerStats(user.id),

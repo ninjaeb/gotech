@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Sparkles } from "lucide-react";
 import {
   generateListingFaqs,
@@ -63,6 +63,7 @@ export function PartnerListingForm({
   values,
   logoUrl,
   operatingHours,
+  timezone,
   status,
   aiAvailable,
   placesAvailable,
@@ -74,6 +75,7 @@ export function PartnerListingForm({
   values: ListingFormValues;
   logoUrl: string | null;
   operatingHours: OperatingHours | null;
+  timezone: string | null;
   status: PartnerListingStatus;
   aiAvailable: boolean;
   placesAvailable: boolean;
@@ -146,6 +148,20 @@ export function PartnerListingForm({
   // Auto Create actually shows, instead of being ignored as a prop change.
   const [hours, setHours] = useState(operatingHours);
   const [hoursKey, setHoursKey] = useState(0);
+  // The browser's own timezone never changes at runtime, so — same
+  // reasoning, same pattern as ShareButton's nativeShareAvailable — this
+  // needs no real subscription, just a way to read it after hydration
+  // without the server (which has no browser timezone to agree with) and
+  // client disagreeing about the very first render. Only ever used as a
+  // fallback (see timezoneValue below): a zone the partner's already saved
+  // is never silently overwritten by it.
+  const detectedTimezone = useSyncExternalStore(
+    () => () => {},
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    () => "",
+  );
+  const [timezoneInput, setTimezoneInput] = useState(timezone ?? "");
+  const timezoneValue = timezoneInput || detectedTimezone;
   const [seoTitle, setSeoTitle] = useState(current.seoTitle);
   const [seoDescription, setSeoDescription] = useState(current.seoDescription);
   const [translations, setTranslations] = useState<ListingTranslations>(current.translations);
@@ -627,6 +643,21 @@ export function PartnerListingForm({
           <p className="mt-1 text-xs text-slate-400">
             Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
             Preview to see how it&apos;ll look.
+          </p>
+        </div>
+
+        <div>
+          <Label htmlFor="timezone">Timezone</Label>
+          <Input
+            id="timezone"
+            name="timezone"
+            value={timezoneValue}
+            onChange={(event) => setTimezoneInput(event.target.value)}
+            placeholder="Asia/Kuala_Lumpur"
+          />
+          <p className="mt-1 text-xs text-slate-400">
+            Detected from your browser — correct it if this business is somewhere else. Used to show visitors
+            whether you&apos;re open right now.
           </p>
         </div>
 

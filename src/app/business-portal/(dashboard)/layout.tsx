@@ -22,7 +22,7 @@ export default async function PartnerLayout({ children }: { children: React.Reac
     <div className="flex min-h-full flex-col">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
-          <Link href="/business" className="flex shrink-0 items-center gap-2">
+          <Link href="/business-portal" className="flex shrink-0 items-center gap-2">
             <img src="/icon-192.png" alt="" className="h-8 w-8 shrink-0" />
             <span className="hidden text-lg font-semibold text-slate-900 dark:text-slate-100 sm:inline">
               Business Portal
@@ -31,7 +31,7 @@ export default async function PartnerLayout({ children }: { children: React.Reac
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <DirectoryLanguageSwitcher current={locale} />
             <ThemeToggle />
-            <PartnerNavMenu signOutAction={businessLogout} />
+            <PartnerNavMenu signOutAction={businessLogout} locale={locale} />
           </div>
         </div>
       </header>

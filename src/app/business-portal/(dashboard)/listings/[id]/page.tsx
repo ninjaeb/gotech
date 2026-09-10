@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { db } from "@/lib/db";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { faqsFromJson, getOwnedListing, operatingHoursFromJson, servicesFromJson, translationsFromJson } from "@/lib/directory";
 import { getSiteOrigin } from "@/lib/site-url";
 import { directoryListingPath } from "@/lib/directory-i18n";
@@ -15,7 +15,7 @@ import { PartnerListingForm } from "@/components/directory/partner-listing-form"
 import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } from "@/lib/labels";
 
 export default async function PartnerListingEditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const { id } = await params;
   const listing = await getOwnedListing(id, user.id);
   if (!listing) notFound();
@@ -32,7 +32,7 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumbs={[{ label: "My listings", href: "/business/listings" }, { label: listing.companyName }]}
+        breadcrumbs={[{ label: "My listings", href: "/business-portal/listings" }, { label: listing.companyName }]}
         title={listing.companyName}
         description="What visitors see on the business directory, and the form they use to reach you."
       />
@@ -73,6 +73,7 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
             status={listing.status}
             logoUrl={listing.logoUrl}
             operatingHours={operatingHoursFromJson(listing.operatingHours)}
+            timezone={listing.timezone}
             aiAvailable={isAiConfigured()}
             placesAvailable={isGooglePlacesConfigured()}
             categories={categories}

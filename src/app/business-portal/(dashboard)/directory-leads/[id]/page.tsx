@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { AlertTriangle, Mail, Phone } from "lucide-react";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getCurrency } from "@/lib/settings";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -11,7 +11,7 @@ import { DirectoryLeadValueForm } from "@/components/directory/directory-lead-va
 import { DirectoryLeadReplyForm } from "@/components/directory/directory-lead-reply-form";
 
 export default async function PartnerDirectoryLeadPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const { id } = await params;
   const [currency, lead] = await Promise.all([
     getCurrency(),
@@ -29,7 +29,7 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
     <div className="space-y-6">
       <PageHeader
         breadcrumbs={[
-          { label: "Directory leads", href: "/business/directory-leads" },
+          { label: "Directory leads", href: "/business-portal/directory-leads" },
           { label: lead.listing.companyName },
           { label: lead.name },
         ]}

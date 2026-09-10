@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ExternalLink, Plus, Store } from "lucide-react";
 import { createListingAction } from "@/app/actions/directory";
 import { listPartnerListings } from "@/lib/directory";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { getSiteOrigin } from "@/lib/site-url";
 import { directoryListingPath } from "@/lib/directory-i18n";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,7 +20,7 @@ import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } f
 // form to fill in first, same as the very first listing a partner ever
 // gets started with.
 export default async function PartnerListingsPage() {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const [listings, siteOrigin] = await Promise.all([listPartnerListings(user.id), getSiteOrigin()]);
 
   return (
@@ -66,7 +66,7 @@ export default async function PartnerListingsPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <Link
-                      href={`/business/listings/${listing.id}`}
+                      href={`/business-portal/listings/${listing.id}`}
                       className={buttonClasses("secondary", "sm")}
                     >
                       Edit

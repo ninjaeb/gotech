@@ -1,5 +1,5 @@
 import { UserPlus } from "lucide-react";
-import { requirePartner } from "@/lib/auth/dal";
+import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { referredDealStatus } from "@/lib/referrals";
 import { getCurrency } from "@/lib/settings";
@@ -13,7 +13,7 @@ import { CommissionStatusBadge, ReferredDealStatusBadge } from "@/components/ref
 // the contact/company and the deal's outcome, but not the CRM's internal
 // stage names, notes, or anyone else's leads — a partner is external.
 export default async function PartnerLeadsPage() {
-  const user = await requirePartner();
+  const user = await requireCompletePartnerProfile();
   const [currency, deals] = await Promise.all([
     getCurrency(),
     db.deal.findMany({

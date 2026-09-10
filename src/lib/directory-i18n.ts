@@ -15,22 +15,29 @@ export const DIRECTORY_LOCALES: { code: DirectoryLocale; label: string }[] = [
 ];
 
 // Every directory URL carries its language as a leading path segment —
-// /en/directory, /zh/directory/some-company, /ms/directory/signup — English
+// /en/business, /zh/business/some-company, /ms/business/signup — English
 // included, rather than a bare default-locale URL, so all three languages
 // are equally real, bookmarkable, crawlable pages (see sitemap.ts) instead
-// of one "canonical" version plus query-param/cookie variants. The bare,
-// unprefixed /directory/* tree still exists (see src/app/directory/) but
-// only as a permanent redirect into here, for old links/bookmarks.
+// of one "canonical" version plus query-param/cookie variants. Lives under
+// /business rather than /directory (the tree's own folder name, and every
+// old link, was /directory until it was renamed for a friendlier public
+// URL). The signed-in partner portal used to share that same bare word —
+// it's since moved to its own /business-portal (src/app/business-portal/)
+// specifically so the two don't collide or read as the same thing; that
+// portal isn't locale-prefixed either way, so it was never a routing
+// conflict, just a naming one. Every old /directory/* URL, prefixed or
+// not, still resolves — see src/app/directory/ and src/app/[locale]/directory/
+// — as a permanent redirect into here, for old links/bookmarks/SEO.
 export function directoryHomePath(locale: DirectoryLocale): string {
-  return `/${locale}/directory`;
+  return `/${locale}/business`;
 }
 
 export function directorySignupPath(locale: DirectoryLocale): string {
-  return `/${locale}/directory/signup`;
+  return `/${locale}/business/signup`;
 }
 
 export function directoryListingPath(locale: DirectoryLocale, slug: string): string {
-  return `/${locale}/directory/${slug}`;
+  return `/${locale}/business/${slug}`;
 }
 
 export const DEFAULT_DIRECTORY_LOCALE: DirectoryLocale = "en";
@@ -82,6 +89,13 @@ export type DirectoryStrings = {
   hoursOpenTodayLabel: string;
   hoursClosedLabel: string;
   hoursClosedTodayLabel: string;
+  // The small badge next to the Hours heading itself — isOpenNow's
+  // right-now verdict, distinct from hoursOpenTodayLabel/hoursClosedTodayLabel
+  // above (those label a whole day's row in the table; this is a single
+  // point-in-time status). Only rendered when the listing has a timezone
+  // set, since isOpenNow can't tell without one.
+  hoursOpenNowBadge: string;
+  hoursClosedNowBadge: string;
   dayLabels: DirectoryDayLabels;
   websiteLabel: string;
   locationLabel: string;
@@ -180,6 +194,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     hoursOpenTodayLabel: "Open today",
     hoursClosedLabel: "Closed",
     hoursClosedTodayLabel: "Closed today",
+    hoursOpenNowBadge: "Open now",
+    hoursClosedNowBadge: "Closed now",
     dayLabels: {
       monday: "Monday",
       tuesday: "Tuesday",
@@ -286,6 +302,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     hoursOpenTodayLabel: "今日营业",
     hoursClosedLabel: "休息",
     hoursClosedTodayLabel: "今日休息",
+    hoursOpenNowBadge: "营业中",
+    hoursClosedNowBadge: "已休息",
     dayLabels: {
       monday: "星期一",
       tuesday: "星期二",
@@ -392,6 +410,8 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     hoursOpenTodayLabel: "Buka hari ini",
     hoursClosedLabel: "Tutup",
     hoursClosedTodayLabel: "Tutup hari ini",
+    hoursOpenNowBadge: "Buka sekarang",
+    hoursClosedNowBadge: "Tutup sekarang",
     dayLabels: {
       monday: "Isnin",
       tuesday: "Selasa",

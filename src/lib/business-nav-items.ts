@@ -6,16 +6,16 @@
 // business owner is browsing it (src/components/directory/directory-nav-menu.tsx),
 // so the two always list the same pages, grouped and ordered the same way.
 export const BUSINESS_NAV_ITEMS = [
-  { href: "/business", label: "Overview" },
-  { href: "/business/listings", label: "My listings" },
-  { href: "/business/directory-leads", label: "Directory leads" },
-  { href: "/business/profile", label: "Profile" },
+  { href: "/business-portal", label: "Overview" },
+  { href: "/business-portal/listings", label: "My listings" },
+  { href: "/business-portal/directory-leads", label: "Directory leads" },
+  { href: "/business-portal/profile", label: "Profile" },
 ] as const;
 
 // The referral/affiliate side of the account — leads and commissions from
 // referring Gotka itself, unrelated to the partner's own directory listing
 // above.
 export const PARTNERSHIP_NAV_ITEMS = [
-  { href: "/business/leads", label: "Partner Leads Status" },
-  { href: "/business/commissions", label: "Partner Commission" },
+  { href: "/business-portal/leads", label: "Partner Leads Status" },
+  { href: "/business-portal/commissions", label: "Partner Commission" },
 ] as const;

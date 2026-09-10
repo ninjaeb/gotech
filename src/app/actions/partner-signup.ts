@@ -35,10 +35,10 @@ export async function signUpPartner(
   formData: FormData,
 ): Promise<PartnerSignupState> {
   if (String(formData.get("website") || "").trim()) {
-    redirect("/business");
+    redirect("/business-portal");
   }
   if (isSuspiciouslyFast(formData.get("renderedAt"))) {
-    redirect("/business");
+    redirect("/business-portal");
   }
 
   const headersList = await headers();
@@ -70,5 +70,5 @@ export async function signUpPartner(
   }
 
   await createBusinessSession(result.userId);
-  redirect("/business");
+  redirect("/business-portal");
 }

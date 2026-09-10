@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
 import { getSiteOrigin } from "@/lib/site-url";
+import { getDirectoryLocale } from "@/lib/directory-locale";
 import { BusinessLoginForm } from "@/components/directory/business-login-form";
 
 const TITLE = "Sign In | Business Directory";
@@ -18,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: TITLE,
     description: DESCRIPTION,
-    alternates: { canonical: `${siteOrigin}/business/login` },
+    alternates: { canonical: `${siteOrigin}/business-portal/login` },
     robots: { index: false, follow: false },
   };
 }
@@ -28,12 +29,12 @@ export default async function BusinessLoginPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const [{ error }, locale] = await Promise.all([searchParams, getDirectoryLocale()]);
   const initialError = error ? (GOOGLE_ERROR_MESSAGES[error] ?? "Sign-in failed. Please try again.") : undefined;
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-12 sm:px-8">
-      <BusinessLoginForm googleEnabled={isGoogleAuthConfigured()} initialError={initialError} />
+      <BusinessLoginForm googleEnabled={isGoogleAuthConfigured()} initialError={initialError} locale={locale} />
     </div>
   );
 }

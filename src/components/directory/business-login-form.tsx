@@ -6,6 +6,7 @@ import { businessLogin } from "@/app/actions/auth";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { FieldGroup, Input } from "@/components/ui/field";
 import { GoogleIcon } from "@/components/directory/google-icon";
+import { directorySignupPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 // The business portal's own front door — same template as
 // partner-signup-form.tsx (heading + optional Google button + divider +
@@ -24,9 +25,11 @@ import { GoogleIcon } from "@/components/directory/google-icon";
 export function BusinessLoginForm({
   googleEnabled,
   initialError,
+  locale,
 }: {
   googleEnabled: boolean;
   initialError?: string;
+  locale: DirectoryLocale;
 }) {
   const [state, formAction, pending] = useActionState(businessLogin, undefined);
   const error = state?.error ?? initialError;
@@ -73,7 +76,7 @@ export function BusinessLoginForm({
 
       <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
         New business?{" "}
-        <Link href="/directory/signup" className="text-petrol hover:underline dark:text-petrol-light">
+        <Link href={directorySignupPath(locale)} className="text-petrol hover:underline dark:text-petrol-light">
           Create an account
         </Link>
       </p>

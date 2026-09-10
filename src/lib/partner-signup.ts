@@ -45,13 +45,20 @@ async function createPartnerUserAndListing({
   contactName,
   email,
   companyName,
+  phone,
   passwordHash,
 }: PartnerSignupInput & { passwordHash: string }) {
   const referralCode = await generateReferralCode(contactName);
   const user = await db.user.create({
     data: {
       name: contactName,
+      companyName,
       email,
+      // The same WhatsApp-alert number used to notify of a new directory
+      // lead (see PartnerProfileForm) — collected once here so a partner
+      // who filled the signup form's phone field never has to re-enter it
+      // on their profile just to start receiving those alerts.
+      phone: phone ? normalizePhone(phone) : null,
       passwordHash,
       role: "PARTNER",
       referralCode,

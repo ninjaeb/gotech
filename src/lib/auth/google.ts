@@ -3,8 +3,8 @@ import "server-only";
 import { SignJWT, jwtVerify, createRemoteJWKSet } from "jose";
 
 // "Sign in / up with Google" for the public business-directory signup
-// (see src/app/directory/signup) and the business portal's own login
-// (see src/app/business/login) — the staff /system/login form stays
+// (see src/app/[locale]/business/signup) and the business portal's own
+// login (see src/app/business-portal/login) — the staff /system/login form stays
 // email+password, unrelated to this. Deliberately not next-auth: this repo
 // has no auth library at all (see src/lib/auth/session.ts's own hand-rolled
 // jose-signed cookie), so this follows the same minimal, dependency-free

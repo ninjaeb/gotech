@@ -36,7 +36,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     return { error: "Invalid email or password" };
   }
   if (user.role === "PARTNER") {
-    return { error: "This sign-in is for staff. Business accounts sign in at /business/login." };
+    return { error: "This sign-in is for staff. Business accounts sign in at /business-portal/login." };
   }
 
   await createSession(user.id);
@@ -48,7 +48,7 @@ export async function logout() {
   redirect("/system/login");
 }
 
-// Business (partner) sign-in, at /business/login — the mirror image of
+// Business (partner) sign-in, at /business-portal/login — the mirror image of
 // login() above: a staff account's correct password is rejected here too,
 // same reasoning. Creates a business_session (src/lib/business/session.ts)
 // rather than the staff session — a separate cookie and signing key, so
@@ -83,5 +83,5 @@ export async function businessLogin(_prevState: LoginState, formData: FormData):
 // simultaneous staff session in the same browser is left untouched.
 export async function businessLogout() {
   await deleteBusinessSession();
-  redirect("/business/login");
+  redirect("/business-portal/login");
 }
