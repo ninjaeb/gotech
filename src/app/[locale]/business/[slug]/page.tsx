@@ -409,10 +409,12 @@ export default async function DirectoryListingPage({
         </div>
 
         {/* Phone-width fallback for the sm:+ version tucked into the name
-            column above — same content, same order (industry/category,
-            then state/country, then website, each its own line), just its
-            own full-width block since there's no spare height beside the
-            logo down here. */}
+            column above — same content and order, just its own full-width
+            block since there's no spare height beside the logo down here.
+            Industry/category get their own line; state/country and website
+            share the next one (there's enough width for all three on a
+            phone, unlike the desktop column squeezed beside a 200px logo,
+            which keeps them on three separate lines). */}
         {(listing.industry || listing.categories.length > 0 || listing.state || listing.country || listing.website) && (
           <div className="mt-3 flex flex-col gap-2 sm:hidden">
             {(listing.industry || listing.categories.length > 0) && (
@@ -433,7 +435,7 @@ export default async function DirectoryListingPage({
                 ))}
               </div>
             )}
-            {(listing.state || listing.country) && (
+            {(listing.state || listing.country || listing.website) && (
               <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
                 {listing.state && (
                   <Link
@@ -452,18 +454,18 @@ export default async function DirectoryListingPage({
                     {listing.country}
                   </Link>
                 )}
+                {listing.website && (
+                  <a
+                    href={listing.website}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="inline-flex items-center gap-1 text-petrol hover:underline dark:text-petrol-light"
+                  >
+                    <Globe className="h-4 w-4" />
+                    {t.websiteLabel}
+                  </a>
+                )}
               </div>
-            )}
-            {listing.website && (
-              <a
-                href={listing.website}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1 text-base text-petrol hover:underline dark:text-petrol-light"
-              >
-                <Globe className="h-4 w-4" />
-                {t.websiteLabel}
-              </a>
             )}
           </div>
         )}
