@@ -10,6 +10,27 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.73",
+    date: "2026-09-10",
+    title: "Operating hours upgrades, Auto AI Translate, editor layout",
+    changes: [
+      "Operating hours now has a 24 Hours option alongside Open/Closed — no time fields to fill in for a day that never closes",
+      "A \"Copy to weekday\" link on Monday copies its hours (or 24 Hours) onto Tuesday through Friday in one click",
+      "AI Auto Business Details Creation now sits on the left and Public URL on the right, in the listing editor's first row",
+      "A new Auto AI Translate button next to AI Auto Create fills in the Chinese and Malay tabs from your English content, without scrolling down to the language tabs",
+    ],
+  },
+  {
+    version: "1.72",
+    date: "2026-09-10",
+    title: "AI Auto Create: dynamic Maps search, Website field moved in",
+    changes: [
+      "Your business on Google Maps now searches live as you type — no more Search button to click",
+      "The Website field now lives inside the AI Auto Business Details Creation section itself, right where it gets filled in from",
+      "A Google Maps key blocked by an HTTP referrer restriction now explains why (these requests run on the server, which sends no referrer) instead of just showing Google's raw error",
+    ],
+  },
+  {
     version: "1.71",
     date: "2026-09-09",
     title: "Listing editor: AI Auto Business Details Creation",

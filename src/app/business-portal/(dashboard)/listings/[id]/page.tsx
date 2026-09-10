@@ -12,7 +12,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PartnerListingForm } from "@/components/directory/partner-listing-form";
-import { PartnerSlugForm } from "@/components/directory/partner-slug-form";
 import { PARTNER_LISTING_STATUS_BADGE_CLASSES, PARTNER_LISTING_STATUS_LABELS } from "@/lib/labels";
 
 export default async function PartnerListingEditorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -68,15 +67,6 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Public URL</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <PartnerSlugForm listingId={listing.id} slug={listing.slug} siteOrigin={siteOrigin} />
-        </CardBody>
-      </Card>
-
-      <Card>
         <CardBody>
           <PartnerListingForm
             listingId={listing.id}
@@ -87,6 +77,8 @@ export default async function PartnerListingEditorPage({ params }: { params: Pro
             aiAvailable={isAiConfigured()}
             placesAvailable={isGooglePlacesConfigured()}
             categories={categories}
+            slug={listing.slug}
+            siteOrigin={siteOrigin}
             values={{
               companyName: listing.companyName,
               tagline: listing.tagline ?? "",

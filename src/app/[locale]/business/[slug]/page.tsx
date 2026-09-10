@@ -310,25 +310,6 @@ export default async function DirectoryListingPage({
             <h1 className="text-3xl font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h1>
             {displayTagline && <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{displayTagline}</p>}
           </div>
-          {/* Full width on mobile so flex-wrap gives this its own line
-              below the logo/name instead of squeezing the name column
-              down to fit two pill buttons beside it — with two buttons
-              (Share plus Recommend, when signed in) there usually isn't
-              room for both on the same line as a long company name. */}
-          <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto">
-            <ShareButton title={listing.companyName} url={pageUrl} />
-            {recommendUrl && (
-              <ShareButton
-                title={listing.companyName}
-                url={recommendUrl}
-                message={recommendMessage!}
-                label={t.recommendLabel}
-                icon="recommend"
-                variant="primary"
-                className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
-              />
-            )}
-          </div>
         </div>
 
         {/* Its own full-width block below the logo/name row (rather than
@@ -339,21 +320,23 @@ export default async function DirectoryListingPage({
             there's room for both groups on one shared row instead — still
             two flex-wrap groups internally, just laid out side by side
             rather than stacked, wrapping onto a second line together only
-            if a long combination actually runs out of width. */}
+            if a long combination actually runs out of width.
+            Share/Recommend come last, below location/website, rather than
+            up by the name. */}
         {(listing.industry || listing.categories.length > 0 || listing.location || listing.website) && (
           <div className="mt-3 space-y-2 text-base text-slate-500 dark:text-slate-400 sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2 sm:space-y-0">
             {(listing.industry || listing.categories.length > 0) && (
               <div className="flex flex-wrap items-center gap-2">
                 {listing.industry && (
                   <Link href={`${directoryHomePath(resolved)}?industry=${listing.industry}`}>
-                    <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <Badge className="bg-petrol px-3 py-1.5 text-base font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
                       {INDUSTRY_LABELS_BY_LOCALE[resolved][listing.industry]}
                     </Badge>
                   </Link>
                 )}
                 {listing.categories.map((category) => (
                   <Link key={category} href={categoryPath(slugify(category), resolved)}>
-                    <Badge className="transition-colors hover:bg-slate-200 dark:hover:bg-slate-700">
+                    <Badge className="bg-petrol px-3 py-1.5 text-base font-semibold text-white ring-0 transition-colors hover:bg-petrol-ink dark:bg-petrol/70 dark:hover:bg-petrol">
                       {translateCategoryName(category, resolved)}
                     </Badge>
                   </Link>
@@ -383,6 +366,21 @@ export default async function DirectoryListingPage({
             )}
           </div>
         )}
+
+        <div className="mt-3 flex items-center gap-2">
+          <ShareButton title={listing.companyName} url={pageUrl} />
+          {recommendUrl && (
+            <ShareButton
+              title={listing.companyName}
+              url={recommendUrl}
+              message={recommendMessage!}
+              label={t.recommendLabel}
+              icon="recommend"
+              variant="primary"
+              className="bg-led text-led-ink hover:bg-led-hover active:bg-led-active focus-visible:ring-led"
+            />
+          )}
+        </div>
       </div>
 
       <InquiryProvider>

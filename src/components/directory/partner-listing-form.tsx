@@ -22,6 +22,7 @@ import { FaqEditor } from "@/components/directory/faq-editor";
 import { ListingLogo } from "@/components/directory/listing-logo";
 import { MarkdownLiteEditor } from "@/components/directory/markdown-lite-editor";
 import { OperatingHoursEditor } from "@/components/directory/operating-hours-editor";
+import { PartnerSlugForm } from "@/components/directory/partner-slug-form";
 import { ServicesEditor } from "@/components/directory/services-editor";
 import { useToast } from "@/components/ui/toast";
 import { INDUSTRIES, INDUSTRY_LABELS } from "@/lib/labels";
@@ -55,6 +56,8 @@ function servicesContextText(services: ServiceEntry[]): string {
     .join("\n");
 }
 
+const LISTING_FORM_ID = "partner-listing-form";
+
 export function PartnerListingForm({
   listingId,
   values,
@@ -65,6 +68,8 @@ export function PartnerListingForm({
   aiAvailable,
   placesAvailable,
   categories,
+  slug,
+  siteOrigin,
 }: {
   listingId: string;
   values: ListingFormValues;
@@ -75,6 +80,8 @@ export function PartnerListingForm({
   aiAvailable: boolean;
   placesAvailable: boolean;
   categories: { id: string; name: string }[];
+  slug: string;
+  siteOrigin: string;
 }) {
   const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
@@ -338,35 +345,57 @@ export function PartnerListingForm({
   }
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-5"
-      // Native change/input events bubble here from any plain field the
-      // visitor edits after a save — the signal that "Saved" is stale, so
-      // the button re-enables. Content that changes without a native event
-      // (an AI rewrite/translate/generate/auto-create response, or a
-      // MarkdownLiteEditor toolbar click, both of which just call a setState
-      // setter directly) clears it explicitly at the point of change instead
-      // — see handleRewriteDescription and friends, handleAutoCreated, and
-      // updateTranslation/updateTranslatedServices/updateTranslatedFaqs
-      // above. Doesn't catch every custom widget's own button clicks
-      // (categories, FAQ/service row add-remove), but those are rare to
-      // touch alone without also editing a plain field nearby.
-      onChange={() => setJustSaved(false)}
-    >
-      {aiAvailable && (
-        <AiAutoCreatePanel
-          placesAvailable={placesAvailable}
-          defaultQuery={current.companyName}
-          getContext={() => ({ companyName: contextFromForm().companyName, website })}
-          onWebsiteFound={(site) => {
-            setWebsite(site);
-            setJustSaved(false);
-          }}
-          onCreated={handleAutoCreated}
-        />
-      )}
+    <>
+      {/* AI Auto Create and Public URL sit side by side as the editor's
+          first row, AI on the left. PartnerSlugForm is its own independent
+          <form> (a separate server action from the listing form below), so
+          it can't nest inside the listing <form> — it's rendered here as a
+          sibling instead. AiAutoCreatePanel isn't a form itself, but its
+          Website field submits as part of the listing form via the `form`
+          attribute (see LISTING_FORM_ID) since it now lives outside that
+          form's DOM subtree too. */}
+      <div className={cn("mb-5 grid items-start gap-6", aiAvailable && "lg:grid-cols-2")}>
+        {aiAvailable && (
+          <AiAutoCreatePanel
+            formId={LISTING_FORM_ID}
+            placesAvailable={placesAvailable}
+            defaultQuery={current.companyName}
+            website={website}
+            onWebsiteChange={(site) => {
+              setWebsite(site);
+              setJustSaved(false);
+            }}
+            getContext={() => ({ companyName: contextFromForm().companyName })}
+            onCreated={handleAutoCreated}
+            onTranslate={handleTranslate}
+            translating={translating}
+          />
+        )}
+
+        <div className="rounded-md border border-slate-200 p-4 dark:border-neutral-800">
+          <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Public URL</h3>
+          <PartnerSlugForm listingId={listingId} slug={slug} siteOrigin={siteOrigin} />
+        </div>
+      </div>
+
+      <form
+        id={LISTING_FORM_ID}
+        ref={formRef}
+        action={formAction}
+        className="space-y-5"
+        // Native change/input events bubble here from any plain field the
+        // visitor edits after a save — the signal that "Saved" is stale, so
+        // the button re-enables. Content that changes without a native event
+        // (an AI rewrite/translate/generate/auto-create response, or a
+        // MarkdownLiteEditor toolbar click, both of which just call a setState
+        // setter directly) clears it explicitly at the point of change instead
+        // — see handleRewriteDescription and friends, handleAutoCreated, and
+        // updateTranslation/updateTranslatedServices/updateTranslatedFaqs
+        // above. Doesn't catch every custom widget's own button clicks
+        // (categories, FAQ/service row add-remove), but those are rare to
+        // touch alone without also editing a plain field nearby.
+        onChange={() => setJustSaved(false)}
+      >
 
       <div>
         <Label htmlFor="logo">Logo</Label>
@@ -398,7 +427,7 @@ export function PartnerListingForm({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 p-2 dark:border-neutral-800">
         <div className="inline-flex rounded-md bg-slate-100 p-0.5 dark:bg-neutral-800">
           {LANGUAGE_TABS.map((tab) => (
             <button
@@ -435,7 +464,11 @@ export function PartnerListingForm({
         industry, categories, hours, and more) applies to all languages.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Website is normally a field inside AiAutoCreatePanel above (it's
+          both the source and the target of that section's auto-fill) — this
+          is only the fallback when AI isn't configured at all and that
+          panel doesn't render, so the field still needs to exist somewhere. */}
+      <div className={cn("grid gap-4", aiAvailable ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
         <FieldGroup label="Company name" htmlFor="companyName" required>
           <Input id="companyName" name="companyName" required defaultValue={current.companyName} />
           {companyNameError && <p className="mt-1 text-sm text-rose-600 dark:text-rose-400">{companyNameError}</p>}
@@ -476,15 +509,17 @@ export function PartnerListingForm({
           </FieldGroup>
         </div>
 
-        <FieldGroup label="Website" htmlFor="website">
-          <Input
-            id="website"
-            name="website"
-            value={website}
-            onChange={(event) => setWebsite(event.target.value)}
-            placeholder="acme.com"
-          />
-        </FieldGroup>
+        {!aiAvailable && (
+          <FieldGroup label="Website" htmlFor="website">
+            <Input
+              id="website"
+              name="website"
+              value={website}
+              onChange={(event) => setWebsite(event.target.value)}
+              placeholder="acme.com"
+            />
+          </FieldGroup>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -571,7 +606,11 @@ export function PartnerListingForm({
           </p>
         </div>
         <div hidden={activeTab !== "zh"}>
-          <Label htmlFor="zhDescription">About</Label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="zhDescription" className="mb-0">
+              About
+            </Label>
+          </div>
           <MarkdownLiteEditor
             id="zhDescription"
             name="zhDescription"
@@ -579,10 +618,19 @@ export function PartnerListingForm({
             rows={5}
             value={translations.zh?.description ?? ""}
             onChange={(value) => updateTranslation("zh", "description", value)}
+            placeholder="What does your business do?"
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
+            Preview to see how it&apos;ll look.
+          </p>
         </div>
         <div hidden={activeTab !== "ms"}>
-          <Label htmlFor="msDescription">About</Label>
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <Label htmlFor="msDescription" className="mb-0">
+              About
+            </Label>
+          </div>
           <MarkdownLiteEditor
             id="msDescription"
             name="msDescription"
@@ -590,7 +638,12 @@ export function PartnerListingForm({
             rows={5}
             value={translations.ms?.description ?? ""}
             onChange={(value) => updateTranslation("ms", "description", value)}
+            placeholder="What does your business do?"
           />
+          <p className="mt-1 text-xs text-slate-400">
+            Select text and use the toolbar for <strong>bold</strong>, lists, links, and images — or switch to
+            Preview to see how it&apos;ll look.
+          </p>
         </div>
 
         <div>
@@ -760,6 +813,7 @@ export function PartnerListingForm({
           {submitPending ? "Submitting…" : status === "PENDING_REVIEW" ? "Awaiting review" : "Submit for review"}
         </Button>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

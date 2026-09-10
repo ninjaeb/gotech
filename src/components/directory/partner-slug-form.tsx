@@ -48,9 +48,9 @@ export function PartnerSlugForm({
             className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 text-sm text-slate-900 focus:outline-none focus:ring-0 dark:text-slate-100"
           />
         </div>
-        <p className="mt-1 text-xs text-slate-400">
-          Letters, numbers, and hyphens only. Changing this moves your public page right away — anyone with the old
-          link gets a not-found page instead.
+        <p className="mt-1 text-xs text-slate-400">Letters, numbers, and hyphens only.</p>
+        <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+          Don&apos;t change this after you go live — anyone with the old link gets a not-found page instead.
         </p>
       </div>
 
