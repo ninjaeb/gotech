@@ -74,9 +74,13 @@ export default async function DirectoryHomePage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ q?: string; industry?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; industry?: string; category?: string; state?: string; country?: string }>;
 }) {
-  const [{ locale }, { q, industry, category }, siteOrigin] = await Promise.all([params, searchParams, getSiteOrigin()]);
+  const [{ locale }, { q, industry, category, state, country }, siteOrigin] = await Promise.all([
+    params,
+    searchParams,
+    getSiteOrigin(),
+  ]);
   const resolved = resolveDirectoryLocale(locale);
   if (!resolved) notFound();
 
@@ -118,6 +122,8 @@ export default async function DirectoryHomePage({
         initialQuery={q ?? ""}
         initialIndustry={industry ?? ""}
         initialCategory={category ?? ""}
+        initialState={state ?? ""}
+        initialCountry={country ?? ""}
         directoryUrl={directoryUrl}
       />
     </>

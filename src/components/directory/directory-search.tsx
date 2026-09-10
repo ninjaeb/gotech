@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Handshake } from "lucide-react";
+import { Search, Handshake, X } from "lucide-react";
 import { ListingCard } from "@/components/directory/listing-card";
 import { ShareButton } from "@/components/directory/share-button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -22,6 +22,8 @@ export function DirectorySearch({
   initialQuery,
   initialIndustry,
   initialCategory,
+  initialState,
+  initialCountry,
   directoryUrl,
   heading,
   subheading,
@@ -39,6 +41,12 @@ export function DirectorySearch({
   initialQuery: string;
   initialIndustry: string;
   initialCategory: string;
+  // Set from a listing's own State/Country pill (see the listing detail
+  // page) — no dropdown for these, since they're free text rather than a
+  // fixed enum like industry, but the URL query param still filters the
+  // same in-memory list the same way.
+  initialState: string;
+  initialCountry: string;
   directoryUrl: string;
   // A category page passes its own category-specific H1/subtitle (better
   // on-page SEO than the generic homepage copy repeated under every
@@ -54,12 +62,18 @@ export function DirectorySearch({
   const [query, setQuery] = useState(initialQuery);
   const [industry, setIndustry] = useState(initialIndustry);
   const [category, setCategory] = useState(initialCategory);
+  // No dropdown for these (see the type comment above) — set once from the
+  // URL a State/Country pill linked to, cleared only via the chip below.
+  const [state, setState] = useState(initialState);
+  const [country, setCountry] = useState(initialCountry);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return listings.filter(({ listing }) => {
       if (industry && listing.industry !== industry) return false;
       if (category && !listing.categories.includes(category)) return false;
+      if (state && listing.state !== state) return false;
+      if (country && listing.country !== country) return false;
       if (!q) return true;
       return (
         listing.companyName.toLowerCase().includes(q) ||
@@ -68,7 +82,7 @@ export function DirectorySearch({
         )
       );
     });
-  }, [listings, query, industry, category]);
+  }, [listings, query, industry, category, state, country]);
 
   return (
     <>
@@ -114,6 +128,42 @@ export function DirectorySearch({
               )}
             </div>
           </form>
+
+          {/* Only ever set by following a listing's own State/Country pill
+              (see the listing detail page) — there's no dropdown for these
+              (free text, not a fixed enum like industry), so a plain chip
+              with its own clear button is the only way back to the
+              unfiltered list. */}
+          {(state || country) && (
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2 text-sm">
+              {state && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-3 pr-1.5 text-slate-700 dark:bg-neutral-800 dark:text-slate-200">
+                  {state}
+                  <button
+                    type="button"
+                    onClick={() => setState("")}
+                    aria-label={`Clear ${state} filter`}
+                    className="rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-neutral-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              )}
+              {country && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-3 pr-1.5 text-slate-700 dark:bg-neutral-800 dark:text-slate-200">
+                  {country}
+                  <button
+                    type="button"
+                    onClick={() => setCountry("")}
+                    aria-label={`Clear ${country} filter`}
+                    className="rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-neutral-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

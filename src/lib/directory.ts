@@ -35,7 +35,6 @@ export type PublishedListingSnapshot = {
   services: ServiceEntry[];
   industry: Industry | null;
   website: string | null;
-  location: string | null;
   address: string | null;
   state: string | null;
   country: string | null;
@@ -210,7 +209,6 @@ export function readPublishedSnapshot(value: unknown): PublishedListingSnapshot 
     services: servicesFromJson(raw.services),
     industry: typeof raw.industry === "string" ? (raw.industry as Industry) : null,
     website: typeof raw.website === "string" ? raw.website : null,
-    location: typeof raw.location === "string" ? raw.location : null,
     address: typeof raw.address === "string" ? raw.address : null,
     state: typeof raw.state === "string" ? raw.state : null,
     country: typeof raw.country === "string" ? raw.country : null,
@@ -244,7 +242,6 @@ export function buildPublishedSnapshot(
     services: servicesFromJson(listing.services),
     industry: listing.industry,
     website: listing.website,
-    location: listing.location,
     address: listing.address,
     state: listing.state,
     country: listing.country,
