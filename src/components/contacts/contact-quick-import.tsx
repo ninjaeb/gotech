@@ -2,13 +2,26 @@
 
 import { useRef, useState } from "react";
 import { Camera, FileUp } from "lucide-react";
-import { scanBusinessCard } from "@/app/actions/scan-business-card";
-import { importVCard } from "@/app/actions/import-vcard";
 import { compressImage } from "@/lib/image-compression";
 import { buttonClasses } from "@/components/ui/button";
 import type { ContactDraft } from "@/lib/contact-draft";
+import type { ScanCardResult } from "@/app/actions/scan-business-card";
+import type { ImportVCardResult } from "@/app/actions/import-vcard";
 
-export function ContactQuickImport({ onImported }: { onImported: (draft: ContactDraft) => void }) {
+// The scan/import actions are passed in rather than imported directly —
+// the system CRM and the business portal each have their own pair (system
+// resolves a company against the shared Company table, the partner-scoped
+// ones against PartnerCompany), so this component stays reusable across
+// both by staying agnostic to which one it's driving.
+export function ContactQuickImport({
+  onImported,
+  scanAction,
+  importAction,
+}: {
+  onImported: (draft: ContactDraft) => void;
+  scanAction: (formData: FormData) => Promise<ScanCardResult>;
+  importAction: (formData: FormData) => Promise<ImportVCardResult>;
+}) {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const vcardInputRef = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<"photo" | "vcard" | null>(null);
@@ -24,7 +37,7 @@ export function ContactQuickImport({ onImported }: { onImported: (draft: Contact
     const compressed = file.type.startsWith("image/") ? await compressImage(file) : file;
     const formData = new FormData();
     formData.set("photo", compressed);
-    const result = await scanBusinessCard(formData);
+    const result = await scanAction(formData);
     setPending(null);
     if (result.status === "error") {
       setError(result.message);
@@ -42,7 +55,7 @@ export function ContactQuickImport({ onImported }: { onImported: (draft: Contact
     setError(null);
     const formData = new FormData();
     formData.set("file", file);
-    const result = await importVCard(formData);
+    const result = await importAction(formData);
     setPending(null);
     if (result.status === "error") {
       setError(result.message);

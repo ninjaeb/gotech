@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { createContact } from "@/app/actions/contacts";
-import { scanBusinessCard } from "@/app/actions/scan-business-card";
-import { importVCard } from "@/app/actions/import-vcard";
-import { ContactForm } from "@/components/contacts/contact-form";
+import { createPartnerContact } from "@/app/actions/partner-contacts";
+import { scanPartnerBusinessCard } from "@/app/actions/scan-partner-business-card";
+import { importPartnerVCard } from "@/app/actions/import-partner-vcard";
+import { PartnerContactForm } from "@/components/business-crm/partner-contact-form";
 import { ContactQuickImport } from "@/components/contacts/contact-quick-import";
-import type { CompanyOption } from "@/lib/companies";
 import type { ContactDraft } from "@/lib/contact-draft";
 
-export function NewContactForm({
+type CompanyOption = { id: string; name: string };
+
+// Business portal counterpart to NewContactForm (src/components/contacts/
+// new-contact-form.tsx) — same quick-import-then-review flow, wired to the
+// partner-scoped scan/import actions so a resolved company lands in
+// PartnerCompany rather than the system Company table.
+export function NewPartnerContactForm({
   companies,
   defaultCompanyId,
 }: {
@@ -19,20 +24,18 @@ export function NewContactForm({
   const [draft, setDraft] = useState<ContactDraft | null>(null);
   // A quick-import can resolve to a company that didn't exist when
   // `companies` was fetched server-side — merge it in locally so the
-  // <select> actually has an option for it, rather than silently failing
-  // to select a value it has no matching <option> for.
+  // combobox actually has an option for it.
   const [companyList, setCompanyList] = useState(companies);
-  // ContactForm's fields are uncontrolled (defaultValue) — bumping this key
-  // remounts it with fresh defaults from the new draft, rather than trying
-  // to imperatively push values into already-mounted inputs.
+  // PartnerContactForm's text fields are uncontrolled (defaultValue) —
+  // bumping this key remounts it with fresh defaults from the new draft.
   const [version, setVersion] = useState(0);
 
   return (
     <div className="space-y-4">
       <div className="border-b border-slate-100 pb-4 dark:border-neutral-800">
         <ContactQuickImport
-          scanAction={scanBusinessCard}
-          importAction={importVCard}
+          scanAction={scanPartnerBusinessCard}
+          importAction={importPartnerVCard}
           onImported={(next) => {
             setDraft(next);
             setVersion((v) => v + 1);
@@ -45,9 +48,9 @@ export function NewContactForm({
           Fills in the fields below from a business card photo or a shared contact file — review before saving.
         </p>
       </div>
-      <ContactForm
+      <PartnerContactForm
         key={version}
-        action={createContact}
+        action={createPartnerContact}
         companies={companyList}
         defaultCompanyId={draft?.company?.id ?? defaultCompanyId}
         prefill={draft ?? undefined}

@@ -26,6 +26,18 @@ html {
   /* Tailwind's text-* utilities are all rem-based, so this scales every
      size in the app uniformly instead of bumping classes one by one. */
   font-size: 18px;
+  /* Without this, native form-control chrome (a <select>'s own open
+     dropdown list, date/time pickers, scrollbars) ignores the app's own
+     light/dark toggle entirely and instead follows the OS's own color
+     scheme preference — so a partner running their OS in dark mode but
+     this app in (its default) light mode would get a jarring dark native
+     popup on an otherwise light page. Declaring it explicitly keeps native
+     chrome in sync with whichever theme .dark below actually reflects. */
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
 }
 
 body {
