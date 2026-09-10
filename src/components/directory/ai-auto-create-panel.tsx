@@ -123,8 +123,9 @@ export function AiAutoCreatePanel({
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">AI Auto Business Details Creation</h3>
           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
             Find your business on Google Maps, and AI drafts the rest of this listing from that and your website —
-            About, Products &amp; services, FAQ, industry, categories, operating hours, and address. Review everything
-            before saving.
+            About, Products &amp; services, FAQ, industry, categories, operating hours, address, SEO title &amp;
+            description, and your logo (copied straight from your Google Maps listing&apos;s own photo, where it has one).
+            Review everything before saving.
           </p>
         </div>
       </div>
@@ -240,7 +241,7 @@ export function AiAutoCreatePanel({
             ? "Reading the Google listing and website, then writing — this can take up to a minute."
             : translating
               ? "Translating your English content into Chinese and Malay — this can take a moment."
-              : "AI Auto Create replaces About, tagline, Products & services, FAQ, industry, categories, hours, and address. AI Auto Translate fills in the Chinese and Malay tabs from your English content."}
+              : "AI Auto Create replaces About, tagline, Products & services, FAQ, industry, categories, hours, address, SEO title & description, and logo. AI Auto Translate fills in the Chinese and Malay tabs from your English content."}
         </p>
       </div>
     </section>

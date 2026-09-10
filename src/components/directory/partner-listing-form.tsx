@@ -84,6 +84,12 @@ export function PartnerListingForm({
   const [state, formAction, pending] = useActionState(saveDirectoryListing.bind(null, listingId), undefined);
   const [logoPreview, setLogoPreview] = useState(logoUrl);
   const [removeLogo, setRemoveLogo] = useState(false);
+  // AI Auto Create's fetched logo (see logoFromPlace in the action) — a
+  // data: URL, same shape as a manually-picked file produces, carried to
+  // Save via the aiLogo hidden field below since a script can't populate a
+  // file <input> the way a partner's own picker does. logoPreview above
+  // still drives what's actually shown; this just rides along for Save.
+  const [aiLogoDataUrl, setAiLogoDataUrl] = useState<string | null>(null);
   const [submitPending, startSubmitTransition] = useTransition();
   const toast = useToast();
 
@@ -160,6 +166,10 @@ export function PartnerListingForm({
     const file = event.target.files?.[0];
     if (!file) return;
     setRemoveLogo(false);
+    // A real file input always wins on Save (see parseListingLogo) even
+    // without this, but clearing it too avoids the stale value hanging
+    // around in state for no reason once the partner's picked their own.
+    setAiLogoDataUrl(null);
     const reader = new FileReader();
     reader.onload = () => setLogoPreview(typeof reader.result === "string" ? reader.result : null);
     reader.readAsDataURL(file);
@@ -327,6 +337,13 @@ export function PartnerListingForm({
       setHours(details.operatingHours);
       setHoursKey((key) => key + 1);
     }
+    if (details.seoTitle) setSeoTitle(details.seoTitle);
+    if (details.seoDescription) setSeoDescription(details.seoDescription);
+    if (details.logoUrl) {
+      setLogoPreview(details.logoUrl);
+      setAiLogoDataUrl(details.logoUrl);
+      setRemoveLogo(false);
+    }
     setActiveTab("en");
     setJustSaved(false);
   }
@@ -437,6 +454,12 @@ export function PartnerListingForm({
         <div className="flex items-center gap-4">
           <ListingLogo name={companyName || "?"} logoUrl={removeLogo ? null : logoPreview} className="h-14 w-14 text-lg" />
           <div className="flex-1 space-y-2">
+            {/* A real file input can't be populated from JS the way a
+                partner's own picker fills it, so AI Auto Create's fetched
+                logo (see handleAutoCreated) rides to Save as this plain
+                hidden field instead — parseListingLogo only uses it when
+                the file input above is empty. */}
+            <input type="hidden" name="aiLogo" value={aiLogoDataUrl ?? ""} />
             <input
               id="logo"
               name="logo"
