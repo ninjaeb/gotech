@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useSyncExternalStore } from "react";
+import { useActionState, useSyncExternalStore } from "react";
 import { updatePartnerProfile } from "@/app/actions/partner-profile";
 import { Label, Input, RequiredMark, Select } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
@@ -31,19 +31,25 @@ export function PartnerProfileForm({
   const [state, formAction, pending] = useActionState(updatePartnerProfile, undefined);
   useActionToast(state, "Profile updated.", { toastErrors: false });
 
+  // After a successful save, the action's own returned value is the
+  // source of truth for what's now saved — not the `timezone` prop.
+  // Next's action-triggered page refresh (revalidatePath) resolves that
+  // prop too late to rely on here: it can still hand the client a render
+  // generated just before this mutation landed, one save behind.
+  const savedTimezone = state && "success" in state ? state.timezone : timezone;
+
   // The browser's own timezone never changes at runtime, so this needs no
   // real subscription, just a way to read it after hydration without the
   // server (which has no browser timezone to agree with) and client
   // disagreeing about the very first render. Only ever used as a fallback
-  // (see timezoneValue below): a zone the partner's already saved is never
-  // silently overwritten by it.
+  // (see timezoneDefault below): a zone the partner's already saved is
+  // never silently overwritten by it.
   const detectedTimezone = useSyncExternalStore(
     () => () => {},
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     () => "",
   );
-  const [timezoneInput, setTimezoneInput] = useState(timezone ?? "");
-  const timezoneValue = timezoneInput || detectedTimezone;
+  const timezoneDefault = savedTimezone || detectedTimezone;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -88,9 +94,22 @@ export function PartnerProfileForm({
 
       <div>
         <Label htmlFor="timezone">Timezone</Label>
-        <Select id="timezone" name="timezone" value={timezoneValue} onChange={(event) => setTimezoneInput(event.target.value)}>
+        {/* Uncontrolled (defaultValue, not value+onChange) — matching
+            Name/Company name/etc. above, and deliberately so: a
+            React 19 action resets its <form> on a successful submit,
+            reverting every field to its default. An uncontrolled field's
+            default is a real "selected" attribute baked into the DOM, so
+            that reset just reaffirms the same value; a controlled select's
+            "selected" option only ever lives in React's virtual value, so
+            the same reset would silently blank it out instead. Keying on
+            timezoneDefault forces a fresh mount — and a fresh default —
+            whenever the true value changes (after a save, or once the
+            browser's own zone resolves post-hydration). */}
+        <Select key={timezoneDefault} id="timezone" name="timezone" defaultValue={timezoneDefault}>
           <option value="">Select a timezone…</option>
-          {!TIMEZONES.includes(timezoneValue) && timezoneValue && <option value={timezoneValue}>{timezoneValue}</option>}
+          {!TIMEZONES.includes(timezoneDefault) && timezoneDefault && (
+            <option value={timezoneDefault}>{timezoneDefault}</option>
+          )}
           {TIMEZONES.map((zone) => (
             <option key={zone} value={zone}>
               {zone}
