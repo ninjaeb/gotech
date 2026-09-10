@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, LogIn, LogOut, Menu, Store, X } from "lucide-react";
-import { BUSINESS_NAV_ITEMS } from "@/lib/business-nav-items";
+import { BUSINESS_NAV_ITEMS, PARTNERSHIP_NAV_ITEMS } from "@/lib/business-nav-items";
 import { cn } from "@/lib/utils";
 
 // Who's currently browsing, as far as the hamburger menu cares — a signed-
@@ -25,6 +25,7 @@ export function DirectoryNavMenu({
   listBusinessLabel,
   directoryLabel,
   myBusinessLabel,
+  partnershipLabel,
   goToCrmLabel,
   signOutLabel,
   directoryHref,
@@ -36,6 +37,7 @@ export function DirectoryNavMenu({
   listBusinessLabel: string;
   directoryLabel: string;
   myBusinessLabel: string;
+  partnershipLabel: string;
   goToCrmLabel: string;
   signOutLabel: string;
   // Locale-aware (see directory-chrome.tsx) — never a bare "/directory" or
@@ -118,6 +120,20 @@ export function DirectoryNavMenu({
                 {myBusinessLabel}
               </div>
               {BUSINESS_NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="menuitem"
+                  onClick={() => setOpen(false)}
+                  className={cn(itemClasses, "pl-5")}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <div className="border-t border-slate-100 px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:border-neutral-800 dark:text-slate-500">
+                {partnershipLabel}
+              </div>
+              {PARTNERSHIP_NAV_ITEMS.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

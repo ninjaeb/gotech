@@ -118,6 +118,7 @@ export async function DirectoryChrome({
               listBusinessLabel={t.listBusinessCta}
               directoryLabel={t.brandName}
               myBusinessLabel={t.navMyBusiness}
+              partnershipLabel={t.navPartnership}
               goToCrmLabel={t.navGoToCrm}
               signOutLabel={t.navSignOut}
               directoryHref={directoryHref}
