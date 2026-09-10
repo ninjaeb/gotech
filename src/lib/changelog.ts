@@ -10,6 +10,17 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.80",
+    date: "2026-09-10",
+    title: "Business Portal: a private CRM for Companies, Contacts, Deals, and Tasks",
+    changes: [
+      "Every business-portal account now has its own lightweight CRM under Companies, Contacts, Deals, and Tasks — entirely separate from Gotka's internal pipeline and never visible to any other account",
+      "Deals track a value, an Open/Won/Lost status, and an optional linked company or contact",
+      "Tasks track a due date and an optional link to a company, contact, or deal",
+      "New Companies/Contacts/Deals/Tasks links added to the business portal's menu",
+    ],
+  },
+  {
     version: "1.79",
     date: "2026-09-10",
     title: "Admin: transfer a listing to a different partner account",

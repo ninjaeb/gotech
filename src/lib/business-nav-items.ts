@@ -9,6 +9,10 @@ export const BUSINESS_NAV_ITEMS = [
   { href: "/business-portal", label: "Overview" },
   { href: "/business-portal/listings", label: "My listings" },
   { href: "/business-portal/business-leads", label: "Business Leads" },
+  { href: "/business-portal/companies", label: "Companies" },
+  { href: "/business-portal/contacts", label: "Contacts" },
+  { href: "/business-portal/deals", label: "Deals" },
+  { href: "/business-portal/tasks", label: "Tasks" },
   { href: "/business-portal/profile", label: "Profile" },
 ] as const;
 
