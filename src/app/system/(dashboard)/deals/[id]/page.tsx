@@ -20,10 +20,16 @@ import { SectionBoard } from "@/components/layout/section-board";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
-import { LEAD_SOURCE_LABELS, QUOTE_STATUS_BADGE_CLASSES, QUOTE_STATUS_LABELS } from "@/lib/labels";
-import { quoteTotal } from "@/lib/quotes";
-import { formatCurrency, formatDate, formatMinutes, fullName } from "@/lib/format";
-import { getCurrency } from "@/lib/settings";
+import {
+  LEAD_SOURCE_LABELS,
+  QUOTE_DERIVED_BADGE_CLASSES,
+  QUOTE_DERIVED_LABELS,
+  QUOTE_STATUS_BADGE_CLASSES,
+  QUOTE_STATUS_LABELS,
+} from "@/lib/labels";
+import { quoteDerivedState } from "@/lib/documents/dates";
+import { formatCurrency, formatDate, formatDocumentMoney, formatMinutes, fullName } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
 import { requireSales } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
 
@@ -37,8 +43,8 @@ export default async function DealDetailPage({
   const { id } = await params;
   const currentUser = await requireSales();
 
-  const [currency, deal, timeLogged, users] = await Promise.all([
-    getCurrency(),
+  const [settings, deal, timeLogged, users] = await Promise.all([
+    getSettings(),
     db.deal.findUnique({
       where: { id },
       include: {
@@ -63,7 +69,18 @@ export default async function DealDetailPage({
         },
         quotes: {
           orderBy: { createdAt: "desc" },
-          include: { items: true },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            number: true,
+            revision: true,
+            total: true,
+            currency: true,
+            validUntil: true,
+            withdrawnAt: true,
+            supersededById: true,
+          },
         },
         resources: { orderBy: { createdAt: "desc" } },
         project: { select: { id: true, name: true } },
@@ -74,6 +91,7 @@ export default async function DealDetailPage({
   ]);
 
   if (!deal) notFound();
+  const currency = settings.currency;
   const totalMinutes = timeLogged._sum.minutes ?? 0;
   const layout = readSectionLayout(currentUser.sectionLayout, "deal", DEFAULT_LAYOUT);
 
@@ -216,16 +234,22 @@ export default async function DealDetailPage({
                               <span className="flex min-w-0 items-center gap-2">
                                 <FileText className="h-4 w-4 shrink-0 text-slate-400" />
                                 <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                                  {quote.number ? `${quote.number}${quote.revision > 1 ? ` Rev ${quote.revision}` : ""} · ` : ""}
                                   {quote.title}
                                 </span>
                               </span>
                               <span className="flex shrink-0 items-center gap-3">
                                 <span className="text-slate-500 dark:text-slate-400">
-                                  {formatCurrency(quoteTotal(quote.items), currency)}
+                                  {formatDocumentMoney(quote.total.toString(), quote.currency)}
                                 </span>
-                                <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>
-                                  {QUOTE_STATUS_LABELS[quote.status]}
-                                </Badge>
+                                {(() => {
+                                  const derived = quoteDerivedState(quote, settings.bookingUtcOffsetMinutes);
+                                  return derived ? (
+                                    <Badge className={QUOTE_DERIVED_BADGE_CLASSES[derived]}>{QUOTE_DERIVED_LABELS[derived]}</Badge>
+                                  ) : (
+                                    <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>{QUOTE_STATUS_LABELS[quote.status]}</Badge>
+                                  );
+                                })()}
                               </span>
                             </Link>
                           </li>

@@ -1,58 +1,39 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { createQuote } from "@/app/actions/quotes";
-import { QuoteForm } from "@/components/quotes/quote-form";
+import { LineItemsForm } from "@/components/documents/line-items-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { getCurrency } from "@/lib/settings";
+import { getBillingSettings } from "@/lib/settings";
 import { requireSales } from "@/lib/auth/dal";
+import { loadCatalogOptions, loadQuoteContacts, loadTemplateOptions } from "@/lib/documents/catalog";
+import { addDays, orgToday, toDateInput } from "@/lib/documents/dates";
+import { billToDefaults } from "@/lib/documents/snapshots";
 
-export default async function NewQuotePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function NewQuotePage({ params }: { params: Promise<{ id: string }> }) {
   await requireSales();
   const { id: dealId } = await params;
 
-  const [currency, deal, servicePackages, quoteTemplates] = await Promise.all([
-    getCurrency(),
-    db.deal.findUnique({ where: { id: dealId }, select: { id: true, title: true } }),
-    db.servicePackage.findMany({
-      orderBy: { name: "asc" },
-      include: { components: { include: { product: true }, orderBy: { sortOrder: "asc" } } },
+  const [settings, deal, catalog, templates] = await Promise.all([
+    getBillingSettings(),
+    db.deal.findUnique({
+      where: { id: dealId },
+      select: { id: true, title: true, contactId: true, companyId: true, contact: true, company: true },
     }),
-    db.quoteTemplate.findMany({
-      orderBy: { name: "asc" },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
-    }),
+    loadCatalogOptions(),
+    loadTemplateOptions(),
   ]);
-
   if (!deal) notFound();
+  const contacts = await loadQuoteContacts(deal);
 
-  const servicePackageOptions = servicePackages.map((pkg) => ({
-    id: pkg.id,
-    name: pkg.name,
-    description: pkg.description,
-    unitPrice: Number(pkg.unitPrice),
-    components: pkg.components.map((c) => ({
-      servicePackageId: c.product.id,
-      description: c.product.description ? `${c.product.name} — ${c.product.description}` : c.product.name,
-      unitPrice: Number(c.product.unitPrice),
-      quantity: Number(c.quantity),
-    })),
-  }));
-  const quoteTemplateOptions = quoteTemplates.map((template) => ({
-    id: template.id,
-    name: template.name,
-    notes: template.notes,
-    items: template.items.map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-      servicePackageId: item.servicePackageId,
-    })),
-  }));
+  const draft = {
+    title: "",
+    notes: settings.defaultQuoteTerms,
+    items: [],
+    billTo: billToDefaults(deal.contact, deal.company),
+    contactId: deal.contactId,
+    validUntil: toDateInput(addDays(orgToday(settings.utcOffsetMinutes), settings.quoteValidityDays)),
+  };
 
   return (
     <div>
@@ -67,12 +48,17 @@ export default async function NewQuotePage({
       />
       <Card>
         <CardBody>
-          <QuoteForm
+          <LineItemsForm
             action={createQuote.bind(null, dealId)}
-            servicePackages={servicePackageOptions}
-            quoteTemplates={quoteTemplateOptions}
-            currency={currency}
-            submitLabel="Create quote"
+            mode="quote"
+            draft={draft}
+            catalog={catalog}
+            templates={templates}
+            contacts={contacts}
+            currency={settings.currency}
+            taxLabel={settings.taxLabel}
+            taxRate={settings.taxRate}
+            submitLabel="Save draft"
           />
         </CardBody>
       </Card>

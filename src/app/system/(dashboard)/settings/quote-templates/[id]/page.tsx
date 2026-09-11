@@ -1,56 +1,24 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { updateQuoteTemplate } from "@/app/actions/quote-templates";
-import { QuoteForm } from "@/components/quotes/quote-form";
+import { LineItemsForm } from "@/components/documents/line-items-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { getCurrency } from "@/lib/settings";
+import { getBillingSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
+import { loadCatalogOptions } from "@/lib/documents/catalog";
+import { toLineItemsDraft } from "@/lib/documents/view-model";
 
-export default async function EditQuoteTemplatePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditQuoteTemplatePage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
   const { id } = await params;
 
-  const [currency, template, servicePackages] = await Promise.all([
-    getCurrency(),
-    db.quoteTemplate.findUnique({
-      where: { id },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
-    }),
-    db.servicePackage.findMany({
-      orderBy: { name: "asc" },
-      include: { components: { include: { product: true }, orderBy: { sortOrder: "asc" } } },
-    }),
+  const [settings, template, catalog] = await Promise.all([
+    getBillingSettings(),
+    db.quoteTemplate.findUnique({ where: { id }, include: { items: { orderBy: { sortOrder: "asc" } } } }),
+    loadCatalogOptions(),
   ]);
-
   if (!template) notFound();
-
-  const servicePackageOptions = servicePackages.map((pkg) => ({
-    id: pkg.id,
-    name: pkg.name,
-    description: pkg.description,
-    unitPrice: Number(pkg.unitPrice),
-    components: pkg.components.map((c) => ({
-      servicePackageId: c.product.id,
-      description: c.product.description ? `${c.product.name} — ${c.product.description}` : c.product.name,
-      unitPrice: Number(c.product.unitPrice),
-      quantity: Number(c.quantity),
-    })),
-  }));
-  const templateDraft = {
-    title: template.name,
-    notes: template.notes,
-    items: template.items.map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-      servicePackageId: item.servicePackageId,
-    })),
-  };
 
   return (
     <div>
@@ -64,11 +32,14 @@ export default async function EditQuoteTemplatePage({
       />
       <Card>
         <CardBody>
-          <QuoteForm
+          <LineItemsForm
             action={updateQuoteTemplate.bind(null, template.id)}
-            quote={templateDraft}
-            servicePackages={servicePackageOptions}
-            currency={currency}
+            mode="template"
+            draft={{ title: template.name, notes: template.notes, items: toLineItemsDraft(template.items) }}
+            catalog={catalog}
+            currency={settings.currency}
+            taxLabel={settings.taxLabel}
+            taxRate={settings.taxRate}
             submitLabel="Save changes"
             titleLabel="Template name"
             titlePlaceholder="Website — Standard package"

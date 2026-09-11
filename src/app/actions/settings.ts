@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import {
   setCurrency,
   setBookingSettings,
+  setBillingSettings,
   setTaskReminderHour,
   setTaskAssignmentNotificationDelayMinutes,
   setNewsletterSubscribeListId,
@@ -199,5 +200,150 @@ export async function sendTaskDigestTemplateTest(
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Send failed." };
   }
+  return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Settings → Billing. Four cards, each saving its own slice; every one is
+// admin-only (they change what gets printed on legal documents). None of
+// these touch documents already issued — issuer details are snapshotted at
+// issue (see issueQuote), and numbering changes only affect numbers
+// allocated afterwards.
+
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => value || null);
+
+const businessDetailsSchema = z.object({
+  businessName: z.string().trim().max(191),
+  businessRegistrationNo: optionalText(100),
+  businessAddress: optionalText(2000),
+  businessPhone: optionalText(50),
+  businessEmail: z
+    .string()
+    .trim()
+    .max(191)
+    .optional()
+    .transform((value) => value || null)
+    .refine((value) => value === null || z.email().safeParse(value).success, { message: "Enter a valid business email" }),
+  businessWebsite: optionalText(191),
+});
+
+const LOGO_MAX_BYTES = 1024 * 1024; // 1 MB — it's printed at ~50px tall
+const LOGO_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
+
+function revalidateBilling() {
+  revalidatePath("/system/settings/billing");
+  revalidatePath("/system/settings");
+}
+
+export async function updateBusinessDetails(_prevState: SimpleSaveState, formData: FormData): Promise<SimpleSaveState> {
+  await requireAdminAction();
+  const parsed = businessDetailsSchema.safeParse({
+    businessName: formData.get("businessName") ?? "",
+    businessRegistrationNo: formData.get("businessRegistrationNo") ?? "",
+    businessAddress: formData.get("businessAddress") ?? "",
+    businessPhone: formData.get("businessPhone") ?? "",
+    businessEmail: formData.get("businessEmail") ?? "",
+    businessWebsite: formData.get("businessWebsite") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid business details" };
+
+  const logo = formData.get("logo");
+  if (logo instanceof File && logo.size > 0) {
+    if (!LOGO_MIME_TYPES.has(logo.type)) return { error: "The logo must be a PNG, JPEG, WebP or SVG image." };
+    if (logo.size > LOGO_MAX_BYTES) return { error: "The logo must be 1 MB or smaller." };
+    const data = Buffer.from(await logo.arrayBuffer()).toString("base64");
+    await db.businessLogo.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", mimeType: logo.type, size: logo.size, data },
+      update: { mimeType: logo.type, size: logo.size, data },
+    });
+  } else if (formData.get("removeLogo") === "on") {
+    await db.businessLogo.deleteMany({ where: { id: "singleton" } });
+  }
+
+  await setBillingSettings(parsed.data);
+  revalidateBilling();
+  revalidatePath("/api/settings/logo");
+  return { success: true };
+}
+
+const taxSettingsSchema = z.object({
+  taxLabel: z.string().trim().min(1, "Tax label is required").max(20),
+  taxRate: z
+    .string()
+    .trim()
+    .regex(/^\d{1,3}(\.\d{1,2})?$/, "Tax rate must be a percent with at most 2 decimals")
+    .refine((value) => Number(value) <= 100, "Tax rate can't exceed 100%")
+    .transform(Number),
+  taxRegistrationNo: optionalText(100),
+});
+
+export async function updateTaxSettings(_prevState: SimpleSaveState, formData: FormData): Promise<SimpleSaveState> {
+  await requireAdminAction();
+  const parsed = taxSettingsSchema.safeParse({
+    taxLabel: formData.get("taxLabel") ?? "",
+    taxRate: formData.get("taxRate") || "0",
+    taxRegistrationNo: formData.get("taxRegistrationNo") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid tax settings" };
+  if (parsed.data.taxRate > 0 && !parsed.data.taxRegistrationNo) {
+    return { error: "Enter the tax registration number before charging tax — it has to appear on every document." };
+  }
+  await setBillingSettings(parsed.data);
+  revalidateBilling();
+  return { success: true };
+}
+
+const prefixSchema = z.string().trim().max(10).regex(/^[A-Za-z0-9\-_/]*$/, "Prefixes can only contain letters, numbers, - _ and /");
+const numberingSchema = z.object({
+  quoteNumberPrefix: prefixSchema,
+  invoiceNumberPrefix: prefixSchema,
+  numberPadding: z.coerce.number().int().min(3, "Pad to at least 3 digits").max(8, "Pad to at most 8 digits"),
+});
+
+export async function updateNumberingSettings(_prevState: SimpleSaveState, formData: FormData): Promise<SimpleSaveState> {
+  await requireAdminAction();
+  const parsed = numberingSchema.safeParse({
+    quoteNumberPrefix: formData.get("quoteNumberPrefix") ?? "",
+    invoiceNumberPrefix: formData.get("invoiceNumberPrefix") ?? "",
+    numberPadding: formData.get("numberPadding"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid numbering settings" };
+  if (parsed.data.quoteNumberPrefix === parsed.data.invoiceNumberPrefix) {
+    return { error: "Quotes and invoices need different prefixes so their numbers can't be confused." };
+  }
+  await setBillingSettings(parsed.data);
+  revalidateBilling();
+  return { success: true };
+}
+
+const documentDefaultsSchema = z.object({
+  quoteValidityDays: z.coerce.number().int().min(1).max(365),
+  invoiceDueDays: z.coerce.number().int().min(0).max(365),
+  defaultQuoteTerms: optionalText(10000),
+  defaultInvoiceNotes: optionalText(10000),
+  paymentInstructions: optionalText(5000),
+  syncDealValueFromAcceptedQuote: z.boolean(),
+});
+
+export async function updateDocumentDefaults(_prevState: SimpleSaveState, formData: FormData): Promise<SimpleSaveState> {
+  await requireAdminAction();
+  const parsed = documentDefaultsSchema.safeParse({
+    quoteValidityDays: formData.get("quoteValidityDays"),
+    invoiceDueDays: formData.get("invoiceDueDays"),
+    defaultQuoteTerms: formData.get("defaultQuoteTerms") ?? "",
+    defaultInvoiceNotes: formData.get("defaultInvoiceNotes") ?? "",
+    paymentInstructions: formData.get("paymentInstructions") ?? "",
+    syncDealValueFromAcceptedQuote: formData.get("syncDealValueFromAcceptedQuote") === "on",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid defaults" };
+  await setBillingSettings(parsed.data);
+  revalidateBilling();
   return { success: true };
 }

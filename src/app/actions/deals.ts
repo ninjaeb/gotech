@@ -10,6 +10,11 @@ import { ensureProjectForWonDeal } from "@/app/actions/projects";
 import { ensureTestimonialRequestForWonDeal } from "@/app/actions/testimonials";
 import { requireSalesAction } from "@/lib/auth/dal";
 import { syncReferralCommissionForDeal } from "@/lib/referrals";
+import { withFlash } from "@/lib/utils";
+
+// Only a quote the client actually received counts toward the Won gate —
+// drafts, withdrawn quotes and revisions that were replaced don't.
+const ISSUED_QUOTE_WHERE = { number: { not: null }, withdrawnAt: null, supersededById: null } as const;
 
 const dealSchema = z.object({
   title: z.string().trim().min(1, "Deal title is required"),
@@ -138,7 +143,7 @@ export async function updateDeal(
 
   const previous = await db.deal.findUniqueOrThrow({
     where: { id },
-    include: { pipelineStage: true, _count: { select: { quotes: true } } },
+    include: { pipelineStage: true, _count: { select: { quotes: { where: ISSUED_QUOTE_WHERE } } } },
   });
 
   const gateError = stageGateError({ ...data, quoteCount: previous._count.quotes }, targetStage);
@@ -177,7 +182,7 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
   await requireSalesAction();
   const previous = await db.deal.findUniqueOrThrow({
     where: { id },
-    include: { pipelineStage: true, _count: { select: { quotes: true } } },
+    include: { pipelineStage: true, _count: { select: { quotes: { where: ISSUED_QUOTE_WHERE } } } },
   });
   if (previous.pipelineStageId === pipelineStageId) return;
 
@@ -216,7 +221,15 @@ export async function changeDealStage(id: string, pipelineStageId: string): Prom
 export async function deleteDeal(id: string, formData: FormData) {
   void formData;
   await requireSalesAction();
-  const deal = await db.deal.findUniqueOrThrow({ where: { id } });
+  const deal = await db.deal.findUniqueOrThrow({
+    where: { id },
+    include: { _count: { select: { quotes: { where: { number: { not: null } } } } } },
+  });
+  // A numbered quote is a document the client may hold — deleting the deal
+  // would cascade it away and leave a gap in the sequence.
+  if (deal._count.quotes > 0) {
+    redirect(withFlash(`/system/deals/${id}`, "This deal has issued quotes on record — withdraw them and keep the deal, or mark it Lost."));
+  }
   await db.deal.delete({ where: { id } });
   revalidateDealPaths(id, deal.companyId, deal.contactId);
   redirect("/system/deals");

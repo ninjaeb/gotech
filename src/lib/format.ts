@@ -20,6 +20,33 @@ export function formatCurrencyExact(value: number | string, currency: string = "
   }).format(num);
 }
 
+// Money on a client-facing document: 2dp with the local symbol ("RM 1,200.00"
+// rather than "MYR 1,200.00"), falling back to the ISO code for currencies
+// the runtime has no narrow symbol for.
+export function formatDocumentMoney(value: number | string, currency: string) {
+  const num = typeof value === "string" ? Number(value) : value;
+  try {
+    return new Intl.NumberFormat("en-MY", {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(num);
+  } catch {
+    return formatCurrencyExact(num, currency);
+  }
+}
+
+// Date-only document fields are stored as UTC midnight (see
+// src/lib/documents/dates.ts) — format them in UTC so the calendar day never
+// shifts with the server's timezone.
+export function formatDocumentDate(value: Date | string | null | undefined) {
+  if (!value) return "—";
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
+}
+
 export function formatDate(value: Date | string | null | undefined) {
   if (!value) return "—";
   const date = typeof value === "string" ? new Date(value) : value;

@@ -17,6 +17,24 @@ const DEFAULT_SETTINGS = {
   referralCommissionRate: 10,
   referralLandingUrl: "https://gotka.com/landing/new-business/",
   directoryApprovalMode: "EVERY_SUBMISSION" as DirectoryApprovalMode,
+  businessName: "",
+  businessRegistrationNo: null as string | null,
+  businessAddress: null as string | null,
+  businessPhone: null as string | null,
+  businessEmail: null as string | null,
+  businessWebsite: null as string | null,
+  taxLabel: "SST",
+  taxRate: 0,
+  taxRegistrationNo: null as string | null,
+  quoteNumberPrefix: "Q-",
+  invoiceNumberPrefix: "INV-",
+  numberPadding: 4,
+  quoteValidityDays: 30,
+  invoiceDueDays: 14,
+  defaultQuoteTerms: null as string | null,
+  defaultInvoiceNotes: null as string | null,
+  paymentInstructions: null as string | null,
+  syncDealValueFromAcceptedQuote: true,
 };
 
 export const getSettings = cache(async () => {
@@ -143,5 +161,72 @@ export async function setDirectoryApprovalMode(mode: DirectoryApprovalMode) {
     where: { id: SETTINGS_ID },
     create: { id: SETTINGS_ID, directoryApprovalMode: mode },
     update: { directoryApprovalMode: mode },
+  });
+}
+
+// Settings → Billing — everything a quote or invoice needs at create/issue
+// time, in one read: issuer identity (snapshotted onto the document at
+// issue), tax, numbering, defaults and the deal-value sync toggle, plus the
+// org's currency and UTC offset so callers don't need a second lookup.
+// taxRate is a plain number here (the Decimal column can't cross the
+// Server → Client boundary).
+export type BillingSettings = {
+  currency: string;
+  utcOffsetMinutes: number;
+  businessName: string;
+  businessRegistrationNo: string | null;
+  businessAddress: string | null;
+  businessPhone: string | null;
+  businessEmail: string | null;
+  businessWebsite: string | null;
+  taxLabel: string;
+  taxRate: number;
+  taxRegistrationNo: string | null;
+  quoteNumberPrefix: string;
+  invoiceNumberPrefix: string;
+  numberPadding: number;
+  quoteValidityDays: number;
+  invoiceDueDays: number;
+  defaultQuoteTerms: string | null;
+  defaultInvoiceNotes: string | null;
+  paymentInstructions: string | null;
+  syncDealValueFromAcceptedQuote: boolean;
+};
+
+export async function getBillingSettings(): Promise<BillingSettings> {
+  const settings = await getSettings();
+  return {
+    currency: settings.currency,
+    utcOffsetMinutes: settings.bookingUtcOffsetMinutes,
+    businessName: settings.businessName,
+    businessRegistrationNo: settings.businessRegistrationNo,
+    businessAddress: settings.businessAddress,
+    businessPhone: settings.businessPhone,
+    businessEmail: settings.businessEmail,
+    businessWebsite: settings.businessWebsite,
+    taxLabel: settings.taxLabel,
+    taxRate: Number(settings.taxRate),
+    taxRegistrationNo: settings.taxRegistrationNo,
+    quoteNumberPrefix: settings.quoteNumberPrefix,
+    invoiceNumberPrefix: settings.invoiceNumberPrefix,
+    numberPadding: settings.numberPadding,
+    quoteValidityDays: settings.quoteValidityDays,
+    invoiceDueDays: settings.invoiceDueDays,
+    defaultQuoteTerms: settings.defaultQuoteTerms,
+    defaultInvoiceNotes: settings.defaultInvoiceNotes,
+    paymentInstructions: settings.paymentInstructions,
+    syncDealValueFromAcceptedQuote: settings.syncDealValueFromAcceptedQuote,
+  };
+}
+
+export type BillingSettingsPatch = Partial<Omit<BillingSettings, "currency" | "utcOffsetMinutes">>;
+
+// Each Settings → Billing card saves just its own fields, so a partial
+// patch — the other cards' values are untouched.
+export async function setBillingSettings(patch: BillingSettingsPatch) {
+  await db.settings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, ...patch },
+    update: patch,
   });
 }

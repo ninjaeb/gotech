@@ -1,56 +1,56 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { updateQuote } from "@/app/actions/quotes";
-import { QuoteForm } from "@/components/quotes/quote-form";
+import { LineItemsForm } from "@/components/documents/line-items-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { getCurrency } from "@/lib/settings";
+import { getBillingSettings } from "@/lib/settings";
 import { requireSales } from "@/lib/auth/dal";
+import { loadCatalogOptions, loadQuoteContacts } from "@/lib/documents/catalog";
+import { toDateInput } from "@/lib/documents/dates";
+import { quoteNumberLabel, toLineItemsDraft } from "@/lib/documents/view-model";
+import { withFlash } from "@/lib/utils";
 
-export default async function EditQuotePage({
-  params,
-}: {
-  params: Promise<{ id: string; quoteId: string }>;
-}) {
+export default async function EditQuotePage({ params }: { params: Promise<{ id: string; quoteId: string }> }) {
   await requireSales();
   const { id: dealId, quoteId } = await params;
 
-  const [currency, quote, servicePackages] = await Promise.all([
-    getCurrency(),
+  const [settings, quote, catalog] = await Promise.all([
+    getBillingSettings(),
     db.quote.findUnique({
       where: { id: quoteId, dealId },
-      include: { items: { orderBy: { sortOrder: "asc" } }, deal: { select: { title: true } } },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        deal: { select: { title: true, contactId: true, companyId: true } },
+        revisionOf: { select: { number: true, revision: true } },
+      },
     }),
-    db.servicePackage.findMany({
-      orderBy: { name: "asc" },
-      include: { components: { include: { product: true }, orderBy: { sortOrder: "asc" } } },
-    }),
+    loadCatalogOptions(),
   ]);
-
   if (!quote) notFound();
+  // Issued quotes are immutable — the detail page offers "Revise" instead.
+  if (quote.status !== "DRAFT") {
+    redirect(withFlash(`/system/deals/${dealId}/quotes/${quoteId}`, "Issued quotes can't be edited — create a revision instead."));
+  }
+  const contacts = await loadQuoteContacts(quote.deal);
 
-  const servicePackageOptions = servicePackages.map((pkg) => ({
-    id: pkg.id,
-    name: pkg.name,
-    description: pkg.description,
-    unitPrice: Number(pkg.unitPrice),
-    components: pkg.components.map((c) => ({
-      servicePackageId: c.product.id,
-      description: c.product.description ? `${c.product.name} — ${c.product.description}` : c.product.name,
-      unitPrice: Number(c.product.unitPrice),
-      quantity: Number(c.quantity),
-    })),
-  }));
-  const quoteDraft = {
+  const draft = {
     title: quote.title,
     notes: quote.notes,
-    items: quote.items.map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-      servicePackageId: item.servicePackageId,
-    })),
+    items: toLineItemsDraft(quote.items),
+    discountType: quote.discountType,
+    discountValue: quote.discountValue.toString(),
+    billTo: {
+      billToName: quote.billToName ?? "",
+      billToCompany: quote.billToCompany ?? "",
+      billToRegistrationNo: quote.billToRegistrationNo ?? "",
+      billToAddress: quote.billToAddress ?? "",
+      billToEmail: quote.billToEmail ?? "",
+    },
+    contactId: quote.contactId,
+    validUntil: toDateInput(quote.validUntil),
   };
+  const label = quoteNumberLabel(quote, quote.revisionOf?.number ?? null);
 
   return (
     <div>
@@ -62,16 +62,20 @@ export default async function EditQuotePage({
           { label: "Edit" },
         ]}
         title="Edit quote"
-        description={quote.title}
+        description={`${label} · ${quote.title}`}
       />
       <Card>
         <CardBody>
-          <QuoteForm
+          <LineItemsForm
             action={updateQuote.bind(null, quote.id)}
-            quote={quoteDraft}
-            servicePackages={servicePackageOptions}
-            currency={currency}
-            submitLabel="Save changes"
+            mode="quote"
+            draft={draft}
+            catalog={catalog}
+            contacts={contacts}
+            currency={settings.currency}
+            taxLabel={settings.taxLabel}
+            taxRate={settings.taxRate}
+            submitLabel="Save draft"
           />
         </CardBody>
       </Card>

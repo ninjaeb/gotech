@@ -26,6 +26,8 @@ type ExistingServicePackage = {
   unitCost: number | null;
   unit: string | null;
   billingFrequency: BillingFrequency;
+  taxable: boolean;
+  isActive: boolean;
   components: { productId: string; quantity: number }[];
 };
 
@@ -210,6 +212,33 @@ export function ServicePackageForm({
             defaultValue={servicePackage?.description ?? undefined}
             placeholder="Shown on quotes under the line item"
           />
+        </div>
+        <div className="flex flex-wrap gap-4 sm:col-span-2">
+          {/* Checkboxes only post when ticked, so each is paired with a
+              hidden "off" that the ticked box overrides — the action reads
+              the last value. */}
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input type="hidden" name="taxable" value="off" />
+            <input
+              type="checkbox"
+              name="taxable"
+              value="on"
+              defaultChecked={servicePackage?.taxable ?? true}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 dark:border-neutral-700"
+            />
+            Taxable (when tax is enabled in Settings → Billing)
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+            <input type="hidden" name="isActive" value="off" />
+            <input
+              type="checkbox"
+              name="isActive"
+              value="on"
+              defaultChecked={servicePackage?.isActive ?? true}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 dark:border-neutral-700"
+            />
+            Active (retired items leave the quote picker but stay on old documents)
+          </label>
         </div>
       </div>
 

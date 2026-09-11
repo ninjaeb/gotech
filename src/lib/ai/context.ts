@@ -153,7 +153,7 @@ export async function buildTestimonialContext(contactId: string): Promise<Entity
         orderBy: { wonAt: "desc" },
         include: {
           quotes: {
-            where: { status: "ACCEPTED" },
+            where: { status: "ACCEPTED", supersededById: null, withdrawnAt: null },
             include: { items: { orderBy: { sortOrder: "asc" } } },
           },
         },

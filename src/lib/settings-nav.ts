@@ -8,6 +8,7 @@
 export const SETTINGS_SUB_ITEMS = [
   { href: "/system/settings", label: "General", adminOnly: false },
   { href: "/system/settings/sales", label: "Sales", adminOnly: true },
+  { href: "/system/settings/billing", label: "Billing", adminOnly: true },
   { href: "/system/settings/newsletter", label: "Newsletter", adminOnly: true },
   { href: "/system/settings/team", label: "Team", adminOnly: true },
   { href: "/system/settings/forms", label: "Forms & Booking", adminOnly: true },

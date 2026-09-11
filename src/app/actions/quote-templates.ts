@@ -5,59 +5,44 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
+import { firstIssueMessage, lineItemSchema, parseItemsJson } from "@/lib/documents/schemas";
+import { normalizeMoney } from "@/lib/documents/money";
 import { withFlash } from "@/lib/utils";
 
-const templateItemSchema = z.object({
-  description: z.string().trim().min(1, "Each line item needs a description"),
-  quantity: z.coerce.number().positive("Quantity must be greater than zero"),
-  unitPrice: z.coerce.number().min(0, "Price must be zero or more"),
-  servicePackageId: z.string().trim().optional().nullable(),
-});
-
-// Same shape as quotes.ts's quoteSchema — the field names ("title",
-// "notes", "itemsJson") match on purpose, so QuoteForm can be reused
-// unmodified for both a Quote and a QuoteTemplate (see quote-form.tsx).
+// Same field names as a quote ("title", "notes", "itemsJson") on purpose, so
+// LineItemsForm (mode "template") is reused unmodified.
 const templateSchema = z.object({
-  title: z.string().trim().min(1, "Name is required"),
-  notes: z.string().trim().optional(),
-  items: z.array(templateItemSchema).min(1, "Add at least one line item"),
+  title: z.string().trim().min(1, "Name is required").max(191),
+  notes: z.string().trim().max(10000).optional(),
+  items: z.array(lineItemSchema).min(1, "Add at least one line item"),
 });
 
 export type QuoteTemplateFormState = { error: string } | undefined;
 
 function parseTemplateForm(formData: FormData) {
-  let rawItems: unknown;
-  try {
-    rawItems = JSON.parse(String(formData.get("itemsJson") || "[]"));
-  } catch {
-    throw new Error("Line items could not be read — try again.");
-  }
-
   const parsed = templateSchema.safeParse({
     title: formData.get("title"),
     notes: formData.get("notes"),
-    items: rawItems,
+    items: parseItemsJson(formData),
   });
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Invalid template data");
-  }
+  if (!parsed.success) throw new Error(firstIssueMessage(parsed.error, "Invalid template data"));
 
   return {
     name: parsed.data.title,
     notes: parsed.data.notes || null,
-    items: parsed.data.items.map((item) => ({
+    items: parsed.data.items.map((item, index) => ({
       description: item.description,
       quantity: item.quantity,
-      unitPrice: item.unitPrice,
+      unitPrice: normalizeMoney(item.unitPrice),
+      unit: item.unit || null,
+      taxable: item.taxable,
       servicePackageId: item.servicePackageId || null,
+      sortOrder: index,
     })),
   };
 }
 
-export async function createQuoteTemplate(
-  _prevState: QuoteTemplateFormState,
-  formData: FormData,
-): Promise<QuoteTemplateFormState> {
+export async function createQuoteTemplate(_prevState: QuoteTemplateFormState, formData: FormData): Promise<QuoteTemplateFormState> {
   await requireAdminAction();
   let parsed: ReturnType<typeof parseTemplateForm>;
   try {
@@ -67,11 +52,7 @@ export async function createQuoteTemplate(
   }
 
   const template = await db.quoteTemplate.create({
-    data: {
-      name: parsed.name,
-      notes: parsed.notes,
-      items: { create: parsed.items.map((item, index) => ({ ...item, sortOrder: index })) },
-    },
+    data: { name: parsed.name, notes: parsed.notes, items: { create: parsed.items } },
   });
 
   revalidatePath("/system/settings/quote-templates");
@@ -93,14 +74,7 @@ export async function updateQuoteTemplate(
 
   await db.quoteTemplate.update({
     where: { id: templateId },
-    data: {
-      name: parsed.name,
-      notes: parsed.notes,
-      items: {
-        deleteMany: {},
-        create: parsed.items.map((item, index) => ({ ...item, sortOrder: index })),
-      },
-    },
+    data: { name: parsed.name, notes: parsed.notes, items: { deleteMany: {}, create: parsed.items } },
   });
 
   revalidatePath("/system/settings/quote-templates");

@@ -1,6 +1,9 @@
 import {
+  AcceptedVia,
   ActivityType,
   BillingFrequency,
+  DiscountType,
+  DocumentEventType,
   DirectoryLeadStatus,
   EnrollmentStatus,
   Industry,
@@ -264,6 +267,58 @@ export const QUOTE_STATUS_BADGE_CLASSES: Record<QuoteStatus, string> = {
   ACCEPTED:
     "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
   DECLINED: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30",
+};
+
+// Derived quote states (see quoteDerivedState in src/lib/documents/dates.ts)
+// — not stored in QuoteStatus, but shown as a badge in place of it.
+export const QUOTE_DERIVED_LABELS = {
+  expired: "Expired",
+  withdrawn: "Withdrawn",
+  superseded: "Superseded",
+} as const;
+
+export const QUOTE_DERIVED_BADGE_CLASSES = {
+  expired: "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950 dark:text-orange-300 dark:ring-orange-500/30",
+  withdrawn: "bg-slate-100 text-slate-500 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/30",
+  superseded: "bg-slate-100 text-slate-500 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/30",
+} as const;
+
+export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
+  NONE: "No discount",
+  PERCENT: "Percent",
+  AMOUNT: "Amount",
+};
+
+export const ACCEPTED_VIAS: AcceptedVia[] = ["LINK", "PORTAL", "EMAIL", "WHATSAPP", "PO", "VERBAL", "OTHER"];
+
+export const ACCEPTED_VIA_LABELS: Record<AcceptedVia, string> = {
+  LINK: "Quote link",
+  PORTAL: "Client portal",
+  EMAIL: "Email",
+  WHATSAPP: "WhatsApp",
+  PO: "Purchase order",
+  VERBAL: "Verbal / in person",
+  OTHER: "Other",
+};
+
+// Offline channels staff can log an acceptance/decline from — the client's
+// own clicks (LINK/PORTAL) are recorded by the system, never picked here.
+export const STAFF_ACCEPTED_VIAS: AcceptedVia[] = ["EMAIL", "WHATSAPP", "PO", "VERBAL", "OTHER"];
+
+export const DOCUMENT_EVENT_LABELS: Record<DocumentEventType, string> = {
+  CREATED: "Created",
+  UPDATED: "Edited",
+  ISSUED: "Issued",
+  SENT: "Sent",
+  VIEWED: "Viewed by client",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
+  WITHDRAWN: "Withdrawn",
+  REVISED: "Revision created",
+  SUPERSEDED: "Superseded",
+  VALIDITY_EXTENDED: "Validity extended",
+  CONVERTED: "Converted to invoice",
+  DEAL_VALUE_SYNCED: "Deal value updated",
 };
 
 export const PRODUCT_SERVICE_TYPES: ProductServiceType[] = ["PRODUCT", "SERVICE"];

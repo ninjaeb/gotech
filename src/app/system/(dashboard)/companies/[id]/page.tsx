@@ -129,6 +129,9 @@ export default async function CompanyDetailPage({
                 }
               />
               <DetailRow label="Address" value={company.address} />
+              <DetailRow label="Registration no." value={company.registrationNo} />
+              <DetailRow label="Tax reg. no." value={company.taxRegistrationNo} />
+              <DetailRow label="Payment terms" value={company.invoiceDueDays != null ? `${company.invoiceDueDays} days` : null} />
               {company.notes && (
                 <div className="sm:col-span-2">
                   <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
