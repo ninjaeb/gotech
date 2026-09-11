@@ -162,6 +162,8 @@ model User {
   timezone String?
 
   emailAccount                           EmailAccount?
+  googleCalendarAccount                  GoogleCalendarAccount?
+  taskCalendarEvents                     TaskCalendarEvent[]
   deals                                  Deal[]
   referredDeals                          Deal[]                              @relation("DealReferredBy")
   referredDirectoryLeads                 DirectoryLead[]                     @relation("DirectoryLeadReferredBy")
@@ -194,6 +196,54 @@ model User {
   partnerTasks         PartnerTask[]
   assignedPartnerTasks PartnerTaskAssignee[]
   documentEvents       DocumentEvent[]
+}
+
+// One connected Google account per user, used only to sync their assigned
+// Tasks onto their own Google Calendar as all-day events (see
+// src/lib/task-calendar-sync.ts) — separate from the "Continue with Google"
+// sign-in flow (src/lib/auth/google.ts), which never requests offline
+// access and so never gets a refresh_token to keep here. The refresh token
+// is the only long-lived secret; accessToken/accessTokenExpiresAt cache the
+// short-lived token minted from it so most syncs don't need a refresh
+// round trip first. lastSyncError surfaces the most recent failure (e.g. a
+// revoked grant) on the Settings page rather than failing silently forever.
+model GoogleCalendarAccount {
+  id                    String    @id @default(cuid())
+  email                 String
+  encryptedRefreshToken String    @db.Text
+  accessToken           String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  lastSyncError         String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+}
+
+// One synced Google Calendar event per (task, assignee) with a connected
+// GoogleCalendarAccount — deliberately its own join model rather than a
+// column on TaskAssignee, since updateTask (src/app/actions/tasks.ts)
+// deletes and recreates every TaskAssignee row on every save regardless of
+// whether the assignee list actually changed; a column there would lose
+// its googleEventId (and orphan the real event on Google's side) on every
+// unrelated edit. See syncTaskCalendarEvents in
+// src/lib/task-calendar-sync.ts for how rows here are kept in step with
+// Task.assignees instead.
+model TaskCalendarEvent {
+  id            String   @id @default(cuid())
+  googleEventId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([taskId, userId])
+  @@index([userId])
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -769,6 +819,7 @@ model Task {
   attachments                    Attachment[]
   mentionNotifications           WhatsAppMentionNotification[]
   pendingAssignmentNotifications PendingTaskAssignmentNotification[]
+  calendarEvents                 TaskCalendarEvent[]
 
   @@index([contactId])
   @@index([companyId])
