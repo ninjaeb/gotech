@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.83",
+    date: "2026-09-11",
+    title: "Deal page: start date and how long it's been running",
+    changes: [
+      "The deal Details card now shows when the deal started and its Duration — \"Running for 6d\" while open, freezing to \"Won after 3d\" or \"Lost after 12d\" once the deal closes, same wording as the directory lead duration",
+    ],
+  },
+  {
     version: "1.82",
     date: "2026-09-11",
     title: "Partner logins no longer appear in staff pickers",

@@ -28,7 +28,7 @@ import {
   QUOTE_STATUS_LABELS,
 } from "@/lib/labels";
 import { quoteDerivedState } from "@/lib/documents/dates";
-import { formatCurrency, formatDate, formatDocumentMoney, formatMinutes, fullName } from "@/lib/format";
+import { formatCurrency, formatDate, formatDocumentMoney, formatDuration, formatMinutes, fullName } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { requireSales } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
@@ -43,7 +43,7 @@ export default async function DealDetailPage({
   const { id } = await params;
   const currentUser = await requireSales();
 
-  const [settings, deal, timeLogged, users] = await Promise.all([
+  const [settings, deal, timeLogged, latestStageChange, users] = await Promise.all([
     getSettings(),
     db.deal.findUnique({
       where: { id },
@@ -87,6 +87,16 @@ export default async function DealDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { dealId: id } }, _sum: { minutes: true } }),
+    // The most recent stage change — same "days in stage" idiom as the
+    // Deals kanban page (see daysInStage in deal-hygiene.ts) — gives an
+    // honest closing timestamp for a Lost deal, which has no equivalent
+    // to wonAt. A deal created straight into a stage (never moved) has no
+    // STAGE_CHANGE activity at all; that's the null case below.
+    db.activity.findFirst({
+      where: { dealId: id, type: "STAGE_CHANGE" },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    }),
     db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
@@ -94,6 +104,20 @@ export default async function DealDetailPage({
   const currency = settings.currency;
   const totalMinutes = timeLogged._sum.minutes ?? 0;
   const layout = readSectionLayout(currentUser.sectionLayout, "deal", DEFAULT_LAYOUT);
+
+  // Duration freezes once the deal is done, rather than growing forever
+  // after the fact (see formatDuration's own doc comment) — wonAt already
+  // captures exactly when a deal became Won; Lost has no such column, so it
+  // falls back to the latest logged stage change, and finally to the
+  // deal's own createdAt for one created directly into a Lost stage.
+  const closedAt = deal.pipelineStage.isWon
+    ? (deal.wonAt ?? latestStageChange?.createdAt ?? null)
+    : deal.pipelineStage.isLost
+      ? (latestStageChange?.createdAt ?? deal.createdAt)
+      : null;
+  const durationLabel = closedAt
+    ? `${deal.pipelineStage.isWon ? "Won" : "Lost"} after ${formatDuration(deal.createdAt, closedAt)}`
+    : `Running for ${formatDuration(deal.createdAt)}`;
 
   return (
     <div>
@@ -157,6 +181,8 @@ export default async function DealDetailPage({
                 value={deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : null}
                 href={deal.contact ? `/system/contacts/${deal.contact.id}` : undefined}
               />
+              <DetailRow label="Started" value={formatDate(deal.createdAt)} />
+              <DetailRow label="Duration" value={durationLabel} />
               <DetailRow
                 label="Expected close date"
                 value={deal.expectedCloseDate ? formatDate(deal.expectedCloseDate) : null}
