@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText, Flag, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Flag, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteDeal } from "@/app/actions/deals";
 import { DealResourceForm } from "@/components/deals/deal-resource-form";
@@ -21,19 +21,23 @@ import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
 import { Linkify } from "@/components/ui/linkify";
 import { needsFollowUp } from "@/lib/deal-hygiene";
 import {
+  INVOICE_DERIVED_BADGE_CLASSES,
+  INVOICE_DERIVED_LABELS,
+  INVOICE_STATUS_BADGE_CLASSES,
+  INVOICE_STATUS_LABELS,
   LEAD_SOURCE_LABELS,
   QUOTE_DERIVED_BADGE_CLASSES,
   QUOTE_DERIVED_LABELS,
   QUOTE_STATUS_BADGE_CLASSES,
   QUOTE_STATUS_LABELS,
 } from "@/lib/labels";
-import { quoteDerivedState } from "@/lib/documents/dates";
+import { invoiceDerivedState, quoteDerivedState } from "@/lib/documents/dates";
 import { formatCurrency, formatDate, formatDocumentMoney, formatDuration, formatMinutes, fullName } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { requireSales } from "@/lib/auth/dal";
 import { readSectionLayout } from "@/lib/section-layout";
 
-const DEFAULT_LAYOUT = { main: ["tasks", "quotes", "resources", "activity"], sidebar: ["aiAssistant"] };
+const DEFAULT_LAYOUT = { main: ["tasks", "quotes", "invoices", "resources", "activity"], sidebar: ["aiAssistant"] };
 
 export default async function DealDetailPage({
   params,
@@ -80,6 +84,18 @@ export default async function DealDetailPage({
             validUntil: true,
             withdrawnAt: true,
             supersededById: true,
+          },
+        },
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            number: true,
+            total: true,
+            currency: true,
+            dueDate: true,
           },
         },
         resources: { orderBy: { createdAt: "desc" } },
@@ -274,6 +290,54 @@ export default async function DealDetailPage({
                                     <Badge className={QUOTE_DERIVED_BADGE_CLASSES[derived]}>{QUOTE_DERIVED_LABELS[derived]}</Badge>
                                   ) : (
                                     <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>{QUOTE_STATUS_LABELS[quote.status]}</Badge>
+                                  );
+                                })()}
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </CardBody>
+                </Card>
+              ),
+              invoices: (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Invoices ({deal.invoices.length})</CardTitle>
+                    <Link href={`/system/deals/${deal.id}/invoices/new`} className={buttonClasses("secondary", "sm")}>
+                      <Plus className="h-4 w-4" />
+                      New invoice
+                    </Link>
+                  </CardHeader>
+                  <CardBody>
+                    {deal.invoices.length === 0 ? (
+                      <EmptyState title="No invoices yet." />
+                    ) : (
+                      <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                        {deal.invoices.map((invoice) => (
+                          <li key={invoice.id}>
+                            <Link
+                              href={`/system/deals/${deal.id}/invoices/${invoice.id}`}
+                              className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                            >
+                              <span className="flex min-w-0 items-center gap-2">
+                                <Receipt className="h-4 w-4 shrink-0 text-slate-400" />
+                                <span className="truncate font-medium text-slate-800 dark:text-slate-200">
+                                  {invoice.number ? `${invoice.number} · ` : ""}
+                                  {invoice.title}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-3">
+                                <span className="text-slate-500 dark:text-slate-400">
+                                  {formatDocumentMoney(invoice.total.toString(), invoice.currency ?? currency)}
+                                </span>
+                                {(() => {
+                                  const derived = invoiceDerivedState(invoice, settings.bookingUtcOffsetMinutes);
+                                  return derived ? (
+                                    <Badge className={INVOICE_DERIVED_BADGE_CLASSES[derived]}>{INVOICE_DERIVED_LABELS[derived]}</Badge>
+                                  ) : (
+                                    <Badge className={INVOICE_STATUS_BADGE_CLASSES[invoice.status]}>{INVOICE_STATUS_LABELS[invoice.status]}</Badge>
                                   );
                                 })()}
                               </span>

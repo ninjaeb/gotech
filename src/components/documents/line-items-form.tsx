@@ -10,11 +10,15 @@ import type { CatalogComponentOption, CatalogOption, LineItemDraft, TemplateOpti
 import { DISCOUNT_TYPE_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
-// One editor for a Quote (mode "quote": bill-to, discount, validity, Save &
-// issue) and a QuoteTemplate (mode "template": just the lines). Posts the
-// lines as hidden `itemsJson` in the shape src/lib/documents/schemas.ts
-// parses; money stays as strings end to end so the live totals shown here
-// come from the exact same computeTotals the server stores.
+// One editor for a Quote or Invoice (mode "quote"/"invoice": bill-to,
+// discount, a date field, Save & issue) and a QuoteTemplate (mode
+// "template": just the lines) — quote and invoice share every control here
+// (line items, tax, discount, bill-to), differing only in a couple of
+// labels and which field name the date posts as, both overridable via
+// props. Posts the lines as hidden `itemsJson` in the shape
+// src/lib/documents/schemas.ts parses; money stays as strings end to end so
+// the live totals shown here come from the exact same computeTotals the
+// server stores.
 
 type FormState = { error: string } | undefined;
 
@@ -62,9 +66,12 @@ export function LineItemsForm({
   titleLabel = "Title",
   titlePlaceholder = "Website redesign — Proposal",
   notesLabel = "Terms / notes (optional)",
+  dateFieldName = "validUntil",
+  dateFieldLabel = "Valid until",
+  documentNoun = "quote",
 }: {
   action: (prevState: FormState, formData: FormData) => Promise<FormState> | FormState;
-  mode: "quote" | "template";
+  mode: "quote" | "template" | "invoice";
   draft?: DocumentDraft;
   catalog: CatalogOption[];
   // Only on a fresh, empty form — applying one replaces the lines and notes.
@@ -78,8 +85,12 @@ export function LineItemsForm({
   titleLabel?: string;
   titlePlaceholder?: string;
   notesLabel?: string;
+  dateFieldName?: string;
+  dateFieldLabel?: string;
+  documentNoun?: string; // "quote" or "invoice" — used in the bill-to helper text
 }) {
-  const taxEnabled = mode === "quote" && taxRate > 0;
+  const hasDocumentFields = mode === "quote" || mode === "invoice";
+  const taxEnabled = hasDocumentFields && taxRate > 0;
   const [state, formAction, pending] = useActionState(action, undefined);
   const [items, setItems] = useState<ItemRow[]>(() => rowsFrom(draft?.items ?? [], true));
   const [notes, setNotes] = useState(draft?.notes ?? "");
@@ -166,18 +177,18 @@ export function LineItemsForm({
     <form action={formAction} className="space-y-5">
       <input type="hidden" name="itemsJson" value={itemsJson} />
 
-      <div className={cn("grid gap-4", mode === "quote" && "sm:grid-cols-[1fr_12rem]")}>
+      <div className={cn("grid gap-4", hasDocumentFields && "sm:grid-cols-[1fr_12rem]")}>
         <FieldGroup label={titleLabel} htmlFor="doc-title" required>
           <Input id="doc-title" name="title" defaultValue={draft?.title} required placeholder={titlePlaceholder} />
         </FieldGroup>
-        {mode === "quote" && (
-          <FieldGroup label="Valid until" htmlFor="doc-valid-until">
-            <Input id="doc-valid-until" name="validUntil" type="date" defaultValue={draft?.validUntil ?? ""} />
+        {hasDocumentFields && (
+          <FieldGroup label={dateFieldLabel} htmlFor="doc-valid-until">
+            <Input id="doc-valid-until" name={dateFieldName} type="date" defaultValue={draft?.validUntil ?? ""} />
           </FieldGroup>
         )}
       </div>
 
-      {mode === "quote" && contacts && contacts.length > 0 && (
+      {hasDocumentFields && contacts && contacts.length > 0 && (
         <FieldGroup label="Contact" htmlFor="doc-contact">
           <Select id="doc-contact" name="contactId" defaultValue={draft?.contactId ?? ""}>
             <option value="">— None —</option>
@@ -203,7 +214,7 @@ export function LineItemsForm({
         </FieldGroup>
       )}
 
-      {mode === "quote" && (
+      {hasDocumentFields && (
         <fieldset className="rounded-md border border-slate-200 p-3 dark:border-neutral-800">
           <legend className="px-1 text-sm font-medium text-slate-700 dark:text-slate-300">Bill to</legend>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -228,7 +239,7 @@ export function LineItemsForm({
               <Textarea id="billToAddress" name="billToAddress" rows={2} defaultValue={draft?.billTo?.billToAddress ?? ""} />
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-400">Left blank, these are filled from the deal&apos;s contact and company when the quote is issued.</p>
+          <p className="mt-2 text-xs text-slate-400">Left blank, these are filled from the deal&apos;s contact and company when the {documentNoun} is issued.</p>
         </fieldset>
       )}
 
@@ -338,7 +349,7 @@ export function LineItemsForm({
       </div>
 
       <div className="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-start sm:justify-between dark:border-neutral-800">
-        {mode === "quote" ? (
+        {hasDocumentFields ? (
           <div className="flex flex-wrap items-end gap-2">
             <div>
               <Label htmlFor="discountType">Discount</Label>
@@ -373,13 +384,13 @@ export function LineItemsForm({
         )}
 
         <dl className="w-full space-y-1 text-sm sm:w-64">
-          {(mode === "quote" && (discountType !== "NONE" || taxEnabled)) && (
+          {(hasDocumentFields && (discountType !== "NONE" || taxEnabled)) && (
             <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <dt>Subtotal</dt>
               <dd>{money(totals.subtotal)}</dd>
             </div>
           )}
-          {mode === "quote" && discountType !== "NONE" && (
+          {hasDocumentFields && discountType !== "NONE" && (
             <div className="flex justify-between text-slate-500 dark:text-slate-400">
               <dt>Discount</dt>
               <dd>− {money(totals.discountAmount)}</dd>
@@ -417,10 +428,10 @@ export function LineItemsForm({
         {/* The submitter's name/value rides along in the FormData, so the
             action knows which button was pressed; the local state only
             drives the pending label. */}
-        <Button type="submit" name="intent" value="save" variant={mode === "quote" ? "secondary" : "primary"} disabled={pending} onClick={() => setIntent("save")}>
+        <Button type="submit" name="intent" value="save" variant={hasDocumentFields ? "secondary" : "primary"} disabled={pending} onClick={() => setIntent("save")}>
           {pending && intent === "save" ? "Saving…" : submitLabel}
         </Button>
-        {mode === "quote" && (
+        {hasDocumentFields && (
           <Button type="submit" name="intent" value="issue" disabled={pending} onClick={() => setIntent("issue")}>
             {pending && intent === "issue" ? "Issuing…" : issueLabel}
           </Button>

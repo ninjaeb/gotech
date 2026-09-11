@@ -75,6 +75,10 @@ function describe(event: EventRow, currency: string): string | null {
         : null;
     case "SUPERSEDED":
       return typeof payload.revision === "number" ? `by Rev ${payload.revision}` : null;
+    case "PAID":
+      return typeof payload.reference === "string" && payload.reference ? `ref. ${payload.reference}` : null;
+    case "VOIDED":
+      return typeof payload.reason === "string" ? payload.reason : null;
     default:
       return null;
   }
