@@ -151,7 +151,7 @@ export default async function DashboardPage() {
       include: { company: true, contact: true, pipelineStage: true },
     }),
     getDefaultPipeline(),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
     db.invoice.aggregate({

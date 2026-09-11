@@ -36,7 +36,7 @@ export default async function LeaderboardPage({
 
   const [currency, users, wonDeals] = await Promise.all([
     getCurrency(),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.deal.findMany({
       where: {
         pipelineStage: { isWon: true },

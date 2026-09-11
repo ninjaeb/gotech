@@ -59,7 +59,7 @@ export default async function TaskDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { taskId: id }, _sum: { minutes: true } }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
   ]);

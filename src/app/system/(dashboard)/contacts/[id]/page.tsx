@@ -90,7 +90,7 @@ export default async function ContactDetailPage({
     db.timeEntry.aggregate({ where: { task: { contactId: id } }, _sum: { minutes: true } }),
     getSiteOrigin(),
     getActiveSequences(),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!contact) notFound();

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.82",
+    date: "2026-09-11",
+    title: "Partner logins no longer appear in staff pickers",
+    changes: [
+      "A Partner login (their own portal only, never the CRM proper) could still show up as an assignable/mentionable person: task assignee pickers on Companies, Contacts, Deals and Projects, the Deal Owner field, @mentions in notes, and the Leaderboard",
+      "All of those now list Admin/Sales/Technical logins only, matching how the Tasks pages already worked — Settings → Team and Settings → Directory still show partners where that's the point of the page",
+    ],
+  },
+  {
     version: "1.81",
     date: "2026-09-11",
     title: "Quotes rebuilt as numbered documents, plus Settings → Billing",

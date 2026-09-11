@@ -24,7 +24,7 @@ export default async function EditDealPage({
       select: { id: true, firstName: true, lastName: true, companyId: true },
     }),
     getPipelinesWithStages(),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   if (!deal) notFound();
 

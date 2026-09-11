@@ -61,7 +61,7 @@ export default async function ProjectDetailPage({
       where: { task: { projectId: id } },
       select: { minutes: true, user: { select: { hourlyRate: true } } },
     }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!project) notFound();
