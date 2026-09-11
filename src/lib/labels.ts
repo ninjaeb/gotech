@@ -283,6 +283,15 @@ export const QUOTE_DERIVED_BADGE_CLASSES = {
   superseded: "bg-slate-100 text-slate-500 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/30",
 } as const;
 
+// Derived invoice states (see invoiceDerivedState in src/lib/documents/dates.ts).
+export const INVOICE_DERIVED_LABELS = {
+  overdue: "Overdue",
+} as const;
+
+export const INVOICE_DERIVED_BADGE_CLASSES = {
+  overdue: "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950 dark:text-orange-300 dark:ring-orange-500/30",
+} as const;
+
 export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   NONE: "No discount",
   PERCENT: "Percent",
@@ -319,6 +328,8 @@ export const DOCUMENT_EVENT_LABELS: Record<DocumentEventType, string> = {
   VALIDITY_EXTENDED: "Validity extended",
   CONVERTED: "Converted to invoice",
   DEAL_VALUE_SYNCED: "Deal value updated",
+  PAID: "Paid",
+  VOIDED: "Voided",
 };
 
 export const PRODUCT_SERVICE_TYPES: ProductServiceType[] = ["PRODUCT", "SERVICE"];
@@ -379,6 +390,9 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   DEPOSIT_SENT: "Deposit sent",
   PROGRESS_BILLED: "Progress billed",
   PAID_IN_FULL: "Paid in full",
+  SENT: "Sent",
+  VIEWED: "Viewed",
+  VOID: "Void",
 };
 
 export const INVOICE_STATUS_BADGE_CLASSES: Record<InvoiceStatus, string> = {
@@ -388,6 +402,9 @@ export const INVOICE_STATUS_BADGE_CLASSES: Record<InvoiceStatus, string> = {
     "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
   PAID_IN_FULL:
     "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950 dark:text-emerald-300 dark:ring-emerald-500/30",
+  SENT: "bg-sky-50 text-sky-700 ring-sky-600/20 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-500/30",
+  VIEWED: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-500/30",
+  VOID: "bg-slate-100 text-slate-500 ring-slate-600/20 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-500/30",
 };
 
 export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {

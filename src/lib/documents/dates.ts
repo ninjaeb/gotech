@@ -56,3 +56,22 @@ export function quoteDerivedState(
 export function isQuoteOpen(quote: QuoteDerivedInput, utcOffsetMinutes: number, now: Date = new Date()): boolean {
   return (quote.status === "SENT" || quote.status === "VIEWED") && quoteDerivedState(quote, utcOffsetMinutes, now) === null;
 }
+
+export type InvoiceDerivedInput = {
+  status: string;
+  dueDate: Date | null;
+};
+
+// Unlike Quote's withdrawn/superseded, VOID is a real stored InvoiceStatus
+// (see that model's own doc comment) — nothing to derive for it here.
+export function isInvoiceOverdue(invoice: InvoiceDerivedInput, utcOffsetMinutes: number, now: Date = new Date()): boolean {
+  if (invoice.status !== "SENT" && invoice.status !== "VIEWED") return false;
+  if (!invoice.dueDate) return false;
+  return invoice.dueDate < orgToday(utcOffsetMinutes, now);
+}
+
+export type InvoiceDerivedState = "overdue" | null;
+
+export function invoiceDerivedState(invoice: InvoiceDerivedInput, utcOffsetMinutes: number, now: Date = new Date()): InvoiceDerivedState {
+  return isInvoiceOverdue(invoice, utcOffsetMinutes, now) ? "overdue" : null;
+}

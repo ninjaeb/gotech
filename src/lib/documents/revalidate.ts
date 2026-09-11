@@ -11,3 +11,20 @@ export function revalidateQuotePaths(dealId: string, quoteId?: string): void {
   if (quoteId) revalidatePath(`/system/deals/${dealId}/quotes/${quoteId}`);
   revalidatePath("/portal");
 }
+
+// Same shape as revalidateQuotePaths above, plus the Project page and
+// /system/projects list a numbered invoice can also be reached from once
+// it's linked to a Project (see convertQuoteToInvoice).
+export function revalidateInvoicePaths(dealId: string | null, invoiceId?: string, projectId?: string | null): void {
+  revalidatePath("/system");
+  if (dealId) {
+    revalidatePath("/system/deals");
+    revalidatePath(`/system/deals/${dealId}`);
+    if (invoiceId) revalidatePath(`/system/deals/${dealId}/invoices/${invoiceId}`);
+  }
+  if (projectId) {
+    revalidatePath("/system/projects");
+    revalidatePath(`/system/projects/${projectId}`);
+  }
+  revalidatePath("/portal");
+}
