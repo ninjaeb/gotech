@@ -73,6 +73,39 @@ export function CompanyForm({
         </FieldGroup>
       </div>
 
+      <fieldset className="rounded-md border border-slate-200 p-3 dark:border-neutral-800">
+        <legend className="px-1 text-sm font-medium text-slate-700 dark:text-slate-300">Billing</legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <FieldGroup label="Registration no. (SSM)" htmlFor="registrationNo">
+            <Input
+              id="registrationNo"
+              name="registrationNo"
+              defaultValue={values?.registrationNo ?? company?.registrationNo ?? ""}
+              placeholder="202301012345 (1234567-X)"
+            />
+          </FieldGroup>
+          <FieldGroup label="Tax registration no." htmlFor="taxRegistrationNo">
+            <Input
+              id="taxRegistrationNo"
+              name="taxRegistrationNo"
+              defaultValue={values?.taxRegistrationNo ?? company?.taxRegistrationNo ?? ""}
+            />
+          </FieldGroup>
+          <FieldGroup label="Payment terms (days)" htmlFor="invoiceDueDays">
+            <Input
+              id="invoiceDueDays"
+              name="invoiceDueDays"
+              type="number"
+              min="0"
+              max="365"
+              defaultValue={values?.invoiceDueDays ?? (company?.invoiceDueDays != null ? String(company.invoiceDueDays) : "")}
+              placeholder="Default"
+            />
+          </FieldGroup>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">Printed in the bill-to block of this company&apos;s quotes and invoices. Leave payment terms blank to use the default from Settings → Billing.</p>
+      </fieldset>
+
       <FieldGroup label="Notes" htmlFor="notes">
         <Textarea
           id="notes"

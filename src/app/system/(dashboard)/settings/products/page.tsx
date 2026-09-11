@@ -63,6 +63,7 @@ export default async function ProductsPage() {
                             Bundle of {pkg._count.components}
                           </Badge>
                         )}
+                        {!pkg.isActive && <Badge>Retired</Badge>}
                       </p>
                       <p className="truncate text-xs text-slate-400">
                         {formatCurrency(pkg.unitPrice.toString(), currency)}

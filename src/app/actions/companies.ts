@@ -19,6 +19,13 @@ const companySchema = z.object({
     .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
   address: z.string().trim().optional(),
   notes: z.string().trim().optional(),
+  registrationNo: z.string().trim().max(100).optional(),
+  taxRegistrationNo: z.string().trim().max(100).optional(),
+  invoiceDueDays: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || (/^\d{1,3}$/.test(value) && Number(value) <= 365), { message: "Payment terms must be 0–365 days" }),
 });
 
 // React resets uncontrolled fields to their defaultValue once a form action
@@ -32,6 +39,9 @@ export type CompanyFormValues = {
   phone: string;
   address: string;
   notes: string;
+  registrationNo: string;
+  taxRegistrationNo: string;
+  invoiceDueDays: string;
 };
 
 function stringField(formData: FormData, key: string): string {
@@ -47,6 +57,9 @@ function extractCompanyFormValues(formData: FormData): CompanyFormValues {
     phone: stringField(formData, "phone"),
     address: stringField(formData, "address"),
     notes: stringField(formData, "notes"),
+    registrationNo: stringField(formData, "registrationNo"),
+    taxRegistrationNo: stringField(formData, "taxRegistrationNo"),
+    invoiceDueDays: stringField(formData, "invoiceDueDays"),
   };
 }
 
@@ -63,6 +76,9 @@ type ParsedCompanyForm =
         phone: string | null;
         address: string | null;
         notes: string | null;
+        registrationNo: string | null;
+        taxRegistrationNo: string | null;
+        invoiceDueDays: number | null;
       };
     };
 
@@ -74,6 +90,9 @@ function parseCompanyForm(formData: FormData): ParsedCompanyForm {
     phone: formData.get("phone"),
     address: formData.get("address"),
     notes: formData.get("notes"),
+    registrationNo: formData.get("registrationNo") ?? "",
+    taxRegistrationNo: formData.get("taxRegistrationNo") ?? "",
+    invoiceDueDays: formData.get("invoiceDueDays") ?? "",
   });
   if (!parsed.success) {
     return {
@@ -91,6 +110,9 @@ function parseCompanyForm(formData: FormData): ParsedCompanyForm {
       phone: data.phone ? normalizePhone(data.phone) : null,
       address: data.address || null,
       notes: data.notes || null,
+      registrationNo: data.registrationNo || null,
+      taxRegistrationNo: data.taxRegistrationNo || null,
+      invoiceDueDays: data.invoiceDueDays ? Number(data.invoiceDueDays) : null,
     },
   };
 }

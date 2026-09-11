@@ -10,6 +10,24 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.81",
+    date: "2026-09-11",
+    title: "Quotes rebuilt as numbered documents, plus Settings → Billing",
+    changes: [
+      "Quotes are now proper quotations: a draft is edited freely, then Issued — which allocates a continuous number (Q-0001, prefix and digits configurable), freezes the issuer and bill-to details onto the document, and mints a private share link the client accepts from",
+      "The quote editor gained a bill-to block (prefilled from the deal's contact and company), a percent or amount discount, per-line units, a valid-until date, and a Save & issue button; totals are computed once, stored, and shown identically to staff and the client",
+      "Clients accept by entering their name and agreeing to the terms; staff can also record an acceptance or decline that arrived by WhatsApp, email, PO or in person",
+      "Accepting a quote sets the deal's value to the quote total (toggle in Settings → Billing), so the leaderboard and referral commissions follow what was actually agreed",
+      "Issued quotes can't be edited — Revise creates \"Q-0001 Rev 2\", which replaces the original when issued (or, for an accepted original, when the client accepts the revision); Withdraw closes a quote without deleting its number; Duplicate starts a fresh draft from an existing one",
+      "Quotes expire on their valid-until date (shown as Expired, no longer acceptable) and can be extended from the quote page; every step is recorded in a History card",
+      "The client's quote page is a print-ready document (Print / Save PDF) showing your logo, business details and the client's bill-to block",
+      "New Settings → Billing (admin): business details and logo, tax label/rate/registration no. (off until you're registered), number prefixes and padding with a next-number preview, default validity and payment terms, default terms text, payment instructions",
+      "Products & Services gained Taxable and Active flags — retired items leave the quote picker but stay on old documents; Companies gained registration no., tax registration no. and payment terms for the bill-to block",
+      "Marking a deal Won now requires an issued (not withdrawn or replaced) quote, and a deal with issued quotes on record can no longer be deleted",
+      "Portal and dashboard: only issued quotes are listed for clients, and the dashboard's \"awaiting response\" count excludes expired, withdrawn and replaced quotes",
+    ],
+  },
+  {
     version: "1.80",
     date: "2026-09-10",
     title: "Business Portal: a private CRM for Companies, Contacts, Deals, and Tasks",

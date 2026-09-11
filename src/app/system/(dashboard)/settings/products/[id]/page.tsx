@@ -58,6 +58,8 @@ export default async function EditServicePackagePage({
               unitCost: servicePackage.unitCost === null ? null : Number(servicePackage.unitCost),
               unit: servicePackage.unit,
               billingFrequency: servicePackage.billingFrequency,
+              taxable: servicePackage.taxable,
+              isActive: servicePackage.isActive,
               components: servicePackage.components.map((c) => ({
                 productId: c.productId,
                 quantity: Number(c.quantity),

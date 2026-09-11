@@ -193,6 +193,7 @@ model User {
   partnerDeals         PartnerDeal[]
   partnerTasks         PartnerTask[]
   assignedPartnerTasks PartnerTaskAssignee[]
+  documentEvents       DocumentEvent[]
 }
 
 // One connected IMAP/SMTP mailbox per user (their own inbox, not a shared
@@ -322,6 +323,38 @@ model Settings {
   // Settings → Directory's "Listing approval" control — see
   // DirectoryApprovalMode above for what each value means.
   directoryApprovalMode DirectoryApprovalMode @default(EVERY_SUBMISSION)
+
+  // Settings → Billing. Issuer identity, tax and payment instructions are
+  // SNAPSHOTTED onto a quote/invoice at issue (see issueQuote in
+  // src/app/actions/quotes.ts), so editing these never rewrites what a
+  // client already received. The logo lives in its own BusinessLogo row so
+  // getSettings() — read on nearly every page — never carries a blob.
+  businessName           String  @default("")
+  businessRegistrationNo String? // SSM no.
+  businessAddress        String? @db.Text
+  businessPhone          String?
+  businessEmail          String?
+  businessWebsite        String?
+  // Tax is generic: a label + a percent rate + a per-line taxable flag. The
+  // org isn't SST-registered yet, so the rate stays 0 (no tax line renders)
+  // until an admin turns it on here.
+  taxLabel          String  @default("SST")
+  taxRate           Decimal @default(0) @db.Decimal(5, 2)
+  taxRegistrationNo String?
+  // Numbering: continuous sequences (see DocumentSequence); prefix/padding
+  // changes only affect numbers allocated after the change.
+  quoteNumberPrefix   String @default("Q-")
+  invoiceNumberPrefix String @default("INV-")
+  numberPadding       Int    @default(4)
+  // Defaults for new documents.
+  quoteValidityDays   Int     @default(30)
+  invoiceDueDays      Int     @default(14)
+  defaultQuoteTerms   String? @db.Text
+  defaultInvoiceNotes String? @db.Text
+  paymentInstructions String? @db.Text // bank / DuitNow details, printed on invoices
+  // When a quote is accepted, copy its total onto Deal.value (which the
+  // leaderboard and referral commissions key off) — see applyQuoteValueToDeal.
+  syncDealValueFromAcceptedQuote Boolean @default(true)
 }
 
 enum Industry {
@@ -360,6 +393,13 @@ model Company {
   notes     String?   @db.Text
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  // Printed in a quote/invoice's bill-to block (prefilled, then snapshotted
+  // on the document). invoiceDueDays overrides Settings.invoiceDueDays for
+  // this one client; null means "use the default".
+  registrationNo    String? // SSM / BRN
+  taxRegistrationNo String?
+  invoiceDueDays    Int?
 
   contacts             Contact[]
   deals                Deal[]
@@ -459,6 +499,7 @@ model Contact {
   testimonials                Testimonial[]
   newsletterRecipients        NewsletterRecipient[]
   whatsAppBroadcastRecipients WhatsAppBroadcastRecipient[]
+  quotes                      Quote[]
 
   @@index([companyId])
   @@index([lastName, firstName])
@@ -1020,6 +1061,11 @@ model ServicePackage {
   unitCost         Decimal?           @db.Decimal(12, 2)
   unit             String? // e.g. "project", "hour", "month" — free text, shown after the price
   billingFrequency BillingFrequency   @default(ONE_TIME)
+  // Default for the per-line "taxable" flag when this item is picked onto a
+  // quote (see LineItemsForm); only meaningful once Settings.taxRate > 0.
+  taxable          Boolean            @default(true)
+  // Retired items stay on historical documents but leave every picker.
+  isActive         Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
 
@@ -1029,9 +1075,10 @@ model ServicePackage {
   // A "bundle" is any catalog item that lists other items as components —
   // deliberately one level deep only (a component can't itself have
   // components; enforced in service-packages.ts) so this can't form a
-  // cycle. Picking a bundle on a quote expands it into one real line per
-  // component instead of a single collapsed line (see QuoteForm) — the
-  // bundle's own price/cost below stay independent, shown on the catalog
+  // cycle. Picking a bundle on a quote fills one line with the bundle's own
+  // name/price; an explicit "Expand" action (see LineItemsForm) swaps it for
+  // one real line per component — the bundle's own price/cost below stay
+  // independent, shown on the catalog
   // page as a reference rather than force-summed from its parts, so a
   // package can still be priced below (or above) the sum of what's in it.
   components ServicePackageComponent[] @relation("BundleComponents")
@@ -1063,11 +1110,64 @@ enum QuoteStatus {
   DECLINED
 }
 
+// A quote is a Deal-scoped, numbered, client-facing document. QuoteStatus
+// is deliberately unchanged — expired (validUntil passed while SENT/VIEWED),
+// withdrawn (withdrawnAt) and superseded (supersededById) are DERIVED, see
+// src/lib/documents/dates.ts, so every groupBy/label map keeps working.
+// Drafts are freely editable and have no number; issueQuote allocates the
+// number, snapshots issuer/bill-to/currency/tax and stores the totals, and
+// from then on only status transitions and staff-only fields change.
+// Revisions share the root number ("Q-0012 Rev 2" = number Q-0012,
+// revision 2, revisionOfId → the previous revision).
 model Quote {
   id     String      @id @default(cuid())
   title  String
   status QuoteStatus @default(DRAFT)
   notes  String?     @db.Text // terms shown to the client under the line items
+
+  number      String? // null while DRAFT; root allocated by issueQuote, revisions inherit it
+  revision    Int     @default(1)
+  shareToken  String? @unique // per revision, set at issue; /q/[token]
+  issuedAt    DateTime?
+  validUntil  DateTime? // UTC-midnight calendar date
+  withdrawnAt DateTime? // staff cancelled an issued quote
+  convertedAt DateTime? // first invoice generated from it
+
+  // Money — stored totals are canonical once issued; drafts recompute on
+  // every save (see src/lib/documents/money.ts). currency and taxLabel have
+  // no default on purpose: every create path must pass what Settings says.
+  currency       String
+  discountType   DiscountType @default(NONE)
+  discountValue  Decimal      @default(0) @db.Decimal(12, 2) // percent or amount, per discountType
+  subtotal       Decimal      @default(0) @db.Decimal(12, 2)
+  discountAmount Decimal      @default(0) @db.Decimal(12, 2)
+  taxLabel       String
+  taxRate        Decimal      @default(0) @db.Decimal(5, 2)
+  taxAmount      Decimal      @default(0) @db.Decimal(12, 2)
+  total          Decimal      @default(0) @db.Decimal(12, 2)
+
+  // Issuer snapshot (null on rows issued before this existed — the renderer
+  // falls back to live Settings for those).
+  issuerName           String?
+  issuerRegistrationNo String?
+  issuerTaxNo          String?
+  issuerAddress        String? @db.Text
+  issuerPhone          String?
+  issuerEmail          String?
+  // Bill-to: editable on the draft (prefilled from the deal's contact and
+  // company), frozen at issue.
+  billToName           String?
+  billToCompany        String?
+  billToRegistrationNo String?
+  billToAddress        String? @db.Text
+  billToEmail          String?
+
+  // How the acceptance was recorded — the client clicking on /q or in the
+  // portal, or staff logging an offline yes (WhatsApp, signed PO, email).
+  acceptedByName    String?
+  acceptedByEmail   String?
+  acceptedVia       AcceptedVia?
+  acceptedReference String? // PO number, WhatsApp date, etc.
 
   sentAt        DateTime?
   firstViewedAt DateTime?
@@ -1081,16 +1181,41 @@ model Quote {
   deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
   dealId String
 
-  items QuoteItem[]
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  contactId String?
 
+  // revisionOf is set the moment a revision is cloned; supersededBy is set
+  // on the OLD quote only when the revision takes over (at its issue when
+  // the old one was merely sent/viewed, or at its acceptance when the old
+  // one had itself been accepted — an accepted quote stays the contract
+  // until the client agrees to the new one).
+  revisionOf     Quote?  @relation("QuoteRevisionParent", fields: [revisionOfId], references: [id], onDelete: SetNull)
+  revisionOfId   String?
+  revisions      Quote[] @relation("QuoteRevisionParent")
+  supersededBy   Quote?  @relation("QuoteSuperseded", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersededById String? @unique
+  supersedes     Quote?  @relation("QuoteSuperseded")
+
+  items  QuoteItem[]
+  events DocumentEvent[]
+
+  @@unique([number, revision])
   @@index([dealId])
+  @@index([status])
+  @@index([contactId])
+  @@index([validUntil])
+  @@index([revisionOfId])
 }
 
 model QuoteItem {
   id          String  @id @default(cuid())
-  description String
+  description String  @db.Text
   quantity    Decimal @default(1) @db.Decimal(10, 2)
   unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  unit        String? // e.g. "hour", "month" — copied from the catalog item at pick time
+  taxable     Boolean @default(true)
+  lineTotal   Decimal @default(0) @db.Decimal(12, 2) // round2(quantity × unitPrice), stored
+  unitCost    Decimal? @db.Decimal(12, 2) // catalog cost at pick time, for staff-only margin
   sortOrder   Int     @default(0)
 
   quote   Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
@@ -1151,9 +1276,11 @@ model QuoteTemplate {
 
 model QuoteTemplateItem {
   id          String  @id @default(cuid())
-  description String
+  description String  @db.Text
   quantity    Decimal @default(1) @db.Decimal(10, 2)
   unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  unit        String?
+  taxable     Boolean @default(true)
   sortOrder   Int     @default(0)
 
   quoteTemplate   QuoteTemplate @relation(fields: [quoteTemplateId], references: [id], onDelete: Cascade)
@@ -1193,6 +1320,8 @@ model Invoice {
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String
+
+  events DocumentEvent[]
 
   @@index([projectId])
 }
@@ -1935,4 +2064,92 @@ model PartnerTaskAssignee {
 
   @@unique([taskId, userId])
   @@index([userId])
+}
+
+// ============================================================================
+// Billing documents — shared by quotes today and invoices next (see the
+// Invoicing & Quotation design). Money is Decimal(12,2); every figure is
+// computed once in src/lib/documents/money.ts and stored on the document.
+// ============================================================================
+
+enum DiscountType {
+  NONE
+  PERCENT
+  AMOUNT
+}
+
+// How a quote's acceptance was recorded: LINK/PORTAL are the client
+// clicking; the rest are staff logging an offline yes (markQuoteResponse).
+enum AcceptedVia {
+  LINK
+  PORTAL
+  EMAIL
+  WHATSAPP
+  PO
+  VERBAL
+  OTHER
+}
+
+enum DocumentEventType {
+  CREATED
+  UPDATED
+  ISSUED
+  SENT
+  VIEWED
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+  REVISED
+  SUPERSEDED
+  VALIDITY_EXTENDED
+  CONVERTED
+  DEAL_VALUE_SYNCED
+}
+
+// The business logo printed on quotes/invoices — bare base64 + mimeType in
+// its own singleton row (same blob convention as Attachment), served by
+// /api/settings/logo, so Settings itself stays small. PNG/JPEG only.
+model BusinessLogo {
+  id        String   @id @default("singleton")
+  mimeType  String
+  size      Int
+  data      String   @db.LongText
+  updatedAt DateTime @updatedAt
+}
+
+// One row per numbering stream ("QUOTE", "INVOICE"), pre-seeded by
+// migration. Allocation is a plain UPDATE … increment INSIDE the issuing
+// transaction (see src/lib/documents/numbering.ts): the UPDATE takes the
+// InnoDB row lock so concurrent issues serialise, and a rolled-back issue
+// rolls the counter back — no gaps, no duplicates, no app-level mutex.
+model DocumentSequence {
+  key        String   @id
+  nextNumber Int      @default(1)
+  updatedAt  DateTime @updatedAt
+}
+
+// Audit trail for every financial document: who did what, when, with a
+// small JSON payload ({number, total}, {via, reference}, {reason}, …).
+// actorLabel ("client", "migration") covers events with no staff actor.
+// Exactly one of quoteId/invoiceId is set per row.
+model DocumentEvent {
+  id         String            @id @default(cuid())
+  type       DocumentEventType
+  payload    String?           @db.Text
+  actorLabel String?
+  createdAt  DateTime          @default(now())
+
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId String?
+
+  quote   Quote?  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId String?
+
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String?
+
+  @@index([quoteId])
+  @@index([invoiceId])
+  @@index([actorId])
+  @@index([createdAt])
 }

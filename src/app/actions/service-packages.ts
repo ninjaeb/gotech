@@ -29,6 +29,8 @@ const servicePackageSchema = z.object({
     .refine((v) => v === null || (Number.isFinite(v) && v >= 0), { message: "Cost must be zero or more" }),
   unit: z.string().trim().optional(),
   billingFrequency: z.enum(BILLING_FREQUENCIES as [BillingFrequency, ...BillingFrequency[]]).default("ONE_TIME"),
+  taxable: z.boolean(),
+  isActive: z.boolean(),
   components: z.array(componentSchema),
 });
 
@@ -52,6 +54,8 @@ async function parseServicePackageForm(formData: FormData, selfId?: string) {
     unitCost: formData.get("unitCost"),
     unit: formData.get("unit"),
     billingFrequency: formData.get("billingFrequency") || "ONE_TIME",
+    taxable: formData.get("taxable") !== "off",
+    isActive: formData.get("isActive") !== "off",
     components: rawComponents,
   });
   if (!parsed.success) {
@@ -95,6 +99,8 @@ async function parseServicePackageForm(formData: FormData, selfId?: string) {
     unitCost: parsed.data.unitCost,
     unit: parsed.data.unit || null,
     billingFrequency: parsed.data.billingFrequency,
+    taxable: parsed.data.taxable,
+    isActive: parsed.data.isActive,
     components: parsed.data.components,
   };
 }

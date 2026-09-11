@@ -22,7 +22,7 @@ export function stageGateError(
   if (!nextStage.isWon) return null;
   if (Number(deal.value) <= 0) return "Set a deal value before marking this Won.";
   if (!deal.companyId && !deal.contactId) return "Link a company or contact before marking this Won.";
-  if (deal.quoteCount < 1) return "Attach a quote before marking this Won.";
+  if (deal.quoteCount < 1) return "Issue a quote before marking this Won.";
   return null;
 }
 

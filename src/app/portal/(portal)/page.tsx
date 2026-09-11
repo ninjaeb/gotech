@@ -11,30 +11,40 @@ import {
   INVOICE_STATUS_LABELS,
   PROJECT_STATUS_BADGE_CLASSES,
   PROJECT_STATUS_LABELS,
+  QUOTE_DERIVED_BADGE_CLASSES,
+  QUOTE_DERIVED_LABELS,
   QUOTE_STATUS_BADGE_CLASSES,
   QUOTE_STATUS_LABELS,
 } from "@/lib/labels";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { getCurrency } from "@/lib/settings";
-import { quoteTotal } from "@/lib/quotes";
+import { formatCurrency, formatDate, formatDocumentMoney } from "@/lib/format";
+import { getSettings } from "@/lib/settings";
+import { quoteDerivedState } from "@/lib/documents/dates";
 
 export default async function PortalDashboardPage() {
   const clientUser = await getCurrentClientUser();
 
-  const [currency, projects, quotes, invoices] = await Promise.all([
-    getCurrency(),
+  const [settings, projects, quotes, invoices] = await Promise.all([
+    getSettings(),
     db.project.findMany({
       where: { deal: { companyId: clientUser.companyId } },
       select: { id: true, name: true, status: true },
       orderBy: { createdAt: "desc" },
     }),
+    // Issued quotes only — a draft isn't the client's to see yet.
     db.quote.findMany({
-      where: { deal: { companyId: clientUser.companyId } },
+      where: { deal: { companyId: clientUser.companyId }, status: { not: "DRAFT" } },
       select: {
         id: true,
         title: true,
         status: true,
-        items: { select: { quantity: true, unitPrice: true } },
+        number: true,
+        revision: true,
+        shareToken: true,
+        total: true,
+        currency: true,
+        validUntil: true,
+        withdrawnAt: true,
+        supersededById: true,
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -44,6 +54,7 @@ export default async function PortalDashboardPage() {
       orderBy: { createdAt: "desc" },
     }),
   ]);
+  const currency = settings.currency;
 
   return (
     <div className="space-y-6">
@@ -94,22 +105,28 @@ export default async function PortalDashboardPage() {
               {quotes.map((quote) => (
                 <li key={quote.id}>
                   <Link
-                    href={`/q/${quote.id}`}
+                    href={`/q/${quote.shareToken ?? quote.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
                   >
                     <span className="flex min-w-0 items-center gap-2 truncate font-medium text-slate-800 dark:text-slate-200">
                       <FileText className="h-4 w-4 shrink-0 text-slate-400" />
+                      {quote.number ? `${quote.number}${quote.revision > 1 ? ` Rev ${quote.revision}` : ""} · ` : ""}
                       {quote.title}
                     </span>
                     <span className="flex shrink-0 items-center gap-3">
                       <span className="text-slate-500 dark:text-slate-400">
-                        {formatCurrency(quoteTotal(quote.items), currency)}
+                        {formatDocumentMoney(quote.total.toString(), quote.currency)}
                       </span>
-                      <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>
-                        {QUOTE_STATUS_LABELS[quote.status]}
-                      </Badge>
+                      {(() => {
+                        const derived = quoteDerivedState(quote, settings.bookingUtcOffsetMinutes);
+                        return derived ? (
+                          <Badge className={QUOTE_DERIVED_BADGE_CLASSES[derived]}>{QUOTE_DERIVED_LABELS[derived]}</Badge>
+                        ) : (
+                          <Badge className={QUOTE_STATUS_BADGE_CLASSES[quote.status]}>{QUOTE_STATUS_LABELS[quote.status]}</Badge>
+                        );
+                      })()}
                     </span>
                   </Link>
                 </li>

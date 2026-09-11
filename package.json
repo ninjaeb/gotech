@@ -10,6 +10,7 @@
     "lint": "eslint",
     "create-user": "tsx scripts/create-user.ts",
     "clear-data": "tsx scripts/clear-data.ts",
+    "test:money": "tsx scripts/test-money.ts",
     "sync-email": "tsx scripts/sync-email.ts",
     "deploy": "tsx scripts/deploy.ts",
     "process-sequences": "tsx scripts/process-sequences.ts",

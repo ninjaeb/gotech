@@ -35,6 +35,11 @@ export default async function SettingsPage() {
             description="Pipelines, product & service catalog, quote templates, sequences."
           />
           <SettingsLinkCard
+            href="/system/settings/billing"
+            title="Billing"
+            description="Business details and logo for quotes & invoices, tax, document numbering, and defaults."
+          />
+          <SettingsLinkCard
             href="/system/settings/team"
             title="Team"
             description="Manage logins, roles, and billing rates."

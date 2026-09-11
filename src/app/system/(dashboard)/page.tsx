@@ -26,7 +26,8 @@ import { LEAD_SOURCE_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
 import { computeProjectActuals, budgetSeverity, timelineSeverity } from "@/lib/project-budget";
 import { formatCurrency, fullName } from "@/lib/format";
-import { getCurrency } from "@/lib/settings";
+import { getSettings } from "@/lib/settings";
+import { orgToday } from "@/lib/documents/dates";
 import { requireSales } from "@/lib/auth/dal";
 
 export default async function DashboardPage() {
@@ -43,9 +44,14 @@ export default async function DashboardPage() {
 
   const currentUser = await requireSales();
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
+  // Quote validity is a calendar date in the org's own timezone (see
+  // src/lib/documents/dates.ts), not the server's.
+  const settings = await getSettings();
+  const currency = settings.currency;
+  const orgDay = orgToday(settings.bookingUtcOffsetMinutes);
 
   const [
-    currency,
+    openQuoteCount,
     companyCount,
     contactCount,
     allDeals,
@@ -69,7 +75,16 @@ export default async function DashboardPage() {
     companyCount30dAgo,
     contactCount30dAgo,
   ] = await Promise.all([
-    getCurrency(),
+    // "Awaiting response" = issued, still open: not withdrawn, not replaced
+    // by a revision, not past its valid-until date.
+    db.quote.count({
+      where: {
+        status: { in: ["SENT", "VIEWED"] },
+        withdrawnAt: null,
+        supersededById: null,
+        OR: [{ validUntil: null }, { validUntil: { gte: orgDay } }],
+      },
+    }),
     db.company.count(),
     db.contact.count(),
     db.deal.findMany({
@@ -229,7 +244,7 @@ export default async function DashboardPage() {
   const quotesByStatus = new Map<string, number>(
     quoteStatusCounts.map((row) => [row.status, row._count._all]),
   );
-  const quotesAwaitingCount = (quotesByStatus.get("SENT") ?? 0) + (quotesByStatus.get("VIEWED") ?? 0);
+  const quotesAwaitingCount = openQuoteCount;
   const quotesAccepted = quotesByStatus.get("ACCEPTED") ?? 0;
   const quotesDecided = quotesAccepted + (quotesByStatus.get("DECLINED") ?? 0);
   const quoteAcceptanceRate = quotesDecided > 0 ? Math.round((quotesAccepted / quotesDecided) * 100) : null;

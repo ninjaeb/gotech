@@ -51,6 +51,7 @@ const AUTH_ONLY_PUBLIC_ROUTES = ["/system/login"];
 // to a login page before either request ever reached its handler.
 const ALWAYS_PUBLIC_PREFIXES = [
   "/q/",
+  "/api/settings/logo",
   "/r/",
   "/lead",
   "/book",

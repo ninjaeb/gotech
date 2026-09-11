@@ -1,33 +1,14 @@
-import { db } from "@/lib/db";
 import { createQuoteTemplate } from "@/app/actions/quote-templates";
-import { QuoteForm } from "@/components/quotes/quote-form";
+import { LineItemsForm } from "@/components/documents/line-items-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
-import { getCurrency } from "@/lib/settings";
+import { getBillingSettings } from "@/lib/settings";
 import { requireAdmin } from "@/lib/auth/dal";
+import { loadCatalogOptions } from "@/lib/documents/catalog";
 
 export default async function NewQuoteTemplatePage() {
   await requireAdmin();
-  const [currency, servicePackages] = await Promise.all([
-    getCurrency(),
-    db.servicePackage.findMany({
-      orderBy: { name: "asc" },
-      include: { components: { include: { product: true }, orderBy: { sortOrder: "asc" } } },
-    }),
-  ]);
-
-  const servicePackageOptions = servicePackages.map((pkg) => ({
-    id: pkg.id,
-    name: pkg.name,
-    description: pkg.description,
-    unitPrice: Number(pkg.unitPrice),
-    components: pkg.components.map((c) => ({
-      servicePackageId: c.product.id,
-      description: c.product.description ? `${c.product.name} — ${c.product.description}` : c.product.name,
-      unitPrice: Number(c.product.unitPrice),
-      quantity: Number(c.quantity),
-    })),
-  }));
+  const [settings, catalog] = await Promise.all([getBillingSettings(), loadCatalogOptions()]);
 
   return (
     <div>
@@ -41,10 +22,13 @@ export default async function NewQuoteTemplatePage() {
       />
       <Card>
         <CardBody>
-          <QuoteForm
+          <LineItemsForm
             action={createQuoteTemplate}
-            servicePackages={servicePackageOptions}
-            currency={currency}
+            mode="template"
+            catalog={catalog}
+            currency={settings.currency}
+            taxLabel={settings.taxLabel}
+            taxRate={settings.taxRate}
             submitLabel="Create template"
             titleLabel="Template name"
             titlePlaceholder="Website — Standard package"
