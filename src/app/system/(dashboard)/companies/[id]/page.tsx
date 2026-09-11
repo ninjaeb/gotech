@@ -70,7 +70,7 @@ export default async function CompanyDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { companyId: id } }, _sum: { minutes: true } }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!company) notFound();

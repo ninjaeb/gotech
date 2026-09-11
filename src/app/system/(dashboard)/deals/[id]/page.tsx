@@ -87,7 +87,7 @@ export default async function DealDetailPage({
       },
     }),
     db.timeEntry.aggregate({ where: { task: { dealId: id } }, _sum: { minutes: true } }),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   if (!deal) notFound();

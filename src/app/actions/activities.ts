@@ -88,7 +88,7 @@ export async function addActivity(_prevState: AddActivityState, formData: FormDa
 
   const [currentUser, users] = await Promise.all([
     getCurrentUser(),
-    db.user.findMany({ select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, select: { id: true, name: true } }),
   ]);
 
   const activity = await db.activity.create({

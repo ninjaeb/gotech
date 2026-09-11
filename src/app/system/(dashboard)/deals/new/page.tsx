@@ -23,7 +23,7 @@ export default async function NewDealPage({
     }),
     getPipelinesWithStages(),
     getDefaultPipeline(),
-    db.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   return (

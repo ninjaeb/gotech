@@ -27,7 +27,7 @@ async function notifyTaskMentions(
   if (!description) return;
   const [currentUser, users] = await Promise.all([
     getCurrentUser(),
-    db.user.findMany({ select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, select: { id: true, name: true } }),
   ]);
   const mentionedIds = findMentionedUserIds(description, users);
   const previousIds = previousDescription ? findMentionedUserIds(previousDescription, users) : [];
