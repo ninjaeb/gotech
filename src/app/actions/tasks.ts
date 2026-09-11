@@ -13,6 +13,7 @@ import {
   scheduleOrSendTaskAssignmentNotification,
   cancelPendingTaskAssignmentNotifications,
 } from "@/lib/task-assignment-notification";
+import { syncTaskCalendarEvents, deleteTaskCalendarEvents } from "@/lib/task-calendar-sync";
 
 // Notifies everyone newly @mentioned in a task's description. `previousDescription`
 // is null on create; on update it's the description before this edit, so
@@ -160,6 +161,7 @@ export async function createTask(formData: FormData) {
   });
   await notifyTaskMentions(task.id, task.title, task.description, null);
   await notifyTaskAssignment(task.id, task.title, assigneeIds);
+  await syncTaskCalendarEvents(task.id);
   revalidateTaskPaths(task);
 }
 
@@ -227,6 +229,7 @@ export async function updateTask(id: string, formData: FormData) {
   await notifyTaskMentions(task.id, task.title, task.description, previous.description);
   await notifyTaskAssignment(task.id, task.title, newlyAssignedIds);
   await cancelPendingTaskAssignmentNotifications(task.id, unassignedIds);
+  await syncTaskCalendarEvents(task.id);
   revalidateTaskPaths(previous);
   revalidateTaskPaths(task);
   redirect("/system/tasks");
@@ -267,6 +270,7 @@ export async function toggleTaskComplete(id: string) {
     currentUser.id,
     currentUser.name,
   );
+  await syncTaskCalendarEvents(task.id);
 
   revalidateTaskPaths(task);
 }
@@ -274,6 +278,10 @@ export async function toggleTaskComplete(id: string) {
 export async function deleteTask(id: string, formData: FormData) {
   void formData;
   await requireStaffAction();
+  // Before the row itself goes — once it's deleted, the cascading foreign
+  // key drops every TaskCalendarEvent for it, taking the record of which
+  // Google events to delete along with it.
+  await deleteTaskCalendarEvents(id);
   const task = await db.task.delete({ where: { id } });
   revalidateTaskPaths(task);
 }

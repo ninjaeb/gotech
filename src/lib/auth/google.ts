@@ -73,10 +73,58 @@ export function buildGoogleAuthUrl({ redirectUri, state }: { redirectUri: string
   return url.toString();
 }
 
+// Carries which already-logged-in CRM staff account is linking their
+// calendar — unlike GoogleOAuthState above (which starts a sign-*in*, so
+// there's no CRM account yet to tie it to), this flow only ever runs from
+// inside an authenticated /system session (see /api/auth/google-calendar),
+// and the callback writes the connected account onto exactly this userId.
+export type GoogleCalendarOAuthState = { nonce: string; userId: string };
+
+export async function signGoogleCalendarOAuthState(state: GoogleCalendarOAuthState): Promise<string> {
+  return new SignJWT(state)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("10m")
+    .sign(getStateSecretKey());
+}
+
+export async function verifyGoogleCalendarOAuthState(token: string): Promise<GoogleCalendarOAuthState | null> {
+  try {
+    const { payload } = await jwtVerify<GoogleCalendarOAuthState>(token, getStateSecretKey(), { algorithms: ["HS256"] });
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+// `access_type=offline` + `prompt=consent` — unlike the sign-in flow above,
+// this needs a refresh_token back (sign-in only ever verifies identity once
+// per login, so it has no reason to ask for offline access), and Google
+// only ever issues one on a consent screen the user explicitly sees, not a
+// silent re-auth. `calendar.events` (not the broader `calendar` scope) is
+// the least access that can still create/update/delete the events this
+// app writes, without reading the rest of the user's calendar.
+export function buildGoogleCalendarAuthUrl({ redirectUri, state }: { redirectUri: string; state: string }): string {
+  const url = new URL(GOOGLE_AUTH_ENDPOINT);
+  url.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID!);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email https://www.googleapis.com/auth/calendar.events");
+  url.searchParams.set("state", state);
+  url.searchParams.set("access_type", "offline");
+  url.searchParams.set("prompt", "consent");
+  return url.toString();
+}
+
+// `access_token`/`refresh_token`/`expires_in` are always present on a real
+// token-endpoint response too — the login flow above just never reads them,
+// since it only needs the id_token to verify who signed in. The calendar
+// flow below reuses this same exchange (same endpoint, same request shape)
+// and reads the rest.
 export async function exchangeGoogleCode(
   code: string,
   redirectUri: string,
-): Promise<{ id_token: string }> {
+): Promise<{ id_token: string; access_token: string; refresh_token?: string; expires_in: number }> {
   const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -90,6 +138,25 @@ export async function exchangeGoogleCode(
   });
   if (!response.ok) {
     throw new Error(`Google token exchange failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function refreshGoogleAccessToken(
+  refreshToken: string,
+): Promise<{ access_token: string; expires_in: number }> {
+  const response = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: refreshToken,
+      client_id: process.env.GOOGLE_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      grant_type: "refresh_token",
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Google token refresh failed: ${response.status}`);
   }
   return response.json();
 }
