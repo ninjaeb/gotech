@@ -89,6 +89,28 @@ export function formatMinutes(totalMinutes: number) {
   return `${hours}h ${minutes}m`;
 }
 
+// Elapsed time between two instants, in the coarsest useful unit — a lead
+// open for 40 minutes reads as "40m", one open a week reads as "5d", not a
+// full calendar breakdown or "10080m". For "how long has this been open/
+// running" style displays: pass now() (the default) as `to` while still
+// running, or a fixed end instant (e.g. closedAt) once it's done, so the
+// count freezes rather than continuing to grow after the fact.
+export function formatDuration(from: Date | string, to: Date | string = new Date()): string {
+  const start = typeof from === "string" ? new Date(from) : from;
+  const end = typeof to === "string" ? new Date(to) : to;
+  const minutes = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 60_000));
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  const years = Math.floor(months / 12);
+  return `${years}y`;
+}
+
 export function relativeToToday(value: Date | string | null | undefined) {
   if (!value) return null;
   const date = typeof value === "string" ? new Date(value) : value;

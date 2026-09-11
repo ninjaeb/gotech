@@ -3,7 +3,7 @@ import { AlertTriangle, Mail, Phone } from "lucide-react";
 import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getCurrency } from "@/lib/settings";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatDuration } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { DirectoryLeadStatusSelect } from "@/components/directory/directory-lead-status-select";
@@ -34,7 +34,9 @@ export default async function PartnerDirectoryLeadPage({ params }: { params: Pro
           { label: lead.name },
         ]}
         title={lead.name}
-        description={`Sent ${formatDateTime(lead.createdAt)}`}
+        description={`Sent ${formatDateTime(lead.createdAt)} · ${
+          lead.closedAt ? `Closed after ${formatDuration(lead.createdAt, lead.closedAt)}` : `Open for ${formatDuration(lead.createdAt)}`
+        }`}
         actions={<DirectoryLeadStatusSelect leadId={lead.id} status={lead.status} />}
       />
 

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { getDirectoryOverviewStats, groupOperatingHours, operatingHoursFromJson, servicesFromJson } from "@/lib/directory";
 import { DEFAULT_DIRECTORY_LOCALE, DIRECTORY_STRINGS, directoryHomePath, directoryListingPath } from "@/lib/directory-i18n";
 import { getCurrency, getDirectoryApprovalMode } from "@/lib/settings";
-import { formatCurrencyExact, formatDate } from "@/lib/format";
+import { formatCurrencyExact, formatDate, formatDuration } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -333,7 +333,10 @@ export default async function DirectorySettingsPage() {
                       {lead.company && ` · ${lead.company}`}
                     </p>
                     <p className="truncate text-xs text-slate-400">
-                      to {lead.listing.companyName} · {formatDate(lead.createdAt)}
+                      to {lead.listing.companyName} · {formatDate(lead.createdAt)} ·{" "}
+                      {lead.closedAt
+                        ? `closed after ${formatDuration(lead.createdAt, lead.closedAt)}`
+                        : `open ${formatDuration(lead.createdAt)}`}
                     </p>
                   </div>
                   <Badge className={DIRECTORY_LEAD_STATUS_BADGE_CLASSES[lead.status]}>
