@@ -4,7 +4,7 @@ import { requireCompletePartnerProfile } from "@/lib/auth/dal";
 import { db } from "@/lib/db";
 import { getDirectoryLeadStatsForPartner } from "@/lib/directory";
 import { getCurrency } from "@/lib/settings";
-import { formatCurrencyExact, formatDate } from "@/lib/format";
+import { formatCurrencyExact, formatDate, formatDuration } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ export default async function PartnerDirectoryLeadsPage() {
         status: true,
         value: true,
         createdAt: true,
+        closedAt: true,
         listing: { select: { companyName: true } },
       },
     }),
@@ -68,6 +69,7 @@ export default async function PartnerDirectoryLeadsPage() {
                     <th className="py-2 pr-3 font-medium">Lead</th>
                     <th className="py-2 pr-3 font-medium">Listing</th>
                     <th className="py-2 pr-3 font-medium">Received</th>
+                    <th className="py-2 pr-3 font-medium">Duration</th>
                     <th className="py-2 pr-3 font-medium">Status</th>
                     <th className="py-2 pr-3 font-medium">Value</th>
                   </tr>
@@ -86,6 +88,9 @@ export default async function PartnerDirectoryLeadsPage() {
                       </td>
                       <td className="py-2.5 pr-3 whitespace-nowrap text-slate-600 dark:text-slate-300">
                         {formatDate(lead.createdAt)}
+                      </td>
+                      <td className="py-2.5 pr-3 whitespace-nowrap text-slate-600 dark:text-slate-300">
+                        {formatDuration(lead.createdAt, lead.closedAt ?? undefined)}
                       </td>
                       <td className="py-2.5 pr-3">
                         <Badge className={DIRECTORY_LEAD_STATUS_BADGE_CLASSES[lead.status]}>
