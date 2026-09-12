@@ -91,7 +91,6 @@ const taskSchema = z.object({
   dueDate: z.string().trim().nullish(),
   contactId: z.string().trim().nullish(),
   companyId: z.string().trim().nullish(),
-  dealId: z.string().trim().nullish(),
   projectId: z.string().trim().nullish(),
 });
 
@@ -103,18 +102,26 @@ function parseFollowerIds(formData: FormData): string[] {
   return [...new Set(formData.getAll("followerIds").map(String).filter(Boolean))];
 }
 
+// A task can belong to any number of deals now (see the TaskDeal join
+// table) — posted the same way as assigneeIds/followerIds, one form value
+// per selected deal, whether that's several checkboxes (a candidate-deal
+// picker) or a single hidden input (a page whose own deal is already fixed).
+function parseDealIds(formData: FormData): string[] {
+  return [...new Set(formData.getAll("dealIds").map(String).filter(Boolean))];
+}
+
 function revalidateTaskPaths(task: {
   id?: string;
   contactId?: string | null;
   companyId?: string | null;
-  dealId?: string | null;
+  dealIds?: string[];
   projectId?: string | null;
 }) {
   revalidatePath("/system/tasks");
   revalidatePath("/system");
   if (task.contactId) revalidatePath(`/system/contacts/${task.contactId}`);
   if (task.companyId) revalidatePath(`/system/companies/${task.companyId}`);
-  if (task.dealId) revalidatePath(`/system/deals/${task.dealId}`);
+  for (const dealId of task.dealIds ?? []) revalidatePath(`/system/deals/${dealId}`);
   if (task.projectId) revalidatePath(`/system/projects/${task.projectId}`);
   if (task.id) revalidatePath(`/system/tasks/${task.id}`);
 }
@@ -129,7 +136,6 @@ export async function createTask(formData: FormData) {
     dueDate: formData.get("dueDate"),
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
-    dealId: formData.get("dealId"),
     projectId: formData.get("projectId"),
   });
   if (!parsed.success) {
@@ -138,6 +144,7 @@ export async function createTask(formData: FormData) {
   const data = parsed.data;
   const currentUser = await getCurrentUser();
   const assigneeIds = parseAssigneeIds(formData);
+  const dealIds = parseDealIds(formData);
   // Assigning a task to someone auto-follows it for whoever did the
   // assigning — the same "I want visibility without being on the hook"
   // relationship following already models, just opted into automatically
@@ -153,8 +160,8 @@ export async function createTask(formData: FormData) {
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       contactId: data.contactId || null,
       companyId: data.companyId || null,
-      dealId: data.dealId || null,
       projectId: data.projectId || null,
+      deals: { create: dealIds.map((dealId) => ({ dealId })) },
       assignees: { create: assigneeIds.map((userId) => ({ userId })) },
       followers: { create: [...followerIds].map((userId) => ({ userId })) },
     },
@@ -162,7 +169,7 @@ export async function createTask(formData: FormData) {
   await notifyTaskMentions(task.id, task.title, task.description, null);
   await notifyTaskAssignment(task.id, task.title, assigneeIds);
   await syncTaskCalendarEvents(task.id);
-  revalidateTaskPaths(task);
+  revalidateTaskPaths({ ...task, dealIds });
 }
 
 // No projectId here deliberately — the generic task-edit form (TaskForm)
@@ -180,7 +187,6 @@ export async function updateTask(id: string, formData: FormData) {
     dueDate: formData.get("dueDate"),
     contactId: formData.get("contactId"),
     companyId: formData.get("companyId"),
-    dealId: formData.get("dealId"),
   });
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Invalid task data");
@@ -189,15 +195,16 @@ export async function updateTask(id: string, formData: FormData) {
   const attachments = await parseAttachmentFiles(formData);
   const currentUser = await getCurrentUser();
   const assigneeIds = parseAssigneeIds(formData);
+  const dealIds = parseDealIds(formData);
   const previous = await db.task.findUniqueOrThrow({
     where: { id },
     select: {
       contactId: true,
       companyId: true,
-      dealId: true,
       projectId: true,
       description: true,
       assignees: { select: { userId: true } },
+      deals: { select: { dealId: true } },
     },
   });
   const previousAssigneeIds = new Set(previous.assignees.map((a) => a.userId));
@@ -218,7 +225,7 @@ export async function updateTask(id: string, formData: FormData) {
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       contactId: data.contactId || null,
       companyId: data.companyId || null,
-      dealId: data.dealId || null,
+      deals: { deleteMany: {}, create: dealIds.map((dealId) => ({ dealId })) },
       assignees: { deleteMany: {}, create: assigneeIds.map((userId) => ({ userId })) },
       followers: { deleteMany: {}, create: [...followerIds].map((userId) => ({ userId })) },
       // Additive, not a replace — an edit that doesn't touch the description
@@ -230,8 +237,8 @@ export async function updateTask(id: string, formData: FormData) {
   await notifyTaskAssignment(task.id, task.title, newlyAssignedIds);
   await cancelPendingTaskAssignmentNotifications(task.id, unassignedIds);
   await syncTaskCalendarEvents(task.id);
-  revalidateTaskPaths(previous);
-  revalidateTaskPaths(task);
+  revalidateTaskPaths({ ...previous, dealIds: previous.deals.map((d) => d.dealId) });
+  revalidateTaskPaths({ ...task, dealIds });
   redirect("/system/tasks");
 }
 
@@ -239,9 +246,10 @@ export async function toggleTaskComplete(id: string) {
   const currentUser = await requireStaffAction();
   const task = await db.task.findUniqueOrThrow({
     where: { id },
-    include: { followers: { select: { userId: true } } },
+    include: { followers: { select: { userId: true } }, deals: { select: { dealId: true } } },
   });
   const completed = !task.completed;
+  const dealIds = task.deals.map((d) => d.dealId);
 
   await db.task.update({
     where: { id },
@@ -249,17 +257,23 @@ export async function toggleTaskComplete(id: string) {
   });
 
   if (completed) {
-    await db.activity.create({
-      data: {
-        type: ActivityType.TASK_COMPLETED,
-        content: `Completed task "${task.title}"`,
-        contactId: task.contactId,
-        companyId: task.companyId,
-        dealId: task.dealId,
-        projectId: task.projectId,
-        taskId: task.id,
-      },
-    });
+    // Activity.dealId is still a single column, so a task linked to more
+    // than one deal gets one Activity row per deal — each deal's own
+    // timeline should show this completion, not just whichever came first.
+    // A task with no linked deal still logs its one row, with dealId null.
+    for (const dealId of dealIds.length > 0 ? dealIds : [null]) {
+      await db.activity.create({
+        data: {
+          type: ActivityType.TASK_COMPLETED,
+          content: `Completed task "${task.title}"`,
+          contactId: task.contactId,
+          companyId: task.companyId,
+          dealId,
+          projectId: task.projectId,
+          taskId: task.id,
+        },
+      });
+    }
   }
 
   await notifyTaskStatusChange(
@@ -272,16 +286,20 @@ export async function toggleTaskComplete(id: string) {
   );
   await syncTaskCalendarEvents(task.id);
 
-  revalidateTaskPaths(task);
+  revalidateTaskPaths({ ...task, dealIds });
 }
 
 export async function deleteTask(id: string, formData: FormData) {
   void formData;
   await requireStaffAction();
+  const task = await db.task.findUniqueOrThrow({
+    where: { id },
+    select: { id: true, contactId: true, companyId: true, projectId: true, deals: { select: { dealId: true } } },
+  });
   // Before the row itself goes — once it's deleted, the cascading foreign
   // key drops every TaskCalendarEvent for it, taking the record of which
   // Google events to delete along with it.
   await deleteTaskCalendarEvents(id);
-  const task = await db.task.delete({ where: { id } });
-  revalidateTaskPaths(task);
+  await db.task.delete({ where: { id } });
+  revalidateTaskPaths({ ...task, dealIds: task.deals.map((d) => d.dealId) });
 }

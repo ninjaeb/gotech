@@ -306,7 +306,7 @@ async function main() {
         dueDate: daysFromNow(-1),
         companyId: acme.id,
         contactId: sarah.id,
-        dealId: acmeSupply.id,
+        deals: { create: [{ dealId: acmeSupply.id }] },
       },
     }),
     db.task.create({
@@ -316,7 +316,7 @@ async function main() {
         dueDate: daysFromNow(0),
         companyId: acme.id,
         contactId: sarah.id,
-        dealId: acmeSupply.id,
+        deals: { create: [{ dealId: acmeSupply.id }] },
       },
     }),
     db.task.create({
@@ -326,7 +326,7 @@ async function main() {
         dueDate: daysFromNow(2),
         companyId: globex.id,
         contactId: priya.id,
-        dealId: globexFleet.id,
+        deals: { create: [{ dealId: globexFleet.id }] },
       },
     }),
     db.task.create({
@@ -336,7 +336,7 @@ async function main() {
         dueDate: daysFromNow(0),
         companyId: initech.id,
         contactId: david.id,
-        dealId: initechMigration.id,
+        deals: { create: [{ dealId: initechMigration.id }] },
       },
     }),
     db.task.create({
@@ -345,7 +345,7 @@ async function main() {
         type: TaskType.FOLLOW_UP,
         dueDate: daysFromNow(5),
         companyId: initech.id,
-        dealId: initechMigration.id,
+        deals: { create: [{ dealId: initechMigration.id }] },
       },
     }),
     db.task.create({
@@ -355,7 +355,7 @@ async function main() {
         dueDate: daysFromNow(3),
         companyId: umbrella.id,
         contactId: marcus.id,
-        dealId: umbrellaCompliance.id,
+        deals: { create: [{ dealId: umbrellaCompliance.id }] },
       },
     }),
     db.task.create({
@@ -365,7 +365,7 @@ async function main() {
         dueDate: daysFromNow(7),
         companyId: hooli.id,
         contactId: aisha.id,
-        dealId: hooliRollout.id,
+        deals: { create: [{ dealId: hooliRollout.id }] },
       },
     }),
     db.task.create({

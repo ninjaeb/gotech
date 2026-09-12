@@ -3,9 +3,16 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { GlobalTaskForm } from "@/components/tasks/global-task-form";
 import { TasksFilterPanel } from "@/components/tasks/tasks-filter-panel";
-import { FILTERS, type FilterKey } from "@/lib/task-filters";
+import { FILTERS, isSortKey, type FilterKey, type SortKey } from "@/lib/task-filters";
+import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
 import type { Prisma } from "@/generated/prisma/client";
+
+// A plain, unsigned amount with up to 2 decimals — same shape MONEY_RE in
+// src/lib/documents/money.ts enforces for a document line, so a value
+// pasted into this filter can never reach the query as anything but a
+// number Prisma's Decimal comparison understands.
+const MIN_DEAL_VALUE_RE = /^\d{1,12}(\.\d{1,2})?$/;
 
 function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
   const startOfToday = new Date();
@@ -34,20 +41,51 @@ function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
   }
 }
 
+// "due" (the default) keeps today's exact behaviour, including the
+// completed tab's own completedAt ordering; an explicit Priority or Deal
+// value choice always wins instead, on every tab — a sort you picked on
+// purpose shouldn't quietly revert just because you're looking at
+// Completed. Deal value can't be expressed as a single Prisma orderBy
+// (it's the *highest* value among a task's linked deals, a to-many
+// relation), so that case orders by due date here and gets re-sorted in
+// JS afterwards — see `sortByDealValue` below.
+function buildOrderBy(
+  filter: FilterKey,
+  sort: SortKey,
+): Prisma.TaskOrderByWithRelationInput | Prisma.TaskOrderByWithRelationInput[] {
+  if (sort === "priority") return [{ priority: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }];
+  if (filter === "completed") return { completedAt: "desc" };
+  return [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }];
+}
+
+function maxDealValue(task: { deals: { deal: { value: Prisma.Decimal } }[] }): number {
+  if (task.deals.length === 0) return -1; // sorts after every task that actually has a deal
+  return Math.max(...task.deals.map((link) => Number(link.deal.value)));
+}
+
+// Array.prototype.sort is a stable sort (guaranteed since ES2019), so ties
+// keep whatever order the DB query already produced (due date, then
+// priority, then recency) instead of shuffling on every render.
+function sortByDealValue<T extends { deals: { deal: { value: Prisma.Decimal } }[] }>(tasks: T[]): T[] {
+  return [...tasks].sort((a, b) => maxDealValue(b) - maxDealValue(a));
+}
+
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string; assignee?: string }>;
+  searchParams: Promise<{ filter?: string; q?: string; assignee?: string; sort?: string; minDealValue?: string }>;
 }) {
   const currentUser = await getCurrentUser();
   // Tasks are cross-functional — every real staff role manages its own;
   // Partner is the only role excluded, and it never reaches this page.
   const canManage = currentUser.role !== "PARTNER";
-  const { filter: rawFilter, q, assignee } = await searchParams;
+  const { filter: rawFilter, q, assignee, sort: rawSort, minDealValue: rawMinDealValue } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)
     : "open";
+  const sort: SortKey = isSortKey(rawSort) ? rawSort : "due";
   const query = q?.trim();
+  const minDealValue = rawMinDealValue?.trim() && MIN_DEAL_VALUE_RE.test(rawMinDealValue.trim()) ? rawMinDealValue.trim() : undefined;
   // Defaults to the viewer's own tasks the first time they land here with
   // no assignee choice made yet (e.g. from the sidebar) — "assignee" only
   // stays absent from the URL until the select is touched, since even
@@ -65,21 +103,21 @@ export default async function TasksPage({
   } else if (assigneeId) {
     conditions.push({ assignees: { some: { userId: assigneeId } } });
   }
+  if (minDealValue) {
+    conditions.push({ deals: { some: { deal: { value: { gte: Number(minDealValue) } } } } });
+  }
   const where: Prisma.TaskWhereInput = conditions.length > 1 ? { AND: conditions } : conditions[0];
 
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
 
-  const [tasks, companies, contacts, deals, users, hasEmailAccount, hasWhatsAppAccount] = await Promise.all([
+  const [rawTasks, companies, contacts, deals, users, currency, hasEmailAccount, hasWhatsAppAccount] = await Promise.all([
     db.task.findMany({
       where,
-      orderBy:
-        filter === "completed"
-          ? { completedAt: "desc" }
-          : [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }],
+      orderBy: buildOrderBy(filter, sort),
       include: {
         contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        deals: { include: { deal: { select: { id: true, title: true, value: true, contact: { select: contactSelect } } } } },
         project: {
           select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
         },
@@ -94,16 +132,18 @@ export default async function TasksPage({
     }),
     db.deal.findMany({
       orderBy: { createdAt: "desc" },
-      select: { id: true, title: true, companyId: true, contactId: true },
+      select: { id: true, title: true, value: true, companyId: true, contactId: true },
     }),
     // Assignees/followers, the assignee filter, and the @mention list
     // inside a task's description are all staff only: a Partner has no
     // task list or CRM inbox of their own to see any of them land in, same
     // reasoning as team-member-row.tsx's own notification toggles.
     db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    getCurrency(),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
     db.whatsAppAccount.findUnique({ where: { id: "singleton" }, select: { id: true } }).then(Boolean),
   ]);
+  const tasks = sort === "dealValue" ? sortByDealValue(rawTasks) : rawTasks;
 
   return (
     <div>
@@ -112,7 +152,13 @@ export default async function TasksPage({
       {canManage && (
         <Card className="mb-6">
           <CardBody>
-            <GlobalTaskForm companies={companies} contacts={contacts} deals={deals} users={users} />
+            <GlobalTaskForm
+              companies={companies}
+              contacts={contacts}
+              deals={deals.map((deal) => ({ ...deal, value: deal.value.toString() }))}
+              users={users}
+              currency={currency}
+            />
           </CardBody>
         </Card>
       )}
@@ -120,10 +166,13 @@ export default async function TasksPage({
       <TasksFilterPanel
         tasks={tasks}
         users={users}
+        currency={currency}
         canManage={canManage}
         hasEmailAccount={hasEmailAccount}
         hasWhatsAppAccount={hasWhatsAppAccount}
         filter={filter}
+        sort={sort}
+        minDealValue={minDealValue}
         initialQuery={query}
         assigneeExplicit={assigneeExplicit}
         assigneeId={assigneeId}

@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.84",
+    date: "2026-09-12",
+    title: "Tasks: link multiple deals, sort, and filter by deal value",
+    changes: [
+      "A task can now be linked to any number of deals, not just one — pick them from a searchable multi-select on the task form, the global \"+ Task\" form, and the quick-add row on a Company/Contact/Project page",
+      "The Tasks page gained a Sort control (Due date, Priority, or Deal value) and a Min deal value filter, so you can find the highest-value work waiting on a task",
+      "Task rows, the task detail page, and the AI daily digest/WhatsApp reminder now list every linked deal instead of just one",
+    ],
+  },
+  {
     version: "1.83",
     date: "2026-09-11",
     title: "Deal page: start date and how long it's been running",

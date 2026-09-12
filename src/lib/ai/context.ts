@@ -111,7 +111,15 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
       contact: true,
       pipeline: true,
       pipelineStage: true,
-      tasks: { where: { completed: false }, orderBy: { dueDate: "asc" }, take: 10 },
+      // Deal.tasks is the TaskDeal join table now that a task can belong to
+      // more than one deal — filter/order/select through the nested `task`
+      // the same way this used to read straight off Task itself.
+      tasks: {
+        where: { task: { completed: false } },
+        orderBy: { task: { dueDate: "asc" } },
+        take: 10,
+        select: { task: { select: { title: true, type: true, dueDate: true } } },
+      },
       activities: { orderBy: { createdAt: "desc" }, take: 15 },
     },
   });
@@ -126,7 +134,7 @@ async function buildDealContext(dealId: string): Promise<EntityContext | null> {
   if (deal.company) lines.push(`Company: ${deal.company.name}`);
   if (deal.contact) lines.push(`Contact: ${fullName(deal.contact.firstName, deal.contact.lastName)}`);
   lines.push(`Notes: ${deal.notes?.trim() || "(none)"}`);
-  lines.push(...tasksSection(deal.tasks));
+  lines.push(...tasksSection(deal.tasks.map((link) => link.task)));
   lines.push(...activitySection(deal.activities));
 
   return { label: deal.title, contextText: lines.join("\n") };
@@ -192,7 +200,7 @@ export async function buildPipelineContext(): Promise<string> {
       where: { completed: false, dueDate: { lt: startOfToday } },
       orderBy: { dueDate: "asc" },
       take: 10,
-      include: { contact: true, company: true, deal: true },
+      include: { contact: true, company: true, deals: { include: { deal: true } } },
     }),
     db.task.count({
       where: { completed: false, dueDate: { gte: startOfToday } },
@@ -219,7 +227,7 @@ export async function buildPipelineContext(): Promise<string> {
     lines.push("", "Overdue tasks:");
     for (const task of overdueTasks) {
       const who =
-        task.deal?.title ?? task.company?.name ?? (task.contact ? fullName(task.contact.firstName, task.contact.lastName) : null);
+        task.deals[0]?.deal.title ?? task.company?.name ?? (task.contact ? fullName(task.contact.firstName, task.contact.lastName) : null);
       lines.push(
         `- ${task.title}${who ? ` (${who})` : ""} — was due ${formatDate(task.dueDate)}`,
       );

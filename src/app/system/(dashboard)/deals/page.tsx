@@ -48,7 +48,9 @@ export default async function DealsPage({
   if (flagged) {
     conditions.push({
       pipelineStage: { isWon: false, isLost: false },
-      tasks: { none: { completed: false, dueDate: { not: null } } },
+      // Deal.tasks is the TaskDeal join table now — reach through the
+      // nested `task` for fields that actually live on Task.
+      tasks: { none: { task: { completed: false, dueDate: { not: null } } } },
     });
   }
 
@@ -59,7 +61,7 @@ export default async function DealsPage({
       company: true,
       contact: true,
       pipelineStage: true,
-      tasks: { select: { completed: true, dueDate: true } },
+      tasks: { select: { task: { select: { completed: true, dueDate: true } } } },
       activities: {
         where: { type: "STAGE_CHANGE" },
         orderBy: { createdAt: "desc" },
@@ -158,6 +160,7 @@ export default async function DealsPage({
                   const latestStageChangeAt = deal.activities[0]?.createdAt ?? null;
                   const dealWithStageTiming = { ...deal, latestStageChangeAt };
                   const rotting = isRotting(dealWithStageTiming);
+                  const dealTasks = deal.tasks.map((link) => link.task);
 
                   return (
                   <div
@@ -179,7 +182,7 @@ export default async function DealsPage({
                               {daysInStage(dealWithStageTiming)}d
                             </span>
                           )}
-                          {needsFollowUp(deal) && (
+                          {needsFollowUp({ pipelineStage: deal.pipelineStage, tasks: dealTasks }) && (
                             <span
                               title="No next step scheduled"
                               className="mt-0.5 inline-flex shrink-0 items-center gap-1 rounded-full bg-orange-50 px-1.5 py-0.5 text-[10px] font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20 dark:bg-orange-950 dark:text-orange-400 dark:ring-orange-500/30"

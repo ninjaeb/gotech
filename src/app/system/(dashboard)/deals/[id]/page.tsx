@@ -55,11 +55,18 @@ export default async function DealDetailPage({
         referralCommission: { select: { amount: true, status: true } },
         pipelineStage: true,
         pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
+        // Deal.tasks is the TaskDeal join table now that a task can belong
+        // to more than one deal — order/select through the nested `task`
+        // the same way this used to read straight off Task itself.
         tasks: {
-          orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { priority: "desc" }],
+          orderBy: [{ task: { completed: "asc" } }, { task: { dueDate: "asc" } }, { task: { priority: "desc" } }],
           include: {
-            assignees: { include: { user: { select: { id: true, name: true } } } },
-            _count: { select: { followers: true } },
+            task: {
+              include: {
+                assignees: { include: { user: { select: { id: true, name: true } } } },
+                _count: { select: { followers: true } },
+              },
+            },
           },
         },
         activities: {
@@ -86,7 +93,7 @@ export default async function DealDetailPage({
         project: { select: { id: true, name: true } },
       },
     }),
-    db.timeEntry.aggregate({ where: { task: { dealId: id } }, _sum: { minutes: true } }),
+    db.timeEntry.aggregate({ where: { task: { deals: { some: { dealId: id } } } }, _sum: { minutes: true } }),
     // The most recent stage change — same "days in stage" idiom as the
     // Deals kanban page (see daysInStage in deal-hygiene.ts) — gives an
     // honest closing timestamp for a Lost deal, which has no equivalent
@@ -102,6 +109,10 @@ export default async function DealDetailPage({
 
   if (!deal) notFound();
   const currency = settings.currency;
+  // Deal.tasks comes back as TaskDeal join rows now — unwrap once here so
+  // the rest of the page (needsFollowUp, TaskList) can work with plain
+  // tasks exactly as before.
+  const dealTasks = deal.tasks.map((link) => link.task);
   const totalMinutes = timeLogged._sum.minutes ?? 0;
   const layout = readSectionLayout(currentUser.sectionLayout, "deal", DEFAULT_LAYOUT);
 
@@ -226,13 +237,13 @@ export default async function DealDetailPage({
                     {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
                   </CardHeader>
                   <CardBody>
-                    {needsFollowUp(deal) && (
+                    {needsFollowUp({ pipelineStage: deal.pipelineStage, tasks: dealTasks }) && (
                       <div className="mb-3 flex items-center gap-2 rounded-md bg-orange-50 px-3 py-2 text-xs font-medium text-orange-700 dark:bg-orange-950 dark:text-orange-400">
                         <Flag className="h-3.5 w-3.5 shrink-0" />
                         No next step scheduled — add one below.
                       </div>
                     )}
-                    <TaskList tasks={deal.tasks} users={users} emptyMessage="No tasks yet." />
+                    <TaskList tasks={dealTasks} users={users} emptyMessage="No tasks yet." />
                     <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
                   </CardBody>
                 </Card>
