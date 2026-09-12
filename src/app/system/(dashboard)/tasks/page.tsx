@@ -4,6 +4,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { GlobalTaskForm } from "@/components/tasks/global-task-form";
 import { TasksFilterPanel } from "@/components/tasks/tasks-filter-panel";
 import { FILTERS, isSortKey, type FilterKey, type SortKey } from "@/lib/task-filters";
+import { readTaskListPrefs } from "@/lib/task-list-prefs";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
 import type { Prisma } from "@/generated/prisma/client";
@@ -73,25 +74,65 @@ function sortByDealValue<T extends { deals: { deal: { value: Prisma.Decimal } }[
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; q?: string; assignee?: string; sort?: string; minDealValue?: string }>;
+  searchParams: Promise<{
+    filter?: string;
+    q?: string;
+    assignee?: string;
+    sort?: string;
+    minDealValue?: string;
+    applied?: string;
+  }>;
 }) {
   const currentUser = await getCurrentUser();
   // Tasks are cross-functional — every real staff role manages its own;
   // Partner is the only role excluded, and it never reaches this page.
   const canManage = currentUser.role !== "PARTNER";
-  const { filter: rawFilter, q, assignee, sort: rawSort, minDealValue: rawMinDealValue } = await searchParams;
+  const {
+    filter: rawFilter,
+    q,
+    assignee,
+    sort: rawSort,
+    minDealValue: rawMinDealValue,
+    applied,
+  } = await searchParams;
   const filter: FilterKey = FILTERS.some((f) => f.key === rawFilter)
     ? (rawFilter as FilterKey)
     : "open";
-  const sort: SortKey = isSortKey(rawSort) ? rawSort : "due";
+
+  // Falls back to this user's last-applied Sort/Assignee/Min-deal-value
+  // choice (see task-list-prefs.ts) rather than a hardcoded default,
+  // whenever a param is absent from the URL — a bare nav-link visit, or a
+  // dashboard/WhatsApp shortcut that only sets `assignee`/`filter`.
+  const prefs = readTaskListPrefs(currentUser.taskListPrefs);
+  const sort: SortKey = isSortKey(rawSort) ? rawSort : prefs.sort;
   const query = q?.trim();
-  const minDealValue = rawMinDealValue?.trim() && MIN_DEAL_VALUE_RE.test(rawMinDealValue.trim()) ? rawMinDealValue.trim() : undefined;
+  const rawMinDealValueOrSaved = rawMinDealValue !== undefined ? rawMinDealValue : prefs.minDealValue;
+  const minDealValue =
+    rawMinDealValueOrSaved?.trim() && MIN_DEAL_VALUE_RE.test(rawMinDealValueOrSaved.trim())
+      ? rawMinDealValueOrSaved.trim()
+      : undefined;
   // Defaults to the viewer's own tasks the first time they land here with
-  // no assignee choice made yet (e.g. from the sidebar) — "assignee" only
-  // stays absent from the URL until the select is touched, since even
-  // picking "All assignees" submits it as an explicit empty value.
-  const assigneeExplicit = assignee !== undefined;
-  const assigneeId = assigneeExplicit ? assignee.trim() || undefined : currentUser.id;
+  // no assignee choice ever made (in this URL or saved) — "assignee" only
+  // becomes explicit once the select is touched, since even picking "All
+  // assignees" submits it as an explicit empty value.
+  const assigneeExplicit = assignee !== undefined || prefs.assignee !== undefined;
+  const assigneeParam = assignee !== undefined ? assignee : prefs.assignee;
+  const assigneeId = assigneeExplicit ? assigneeParam?.trim() || undefined : currentUser.id;
+
+  // The filter panel's own form always carries this hidden field, so only
+  // an actual submission of it (typing + Apply, or the Sort/Assignee
+  // selects auto-submitting) reaches here — never a plain link elsewhere
+  // in the app that merely happens to set one of these params (the
+  // dashboard's task cards, a WhatsApp/email reminder link). That
+  // submission's values become this user's new remembered default.
+  if (applied === "1") {
+    await db.user.update({
+      where: { id: currentUser.id },
+      data: {
+        taskListPrefs: JSON.stringify({ sort, assignee: assigneeId ?? "", minDealValue: minDealValue ?? "" }),
+      },
+    });
+  }
 
   // Text search itself happens client-side (TasksFilterPanel), across more
   // fields than a DB query could cheaply cover (company, contact, deal,

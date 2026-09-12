@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.85",
+    date: "2026-09-12",
+    title: "Tasks page remembers your Sort, Assignee, and Min deal value",
+    changes: [
+      "Whichever Sort, Assignee, and Min deal value filter you last applied on the Tasks page is now remembered as your own default there, until you change one again — no more resetting to Due date/yourself/no filter every time you come back",
+      "A link into the Tasks page that sets its own filter (a dashboard shortcut, a task reminder) still works exactly as before and doesn't touch what's remembered for your next plain visit",
+    ],
+  },
+  {
     version: "1.84",
     date: "2026-09-12",
     title: "Tasks: link multiple deals, sort, and filter by deal value",
