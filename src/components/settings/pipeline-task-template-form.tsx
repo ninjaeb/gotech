@@ -292,8 +292,8 @@ export function PipelineTaskTemplateForm({
                   </div>
                 </div>
                 {users.length > 0 && (
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    <div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="sm:w-1/4">
                       <Label htmlFor={`${row.key}-assignees`}>Assignees</Label>
                       <MultiCombobox
                         id={`${row.key}-assignees`}
@@ -304,7 +304,7 @@ export function PipelineTaskTemplateForm({
                         placeholder="Who's responsible…"
                       />
                     </div>
-                    <div>
+                    <div className="sm:w-1/4">
                       <Label htmlFor={`${row.key}-followers`}>Followers</Label>
                       <MultiCombobox
                         id={`${row.key}-followers`}
