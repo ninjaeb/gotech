@@ -4,7 +4,8 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { updatePipelineTaskTemplate } from "@/app/actions/pipelines";
 import { Button, buttonClasses } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input, Label, Select } from "@/components/ui/field";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { useActionToast } from "@/components/ui/toast";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 import type { TaskPriority, TaskType } from "@/generated/prisma/client";
@@ -17,6 +18,18 @@ type ItemDraft = {
   type: TaskType;
   priority: TaskPriority;
   daysFromNow: string; // "" = no standard due date
+  assigneeIds: string[];
+  followerIds: string[];
+};
+
+type TemplateItemInput = {
+  id: string;
+  title: string;
+  type: TaskType;
+  priority: TaskPriority;
+  daysFromNow: number | null;
+  assignees: { userId: string }[];
+  followers: { userId: string }[];
 };
 
 let draftKeySeq = 0;
@@ -26,22 +39,34 @@ function newDraftKey() {
 }
 
 function blankRow(): ItemDraft {
-  return { key: newDraftKey(), id: null, title: "", type: "OTHER", priority: "MEDIUM", daysFromNow: "" };
+  return { key: newDraftKey(), id: null, title: "", type: "OTHER", priority: "MEDIUM", daysFromNow: "", assigneeIds: [], followerIds: [] };
 }
 
 export function PipelineTaskTemplateForm({
   pipelineId,
   items,
+  users,
 }: {
   pipelineId: string;
-  items: { id: string; title: string; type: TaskType; priority: TaskPriority; daysFromNow: number | null }[];
+  items: TemplateItemInput[];
+  users: { id: string; name: string }[];
 }) {
   const action = updatePipelineTaskTemplate.bind(null, pipelineId);
   const [state, formAction, pending] = useActionState(action, undefined);
   useActionToast(state, "Task checklist saved.", { toastErrors: false });
+  const userOptions = users.map((user) => ({ value: user.id, label: user.name }));
   const [rows, setRows] = useState<ItemDraft[]>(() =>
     items.length > 0
-      ? items.map((item) => ({ key: newDraftKey(), ...item, daysFromNow: item.daysFromNow === null ? "" : String(item.daysFromNow) }))
+      ? items.map((item) => ({
+          key: newDraftKey(),
+          id: item.id,
+          title: item.title,
+          type: item.type,
+          priority: item.priority,
+          daysFromNow: item.daysFromNow === null ? "" : String(item.daysFromNow),
+          assigneeIds: item.assignees.map((a) => a.userId),
+          followerIds: item.followers.map((f) => f.userId),
+        }))
       : [],
   );
 
@@ -142,6 +167,8 @@ export function PipelineTaskTemplateForm({
       type: row.type,
       priority: row.priority,
       daysFromNow: row.daysFromNow.trim() === "" ? null : Number(row.daysFromNow),
+      assigneeIds: row.assigneeIds,
+      followerIds: row.followerIds,
     })),
   );
 
@@ -166,103 +193,131 @@ export function PipelineTaskTemplateForm({
               dropIndex === siblingsExcludingDrag.length;
 
             return (
-            <div
-              key={row.key}
-              ref={(el) => {
-                rowRefs.current[row.key] = el;
-              }}
-              className={cn(
-                "grid grid-cols-1 items-center gap-2 rounded-md border-x border-t-2 border-b-2 border-slate-200 border-t-transparent border-b-transparent p-2.5 transition-shadow sm:grid-cols-[auto_1fr_9rem_7rem_8rem_auto] dark:border-neutral-800",
-                showDropBefore && "border-t-indigo-500",
-                showDropAfter && "border-b-indigo-500",
-                isDragging && "relative z-10 opacity-90 shadow-lg",
-              )}
-              style={isDragging ? { transform: `translateY(${dragOffsetY}px)` } : undefined}
-            >
-              <button
-                type="button"
-                onPointerDown={(event) => startDrag(event, row.key)}
-                onPointerMove={(event) => handleDragMove(event, row.key)}
-                onPointerUp={() => endDrag(row.key)}
-                onPointerCancel={() => endDrag(row.key)}
-                aria-label="Drag to reorder"
-                title="Drag to reorder"
-                className="hidden h-8 w-8 touch-none items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 active:cursor-grabbing sm:flex dark:hover:bg-neutral-800"
+              <div
+                key={row.key}
+                ref={(el) => {
+                  rowRefs.current[row.key] = el;
+                }}
+                className={cn(
+                  "space-y-2 rounded-md border-x border-t-2 border-b-2 border-slate-200 border-t-transparent border-b-transparent p-2.5 transition-shadow dark:border-neutral-800",
+                  showDropBefore && "border-t-indigo-500",
+                  showDropAfter && "border-b-indigo-500",
+                  isDragging && "relative z-10 opacity-90 shadow-lg",
+                )}
+                style={isDragging ? { transform: `translateY(${dragOffsetY}px)` } : undefined}
               >
-                <GripVertical className="h-4 w-4 cursor-grab" />
-              </button>
-              <Input
-                value={row.title}
-                onChange={(event) => updateRow(row.key, { title: event.target.value })}
-                placeholder="Task title"
-                aria-label="Task title"
-              />
-              <Select
-                key={`type-${row.key}-${selectGen}`}
-                value={row.type}
-                onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })}
-                aria-label="Task type"
-              >
-                {TASK_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {TASK_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                key={`priority-${row.key}-${selectGen}`}
-                value={row.priority}
-                onChange={(event) => updateRow(row.key, { priority: event.target.value as TaskPriority })}
-                aria-label="Task priority"
-              >
-                {TASK_PRIORITIES.map((priority) => (
-                  <option key={priority} value={priority}>
-                    {TASK_PRIORITY_LABELS[priority]}
-                  </option>
-                ))}
-              </Select>
-              <div className="flex items-center gap-1.5">
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputMode="numeric"
-                  value={row.daysFromNow}
-                  onChange={(event) => updateRow(row.key, { daysFromNow: event.target.value })}
-                  placeholder="No due date"
-                  aria-label="Standard duration in days"
-                />
-                <span className="shrink-0 text-xs text-slate-400">days</span>
+                <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr_9rem_7rem_8rem_auto]">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => startDrag(event, row.key)}
+                    onPointerMove={(event) => handleDragMove(event, row.key)}
+                    onPointerUp={() => endDrag(row.key)}
+                    onPointerCancel={() => endDrag(row.key)}
+                    aria-label="Drag to reorder"
+                    title="Drag to reorder"
+                    className="hidden h-8 w-8 touch-none items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 active:cursor-grabbing sm:flex dark:hover:bg-neutral-800"
+                  >
+                    <GripVertical className="h-4 w-4 cursor-grab" />
+                  </button>
+                  <Input
+                    value={row.title}
+                    onChange={(event) => updateRow(row.key, { title: event.target.value })}
+                    placeholder="Task title"
+                    aria-label="Task title"
+                  />
+                  <Select
+                    key={`type-${row.key}-${selectGen}`}
+                    value={row.type}
+                    onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })}
+                    aria-label="Task type"
+                  >
+                    {TASK_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {TASK_TYPE_LABELS[type]}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    key={`priority-${row.key}-${selectGen}`}
+                    value={row.priority}
+                    onChange={(event) => updateRow(row.key, { priority: event.target.value as TaskPriority })}
+                    aria-label="Task priority"
+                  >
+                    {TASK_PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {TASK_PRIORITY_LABELS[priority]}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      value={row.daysFromNow}
+                      onChange={(event) => updateRow(row.key, { daysFromNow: event.target.value })}
+                      placeholder="No due date"
+                      aria-label="Standard duration in days"
+                    />
+                    <span className="shrink-0 text-xs text-slate-400">days</span>
+                  </div>
+                  <div className="flex items-center gap-1 justify-self-end">
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, -1)}
+                      disabled={index === 0}
+                      aria-label="Move task up"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, 1)}
+                      disabled={index === rows.length - 1}
+                      aria-label="Move task down"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.key)}
+                      aria-label="Remove task"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                {users.length > 0 && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor={`${row.key}-assignees`}>Assignees</Label>
+                      <MultiCombobox
+                        id={`${row.key}-assignees`}
+                        name="assigneeIds"
+                        options={userOptions}
+                        value={row.assigneeIds}
+                        onValueChange={(value) => updateRow(row.key, { assigneeIds: value })}
+                        placeholder="Who's responsible…"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`${row.key}-followers`}>Followers</Label>
+                      <MultiCombobox
+                        id={`${row.key}-followers`}
+                        name="followerIds"
+                        options={userOptions}
+                        value={row.followerIds}
+                        onValueChange={(value) => updateRow(row.key, { followerIds: value })}
+                        placeholder="Who wants visibility…"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1 justify-self-end">
-                <button
-                  type="button"
-                  onClick={() => moveRow(index, -1)}
-                  disabled={index === 0}
-                  aria-label="Move task up"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => moveRow(index, 1)}
-                  disabled={index === rows.length - 1}
-                  aria-label="Move task down"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
-                >
-                  <ArrowDown className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeRow(row.key)}
-                  aria-label="Remove task"
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
             );
           })}
         </div>

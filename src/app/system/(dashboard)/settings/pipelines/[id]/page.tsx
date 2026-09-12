@@ -13,13 +13,19 @@ export default async function EditPipelinePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const pipeline = await db.pipeline.findUnique({
-    where: { id },
-    include: {
-      stages: { orderBy: { sortOrder: "asc" } },
-      taskTemplateItems: { orderBy: { sortOrder: "asc" } },
-    },
-  });
+  const [pipeline, users] = await Promise.all([
+    db.pipeline.findUnique({
+      where: { id },
+      include: {
+        stages: { orderBy: { sortOrder: "asc" } },
+        taskTemplateItems: {
+          orderBy: { sortOrder: "asc" },
+          include: { assignees: true, followers: true },
+        },
+      },
+    }),
+    db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
   if (!pipeline) notFound();
 
   return (
@@ -69,7 +75,7 @@ export default async function EditPipelinePage({
             Every new deal on this pipeline is seeded with these tasks automatically. A due date of &quot;N days&quot;
             counts from whenever the checklist is applied — leave it blank for a task with no standard due date.
           </p>
-          <PipelineTaskTemplateForm pipelineId={pipeline.id} items={pipeline.taskTemplateItems} />
+          <PipelineTaskTemplateForm pipelineId={pipeline.id} items={pipeline.taskTemplateItems} users={users} />
         </CardBody>
       </Card>
     </div>

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { Prisma, TaskPriority, TaskType } from "@/generated/prisma/client";
 import { requireAdminAction, requireSalesAction } from "@/lib/auth/dal";
+import { scheduleOrSendTaskAssignmentNotification } from "@/lib/task-assignment-notification";
+import { syncTaskCalendarEvents } from "@/lib/task-calendar-sync";
 import { withFlash } from "@/lib/utils";
 
 export type PipelineFormState = { error: string } | undefined;
@@ -81,7 +83,7 @@ export async function duplicatePipeline(id: string, formData: FormData) {
       where: { id },
       include: {
         stages: { orderBy: { sortOrder: "asc" } },
-        taskTemplateItems: { orderBy: { sortOrder: "asc" } },
+        taskTemplateItems: { orderBy: { sortOrder: "asc" }, include: { assignees: true, followers: true } },
       },
     }),
     db.pipeline.count(),
@@ -101,6 +103,8 @@ export async function duplicatePipeline(id: string, formData: FormData) {
           priority: item.priority,
           daysFromNow: item.daysFromNow,
           sortOrder: item.sortOrder,
+          assignees: { create: item.assignees.map((a) => ({ userId: a.userId })) },
+          followers: { create: item.followers.map((f) => ({ userId: f.userId })) },
         })),
       },
     },
@@ -210,6 +214,8 @@ const taskTemplateItemSchema = z.object({
   type: z.nativeEnum(TaskType),
   priority: z.nativeEnum(TaskPriority),
   daysFromNow: z.number().int().min(0).nullable(),
+  assigneeIds: z.array(z.string().trim().min(1)).default([]),
+  followerIds: z.array(z.string().trim().min(1)).default([]),
 });
 const taskTemplateItemsSchema = z.array(taskTemplateItemSchema);
 
@@ -241,10 +247,17 @@ export async function updatePipelineTaskTemplate(
     }
     for (const [index, item] of items.entries()) {
       const data = { title: item.title, type: item.type, priority: item.priority, daysFromNow: item.daysFromNow, sortOrder: index };
+      // Assignees/followers are small sets edited as a whole each save —
+      // delete-and-recreate is simplest and matches how Task's own
+      // assignees/followers are resaved in updateTask.
+      const assignees = { deleteMany: {}, create: item.assigneeIds.map((userId) => ({ userId })) };
+      const followers = { deleteMany: {}, create: item.followerIds.map((userId) => ({ userId })) };
       if (item.id) {
-        await tx.pipelineTaskTemplateItem.update({ where: { id: item.id }, data });
+        await tx.pipelineTaskTemplateItem.update({ where: { id: item.id }, data: { ...data, assignees, followers } });
       } else {
-        await tx.pipelineTaskTemplateItem.create({ data: { ...data, pipelineId } });
+        await tx.pipelineTaskTemplateItem.create({
+          data: { ...data, pipelineId, assignees: { create: assignees.create }, followers: { create: followers.create } },
+        });
       }
     }
   });
@@ -259,14 +272,22 @@ export async function updatePipelineTaskTemplate(
 // already carry, so this is safe to call more than once (re-applied by
 // hand after the template changes, or a deal already seeded at creation)
 // without piling up duplicates. Returns how many tasks it actually added.
-export async function applyPipelineTaskTemplate(deal: {
-  id: string;
-  pipelineId: string;
-  companyId: string | null;
-  contactId: string | null;
-}): Promise<number> {
+//
+// `actor` is whoever's action triggered this (the deal's creator, or
+// whoever clicked "Apply task template") — used the same way createTask
+// uses the current user: excluded from their own assignment notification,
+// and auto-added as a follower of any task they've just handed to someone
+// else, mirroring "assigning a task auto-follows it for the assigner".
+export async function applyPipelineTaskTemplate(
+  deal: { id: string; pipelineId: string; companyId: string | null; contactId: string | null },
+  actor: { id: string; name: string },
+): Promise<number> {
   const [items, existingTasks] = await Promise.all([
-    db.pipelineTaskTemplateItem.findMany({ where: { pipelineId: deal.pipelineId }, orderBy: { sortOrder: "asc" } }),
+    db.pipelineTaskTemplateItem.findMany({
+      where: { pipelineId: deal.pipelineId },
+      orderBy: { sortOrder: "asc" },
+      include: { assignees: true, followers: true },
+    }),
     db.task.findMany({ where: { deals: { some: { dealId: deal.id } } }, select: { title: true } }),
   ]);
   if (items.length === 0) return 0;
@@ -279,9 +300,12 @@ export async function applyPipelineTaskTemplate(deal: {
   // writes flat scalar rows and can't express that, hence one create per
   // item rather than a single bulk insert.
   const now = Date.now();
-  await Promise.all(
-    toCreate.map((item) =>
-      db.task.create({
+  const createdTasks = await Promise.all(
+    toCreate.map((item) => {
+      const assigneeIds = item.assignees.map((a) => a.userId);
+      const followerIds = new Set(item.followers.map((f) => f.userId));
+      if (assigneeIds.length > 0) followerIds.add(actor.id);
+      return db.task.create({
         data: {
           title: item.title,
           type: item.type,
@@ -290,10 +314,21 @@ export async function applyPipelineTaskTemplate(deal: {
           companyId: deal.companyId,
           contactId: deal.contactId,
           deals: { create: [{ dealId: deal.id }] },
+          assignees: { create: assigneeIds.map((userId) => ({ userId })) },
+          followers: { create: [...followerIds].map((userId) => ({ userId })) },
         },
-      }),
-    ),
+      });
+    }),
   );
+
+  await Promise.all(
+    createdTasks.map(async (task, index) => {
+      const recipientIds = toCreate[index].assignees.map((a) => a.userId).filter((id) => id !== actor.id);
+      await scheduleOrSendTaskAssignmentNotification(task.id, task.title, recipientIds, actor.id, actor.name);
+      await syncTaskCalendarEvents(task.id);
+    }),
+  );
+
   return toCreate.length;
 }
 
@@ -303,14 +338,14 @@ export async function applyTaskTemplateToDeal(
   formData: FormData,
 ): Promise<ApplyTaskTemplateState> {
   void formData;
-  await requireSalesAction();
+  const actor = await requireSalesAction();
   const deal = await db.deal.findUnique({
     where: { id: dealId },
     select: { id: true, pipelineId: true, companyId: true, contactId: true },
   });
   if (!deal) return { error: "Deal not found." };
 
-  const count = await applyPipelineTaskTemplate(deal);
+  const count = await applyPipelineTaskTemplate(deal, { id: actor.id, name: actor.name });
   revalidatePath(`/system/deals/${dealId}`);
   revalidatePath("/system/tasks");
   revalidatePath("/system");
