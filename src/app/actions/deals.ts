@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { ActivityType, type LeadSource } from "@/generated/prisma/client";
 import { stageGateError } from "@/lib/deal-hygiene";
 import { ensureProjectForWonDeal } from "@/app/actions/projects";
+import { applyPipelineTaskTemplate } from "@/app/actions/pipelines";
 import { ensureTestimonialRequestForWonDeal } from "@/app/actions/testimonials";
 import { requireSalesAction } from "@/lib/auth/dal";
 import { syncReferralCommissionForDeal } from "@/lib/referrals";
@@ -117,6 +118,9 @@ export async function createDeal(_prevState: DealFormState, formData: FormData):
   if (gateError) return { error: gateError };
 
   const deal = await db.deal.create({ data });
+  // Seeds the new deal with its pipeline's standard checklist, if it has
+  // one — a no-op when the pipeline carries no template items.
+  await applyPipelineTaskTemplate(deal);
   revalidateDealPaths(deal.id, data.companyId, data.contactId);
   redirect(`/system/deals/${deal.id}`);
 }

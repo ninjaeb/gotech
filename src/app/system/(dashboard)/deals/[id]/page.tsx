@@ -15,6 +15,7 @@ import { ActivityFeed } from "@/components/activity/activity-feed";
 import { ActivityForm } from "@/components/activity/activity-form";
 import { TaskList } from "@/components/tasks/task-list";
 import { TaskQuickForm } from "@/components/tasks/task-quick-form";
+import { ApplyTaskTemplateButton } from "@/components/deals/apply-task-template-button";
 import { DealStageSelect } from "@/components/deals/deal-stage-select";
 import { SectionBoard } from "@/components/layout/section-board";
 import { AiInsightsPanel } from "@/components/ai/ai-insights-panel";
@@ -58,7 +59,9 @@ export default async function DealDetailPage({
         referredBy: { select: { id: true, name: true } },
         referralCommission: { select: { amount: true, status: true } },
         pipelineStage: true,
-        pipeline: { include: { stages: { orderBy: { sortOrder: "asc" } } } },
+        pipeline: {
+          include: { stages: { orderBy: { sortOrder: "asc" } }, taskTemplateItems: { select: { id: true } } },
+        },
         tasks: {
           orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { priority: "desc" }],
           include: {
@@ -239,7 +242,10 @@ export default async function DealDetailPage({
                 <Card>
                   <CardHeader>
                     <CardTitle>Tasks</CardTitle>
-                    {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+                    <div className="flex items-center gap-2">
+                      {totalMinutes > 0 && <Badge>{formatMinutes(totalMinutes)} logged</Badge>}
+                      {deal.pipeline.taskTemplateItems.length > 0 && <ApplyTaskTemplateButton dealId={deal.id} />}
+                    </div>
                   </CardHeader>
                   <CardBody>
                     {needsFollowUp(deal) && (
@@ -249,7 +255,13 @@ export default async function DealDetailPage({
                       </div>
                     )}
                     <TaskList tasks={deal.tasks} users={users} emptyMessage="No tasks yet." />
-                    <TaskQuickForm dealId={deal.id} users={users} defaultAssigneeId={currentUser.id} />
+                    <TaskQuickForm
+                      dealId={deal.id}
+                      companyId={deal.companyId ?? undefined}
+                      contactId={deal.contactId ?? undefined}
+                      users={users}
+                      defaultAssigneeId={currentUser.id}
+                    />
                   </CardBody>
                 </Card>
               ),

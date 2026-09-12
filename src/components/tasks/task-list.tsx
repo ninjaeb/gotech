@@ -8,7 +8,7 @@ import {
   TASK_TYPE_BADGE_CLASSES,
   TASK_TYPE_LABELS,
 } from "@/lib/labels";
-import { relativeToToday, fullName } from "@/lib/format";
+import { relativeToToday, formatDate, formatDuration, fullName } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { ActivityContent } from "@/components/activity/activity-content";
@@ -96,6 +96,9 @@ export function TaskList({
         const overdue =
           !task.completed && task.dueDate && new Date(task.dueDate) < new Date();
         const dueLabel = relativeToToday(task.dueDate);
+        const durationLabel = task.completed
+          ? `Done in ${formatDuration(task.createdAt, task.completedAt ?? undefined)}`
+          : `Running ${formatDuration(task.createdAt)}`;
         // Same resolution as the task detail page: whichever contact this
         // task is actually about, direct link first, falling back through
         // its deal or project.
@@ -166,6 +169,12 @@ export function TaskList({
                     {dueLabel}
                   </span>
                 )}
+                <span
+                  className="text-xs text-slate-400 dark:text-slate-500"
+                  title={`Created ${formatDate(task.createdAt)}`}
+                >
+                  {durationLabel}
+                </span>
                 {!!task.assignees?.length && (
                   <span className="inline-flex items-center gap-1 text-xs text-slate-400">
                     <UserIcon className="h-3 w-3" />

@@ -658,10 +658,33 @@ model Pipeline {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
-  stages PipelineStage[]
-  deals  Deal[]
+  stages            PipelineStage[]
+  deals             Deal[]
+  taskTemplateItems PipelineTaskTemplateItem[]
 
   @@index([sortOrder])
+}
+
+// The standard checklist for this pipeline's "type" of deal (see the
+// Pipelines settings page's own description: "Each deal type can carry its
+// own stage list"). applyPipelineTaskTemplate (src/app/actions/pipelines.ts)
+// turns these into real Tasks on a Deal — daysFromNow is the standard
+// duration from *that application* (not from the template's own createdAt)
+// to the task's due date, matching MILESTONE_TEMPLATE's own daysFromNow
+// idiom in src/app/actions/projects.ts. Null means no standard due date.
+model PipelineTaskTemplateItem {
+  id          String       @id @default(cuid())
+  title       String
+  type        TaskType     @default(OTHER)
+  priority    TaskPriority @default(MEDIUM)
+  daysFromNow Int?
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  pipelineId String
+
+  @@index([pipelineId])
 }
 
 // isWon/isLost replace the old fixed WON/LOST enum values — every stage-gate,

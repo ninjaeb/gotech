@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { PipelineStagesForm } from "@/components/settings/pipeline-stages-form";
+import { PipelineTaskTemplateForm } from "@/components/settings/pipeline-task-template-form";
 import { RenamePipelineForm } from "@/components/settings/rename-pipeline-form";
 import { SetDefaultPipelineButton } from "@/components/settings/set-default-pipeline-button";
 
@@ -14,7 +15,10 @@ export default async function EditPipelinePage({
   const { id } = await params;
   const pipeline = await db.pipeline.findUnique({
     where: { id },
-    include: { stages: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      stages: { orderBy: { sortOrder: "asc" } },
+      taskTemplateItems: { orderBy: { sortOrder: "asc" } },
+    },
   });
   if (!pipeline) notFound();
 
@@ -53,6 +57,19 @@ export default async function EditPipelinePage({
             handoff all key off those flags instead of a stage&apos;s name.
           </p>
           <PipelineStagesForm pipelineId={pipeline.id} stages={pipeline.stages} />
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Task checklist template</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="mb-3 text-sm text-slate-500 dark:text-slate-400">
+            Every new deal on this pipeline is seeded with these tasks automatically. A due date of &quot;N days&quot;
+            counts from whenever the checklist is applied — leave it blank for a task with no standard due date.
+          </p>
+          <PipelineTaskTemplateForm pipelineId={pipeline.id} items={pipeline.taskTemplateItems} />
         </CardBody>
       </Card>
     </div>
