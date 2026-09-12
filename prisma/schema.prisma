@@ -204,6 +204,9 @@ model User {
   partnerTasks         PartnerTask[]
   assignedPartnerTasks PartnerTaskAssignee[]
   documentEvents       DocumentEvent[]
+
+  pipelineTaskTemplateAssignments PipelineTaskTemplateAssignee[]
+  pipelineTaskTemplateFollows     PipelineTaskTemplateFollower[]
 }
 
 // One connected Google account per user, used only to sync their assigned
@@ -692,7 +695,40 @@ model PipelineTaskTemplateItem {
   pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
   pipelineId String
 
+  // Who a task created from this item should default to — copied onto the
+  // real Task's own assignees/followers by applyPipelineTaskTemplate, same
+  // many-to-many-via-join-model convention as Task.assignees/Task.followers
+  // itself (never Prisma's implicit m:n).
+  assignees PipelineTaskTemplateAssignee[]
+  followers PipelineTaskTemplateFollower[]
+
   @@index([pipelineId])
+}
+
+model PipelineTaskTemplateAssignee {
+  id String @id @default(cuid())
+
+  item   PipelineTaskTemplateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([itemId, userId])
+  @@index([userId])
+}
+
+model PipelineTaskTemplateFollower {
+  id String @id @default(cuid())
+
+  item   PipelineTaskTemplateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([itemId, userId])
+  @@index([userId])
 }
 
 // isWon/isLost replace the old fixed WON/LOST enum values — every stage-gate,

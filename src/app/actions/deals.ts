@@ -96,7 +96,7 @@ function revalidateDealPaths(dealId: string, companyId?: string | null, contactI
 export type DealFormState = { error: string } | undefined;
 
 export async function createDeal(_prevState: DealFormState, formData: FormData): Promise<DealFormState> {
-  await requireSalesAction();
+  const currentUser = await requireSalesAction();
   let data;
   try {
     data = parseDealForm(formData);
@@ -120,7 +120,7 @@ export async function createDeal(_prevState: DealFormState, formData: FormData):
   const deal = await db.deal.create({ data });
   // Seeds the new deal with its pipeline's standard checklist, if it has
   // one — a no-op when the pipeline carries no template items.
-  await applyPipelineTaskTemplate(deal);
+  await applyPipelineTaskTemplate(deal, { id: currentUser.id, name: currentUser.name });
   revalidateDealPaths(deal.id, data.companyId, data.contactId);
   redirect(`/system/deals/${deal.id}`);
 }
