@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
 import { updatePipelineTaskTemplate } from "@/app/actions/pipelines";
 import { Button, buttonClasses } from "@/components/ui/button";
 import { Input, Label, Select } from "@/components/ui/field";
@@ -109,6 +109,57 @@ export function PipelineTaskTemplateForm({
     });
   }
 
+  // Drag-to-reorder, on top of the up/down buttons above rather than
+  // replacing them — built on pointer events rather than the native HTML5
+  // DnD API (poor touch support), same approach as SectionBoard.
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const dragStartYRef = useRef(0);
+
+  function computeDropIndex(pointerY: number, excludeKey: string): number {
+    const siblings = rows.filter((row) => row.key !== excludeKey);
+    for (let i = 0; i < siblings.length; i++) {
+      const el = rowRefs.current[siblings[i].key];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      if (pointerY < rect.top + rect.height / 2) return i;
+    }
+    return siblings.length;
+  }
+
+  function startDrag(event: React.PointerEvent, key: string) {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    dragStartYRef.current = event.clientY;
+    setDragKey(key);
+    setDragOffsetY(0);
+    setDropIndex(rows.findIndex((row) => row.key === key));
+  }
+
+  function handleDragMove(event: React.PointerEvent, key: string) {
+    if (dragKey !== key) return;
+    setDragOffsetY(event.clientY - dragStartYRef.current);
+    setDropIndex(computeDropIndex(event.clientY, key));
+  }
+
+  function endDrag(key: string) {
+    if (dragKey !== key) return;
+    const target = dropIndex;
+    if (target !== null) {
+      setRows((current) => {
+        const dragged = current.find((row) => row.key === key);
+        if (!dragged) return current;
+        const remaining = current.filter((row) => row.key !== key);
+        remaining.splice(target, 0, dragged);
+        return remaining;
+      });
+    }
+    setDragKey(null);
+    setDropIndex(null);
+  }
+
   const itemsJson = JSON.stringify(
     rows.map((row) => ({
       id: row.id,
@@ -131,109 +182,144 @@ export function PipelineTaskTemplateForm({
         </p>
       ) : (
         <div className="space-y-2">
-          {rows.map((row, index) => (
-            <div key={row.key} className="space-y-2 rounded-md border border-slate-200 p-2.5 dark:border-neutral-800">
-              <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_9rem_7rem_8rem_auto]">
-                <Input
-                  value={row.title}
-                  onChange={(event) => updateRow(row.key, { title: event.target.value })}
-                  placeholder="Task title"
-                  aria-label="Task title"
-                />
-                <Select
-                  key={`type-${row.key}-${selectGen}`}
-                  value={row.type}
-                  onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })}
-                  aria-label="Task type"
-                >
-                  {TASK_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {TASK_TYPE_LABELS[type]}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  key={`priority-${row.key}-${selectGen}`}
-                  value={row.priority}
-                  onChange={(event) => updateRow(row.key, { priority: event.target.value as TaskPriority })}
-                  aria-label="Task priority"
-                >
-                  {TASK_PRIORITIES.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {TASK_PRIORITY_LABELS[priority]}
-                    </option>
-                  ))}
-                </Select>
-                <div className="flex items-center gap-1.5">
+          {rows.map((row, index) => {
+            const isDragging = dragKey === row.key;
+            const siblingsExcludingDrag = dragKey ? rows.filter((r) => r.key !== dragKey) : rows;
+            const posExcludingDrag = siblingsExcludingDrag.findIndex((r) => r.key === row.key);
+            const showDropBefore = dragKey !== null && dragKey !== row.key && dropIndex === posExcludingDrag;
+            const showDropAfter =
+              dragKey !== null &&
+              row.key === siblingsExcludingDrag.at(-1)?.key &&
+              dropIndex === siblingsExcludingDrag.length;
+
+            return (
+              <div
+                key={row.key}
+                ref={(el) => {
+                  rowRefs.current[row.key] = el;
+                }}
+                className={cn(
+                  "space-y-2 rounded-md border-x border-t-2 border-b-2 border-slate-200 border-t-transparent border-b-transparent p-2.5 transition-shadow dark:border-neutral-800",
+                  showDropBefore && "border-t-indigo-500",
+                  showDropAfter && "border-b-indigo-500",
+                  isDragging && "relative z-10 opacity-90 shadow-lg",
+                )}
+                style={isDragging ? { transform: `translateY(${dragOffsetY}px)` } : undefined}
+              >
+                <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[auto_1fr_9rem_7rem_8rem_auto]">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => startDrag(event, row.key)}
+                    onPointerMove={(event) => handleDragMove(event, row.key)}
+                    onPointerUp={() => endDrag(row.key)}
+                    onPointerCancel={() => endDrag(row.key)}
+                    aria-label="Drag to reorder"
+                    title="Drag to reorder"
+                    className="hidden h-8 w-8 touch-none items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 active:cursor-grabbing sm:flex dark:hover:bg-neutral-800"
+                  >
+                    <GripVertical className="h-4 w-4 cursor-grab" />
+                  </button>
                   <Input
-                    type="number"
-                    min="0"
-                    step="1"
-                    inputMode="numeric"
-                    value={row.daysFromNow}
-                    onChange={(event) => updateRow(row.key, { daysFromNow: event.target.value })}
-                    placeholder="No due date"
-                    aria-label="Standard duration in days"
+                    value={row.title}
+                    onChange={(event) => updateRow(row.key, { title: event.target.value })}
+                    placeholder="Task title"
+                    aria-label="Task title"
                   />
-                  <span className="shrink-0 text-xs text-slate-400">days</span>
+                  <Select
+                    key={`type-${row.key}-${selectGen}`}
+                    value={row.type}
+                    onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })}
+                    aria-label="Task type"
+                  >
+                    {TASK_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {TASK_TYPE_LABELS[type]}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select
+                    key={`priority-${row.key}-${selectGen}`}
+                    value={row.priority}
+                    onChange={(event) => updateRow(row.key, { priority: event.target.value as TaskPriority })}
+                    aria-label="Task priority"
+                  >
+                    {TASK_PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {TASK_PRIORITY_LABELS[priority]}
+                      </option>
+                    ))}
+                  </Select>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputMode="numeric"
+                      value={row.daysFromNow}
+                      onChange={(event) => updateRow(row.key, { daysFromNow: event.target.value })}
+                      placeholder="No due date"
+                      aria-label="Standard duration in days"
+                    />
+                    <span className="shrink-0 text-xs text-slate-400">days</span>
+                  </div>
+                  <div className="flex items-center gap-1 justify-self-end">
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, -1)}
+                      disabled={index === 0}
+                      aria-label="Move task up"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveRow(index, 1)}
+                      disabled={index === rows.length - 1}
+                      aria-label="Move task down"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.key)}
+                      aria-label="Remove task"
+                      className="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 justify-self-end">
-                  <button
-                    type="button"
-                    onClick={() => moveRow(index, -1)}
-                    disabled={index === 0}
-                    aria-label="Move task up"
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moveRow(index, 1)}
-                    disabled={index === rows.length - 1}
-                    aria-label="Move task down"
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-neutral-800"
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeRow(row.key)}
-                    aria-label="Remove task"
-                    className="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:text-rose-400 dark:hover:bg-rose-950 dark:hover:text-rose-300"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                {users.length > 0 && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div>
+                      <Label htmlFor={`${row.key}-assignees`}>Assignees</Label>
+                      <MultiCombobox
+                        id={`${row.key}-assignees`}
+                        name="assigneeIds"
+                        options={userOptions}
+                        value={row.assigneeIds}
+                        onValueChange={(value) => updateRow(row.key, { assigneeIds: value })}
+                        placeholder="Who's responsible…"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor={`${row.key}-followers`}>Followers</Label>
+                      <MultiCombobox
+                        id={`${row.key}-followers`}
+                        name="followerIds"
+                        options={userOptions}
+                        value={row.followerIds}
+                        onValueChange={(value) => updateRow(row.key, { followerIds: value })}
+                        placeholder="Who wants visibility…"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              {users.length > 0 && (
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <div>
-                    <Label htmlFor={`${row.key}-assignees`}>Assignees</Label>
-                    <MultiCombobox
-                      id={`${row.key}-assignees`}
-                      name="assigneeIds"
-                      options={userOptions}
-                      value={row.assigneeIds}
-                      onValueChange={(value) => updateRow(row.key, { assigneeIds: value })}
-                      placeholder="Who's responsible…"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`${row.key}-followers`}>Followers</Label>
-                    <MultiCombobox
-                      id={`${row.key}-followers`}
-                      name="followerIds"
-                      options={userOptions}
-                      value={row.followerIds}
-                      onValueChange={(value) => updateRow(row.key, { followerIds: value })}
-                      placeholder="Who wants visibility…"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

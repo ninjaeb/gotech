@@ -14,14 +14,14 @@ const timeEntrySchema = z.object({
 function revalidateTimePaths(taskId: string, task: {
   contactId: string | null;
   companyId: string | null;
-  dealId: string | null;
+  dealIds: string[];
   projectId: string | null;
 }) {
   revalidatePath(`/system/tasks/${taskId}/time`);
   revalidatePath("/system/tasks");
   if (task.contactId) revalidatePath(`/system/contacts/${task.contactId}`);
   if (task.companyId) revalidatePath(`/system/companies/${task.companyId}`);
-  if (task.dealId) revalidatePath(`/system/deals/${task.dealId}`);
+  for (const dealId of task.dealIds) revalidatePath(`/system/deals/${dealId}`);
   if (task.projectId) revalidatePath(`/system/projects/${task.projectId}`);
 }
 
@@ -40,7 +40,7 @@ export async function logTime(taskId: string, formData: FormData) {
     getCurrentUser(),
     db.task.findUniqueOrThrow({
       where: { id: taskId },
-      select: { contactId: true, companyId: true, dealId: true, projectId: true },
+      select: { contactId: true, companyId: true, projectId: true, deals: { select: { dealId: true } } },
     }),
   ]);
 
@@ -54,7 +54,7 @@ export async function logTime(taskId: string, formData: FormData) {
     },
   });
 
-  revalidateTimePaths(taskId, task);
+  revalidateTimePaths(taskId, { ...task, dealIds: task.deals.map((d) => d.dealId) });
 }
 
 export async function deleteTimeEntry(taskId: string, id: string, formData: FormData) {
@@ -63,7 +63,7 @@ export async function deleteTimeEntry(taskId: string, id: string, formData: Form
     getCurrentUser(),
     db.task.findUniqueOrThrow({
       where: { id: taskId },
-      select: { contactId: true, companyId: true, dealId: true, projectId: true },
+      select: { contactId: true, companyId: true, projectId: true, deals: { select: { dealId: true } } },
     }),
     db.timeEntry.findUniqueOrThrow({ where: { id, taskId }, select: { userId: true } }),
   ]);
@@ -73,5 +73,5 @@ export async function deleteTimeEntry(taskId: string, id: string, formData: Form
 
   await db.timeEntry.delete({ where: { id, taskId } });
 
-  revalidateTimePaths(taskId, task);
+  revalidateTimePaths(taskId, { ...task, dealIds: task.deals.map((d) => d.dealId) });
 }

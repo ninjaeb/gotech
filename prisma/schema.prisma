@@ -787,7 +787,7 @@ model Deal {
   referredBy   User?   @relation("DealReferredBy", fields: [referredById], references: [id], onDelete: SetNull)
   referredById String?
 
-  tasks                Task[]
+  tasks                TaskDeal[]
   activities           Activity[]
   quotes               Quote[]
   invoices             Invoice[]
@@ -866,12 +866,10 @@ model Task {
   company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId String?
 
-  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
-  dealId String?
-
   project   Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectId String?
 
+  deals                          TaskDeal[]
   timeEntries                    TimeEntry[]
   assignees                      TaskAssignee[]
   followers                      TaskFollower[]
@@ -884,7 +882,6 @@ model Task {
 
   @@index([contactId])
   @@index([companyId])
-  @@index([dealId])
   @@index([projectId])
   @@index([dueDate])
 }
@@ -903,6 +900,26 @@ model TaskAssignee {
 
   @@unique([taskId, userId])
   @@index([userId])
+}
+
+// A Task used to point at at most one Deal (a single nullable dealId); it
+// now points at any number, so a shared task (e.g. "Send the combined
+// proposal") can sit under every deal it actually covers instead of an
+// arbitrary primary one. Plain many-to-many via an explicit join model,
+// same convention as TaskAssignee/TaskFollower above. Both sides cascade:
+// deleting the deal only removes this link (the task survives if it's
+// linked to anything else), and deleting the task removes its links.
+model TaskDeal {
+  id String @id @default(cuid())
+
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId String
+
+  deal   Deal   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  dealId String
+
+  @@unique([taskId, dealId])
+  @@index([dealId])
 }
 
 // Who gets visibility on a Task without being one of the people responsible

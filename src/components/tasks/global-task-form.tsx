@@ -8,9 +8,9 @@ import { Combobox } from "@/components/ui/combobox";
 import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
-import { fullName } from "@/lib/format";
+import { formatCurrency, fullName } from "@/lib/format";
 
-type DealOption = { id: string; title: string; companyId: string | null; contactId: string | null };
+type DealOption = { id: string; title: string; value: string; companyId: string | null; contactId: string | null };
 
 function dealMatches(deal: DealOption, companyId: string, contactId: string) {
   if (!companyId && !contactId) return true;
@@ -22,17 +22,19 @@ export function GlobalTaskForm({
   contacts,
   deals,
   users,
+  currency,
 }: {
   companies: { id: string; name: string }[];
   contacts: { id: string; firstName: string; lastName: string | null; companyId: string | null }[];
   deals: DealOption[];
   users: { id: string; name: string }[];
+  currency: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [companyId, setCompanyId] = useState("");
   const [contactId, setContactId] = useState("");
-  const [dealId, setDealId] = useState("");
+  const [dealIds, setDealIds] = useState<string[]>([]);
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
@@ -42,6 +44,19 @@ export function GlobalTaskForm({
     () => deals.filter((deal) => dealMatches(deal, companyId, contactId)),
     [deals, companyId, contactId],
   );
+  const dealOptions = useMemo(
+    () => deals.map((deal) => ({ value: deal.id, label: deal.title, sublabel: formatCurrency(deal.value, currency) })),
+    [deals, currency],
+  );
+
+  function pruneMismatchedDeals(nextCompanyId: string, nextContactId: string) {
+    setDealIds((current) =>
+      current.filter((dealId) => {
+        const deal = deals.find((d) => d.id === dealId);
+        return !deal || dealMatches(deal, nextCompanyId, nextContactId);
+      }),
+    );
+  }
 
   function handleCompanyChange(nextCompanyId: string) {
     setCompanyId(nextCompanyId);
@@ -50,8 +65,7 @@ export function GlobalTaskForm({
       : contacts.some((contact) => contact.id === contactId && contact.companyId === nextCompanyId);
     const nextContactId = contactStillValid ? contactId : "";
     if (!contactStillValid) setContactId("");
-    const deal = deals.find((d) => d.id === dealId);
-    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
+    pruneMismatchedDeals(nextCompanyId, nextContactId);
   }
 
   function handleContactChange(nextContactId: string) {
@@ -59,8 +73,7 @@ export function GlobalTaskForm({
     const contact = contacts.find((c) => c.id === nextContactId);
     const nextCompanyId = contact?.companyId ?? companyId;
     if (contact?.companyId) setCompanyId(contact.companyId);
-    const deal = deals.find((d) => d.id === dealId);
-    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
+    pruneMismatchedDeals(nextCompanyId, nextContactId);
   }
 
   return (
@@ -72,7 +85,7 @@ export function GlobalTaskForm({
           formRef.current?.reset();
           setCompanyId("");
           setContactId("");
-          setDealId("");
+          setDealIds([]);
         });
       }}
       className="space-y-3"
@@ -153,17 +166,15 @@ export function GlobalTaskForm({
             ]}
           />
         </FieldGroup>
-        <FieldGroup label="Deal" htmlFor="g-dealId">
-          <Combobox
-            id="g-dealId"
-            name="dealId"
-            value={dealId}
-            onValueChange={setDealId}
+        <FieldGroup label="Deals" htmlFor="g-dealIds">
+          <MultiCombobox
+            id="g-dealIds"
+            name="dealIds"
+            value={dealIds}
+            onValueChange={setDealIds}
             placeholder="—"
-            options={[
-              { value: "", label: "—" },
-              ...filteredDeals.map((deal) => ({ value: deal.id, label: deal.title })),
-            ]}
+            emptyMessage={companyId || contactId ? "No matching deals for this company/contact" : "No matching deals"}
+            options={(companyId || contactId ? filteredDeals : deals).map((deal) => dealOptions.find((o) => o.value === deal.id)!)}
           />
         </FieldGroup>
       </div>

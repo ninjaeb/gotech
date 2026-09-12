@@ -13,15 +13,33 @@ export const FILTERS = [
 
 export type FilterKey = (typeof FILTERS)[number]["key"];
 
+export const SORTS = [
+  { key: "due", label: "Due date" },
+  { key: "priority", label: "Priority" },
+  { key: "dealValue", label: "Deal value" },
+] as const;
+
+export type SortKey = (typeof SORTS)[number]["key"];
+
+export function isSortKey(value: string | undefined): value is SortKey {
+  return SORTS.some((s) => s.key === value);
+}
+
 // `assigneeParam` is `undefined` to omit the URL param entirely (the
 // implicit "defaults to me" state) and any string, including "", to set it
 // explicitly (an explicit "All assignees" is `assignee=`, not an absent
 // param, so it doesn't quietly revert to the default when navigating).
-export function tabHref(key: FilterKey, query: string, assigneeParam?: string) {
+export function tabHref(
+  key: FilterKey,
+  query: string,
+  options: { assignee?: string; sort?: SortKey; minDealValue?: string } = {},
+) {
   const params = new URLSearchParams();
   if (key !== "open") params.set("filter", key);
   if (query) params.set("q", query);
-  if (assigneeParam !== undefined) params.set("assignee", assigneeParam);
+  if (options.assignee !== undefined) params.set("assignee", options.assignee);
+  if (options.sort && options.sort !== "due") params.set("sort", options.sort);
+  if (options.minDealValue) params.set("minDealValue", options.minDealValue);
   const qs = params.toString();
   return qs ? `/system/tasks?${qs}` : "/system/tasks";
 }

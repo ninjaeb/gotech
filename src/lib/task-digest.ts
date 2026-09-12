@@ -6,12 +6,12 @@ import { formatDate } from "@/lib/format";
 export type DigestTask = Task & {
   contact: Pick<Contact, "firstName" | "lastName"> | null;
   company: Pick<Company, "name"> | null;
-  deal: Pick<Deal, "title"> | null;
+  deals: { deal: Pick<Deal, "title"> }[];
   project: Pick<Project, "name"> | null;
 };
 
 function describeParent(task: DigestTask): string | null {
-  if (task.deal) return `Deal: ${task.deal.title}`;
+  if (task.deals.length > 0) return `Deal: ${task.deals.map((link) => link.deal.title).join(", ")}`;
   if (task.project) return `Project: ${task.project.name}`;
   if (task.contact) {
     const name = [task.contact.firstName, task.contact.lastName].filter(Boolean).join(" ");
@@ -105,7 +105,7 @@ export async function runEmailTaskDigests(): Promise<EmailDigestRunResult> {
       include: {
         contact: { select: { firstName: true, lastName: true } },
         company: { select: { name: true } },
-        deal: { select: { title: true } },
+        deals: { include: { deal: { select: { title: true } } } },
         project: { select: { name: true } },
       },
     });

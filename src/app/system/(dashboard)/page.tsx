@@ -111,7 +111,7 @@ export default async function DashboardPage() {
     db.deal.count({
       where: {
         pipelineStage: { isWon: false, isLost: false },
-        tasks: { none: { completed: false, dueDate: { not: null } } },
+        tasks: { none: { task: { completed: false, dueDate: { not: null } } } },
       },
     }),
     db.task.findMany({
@@ -121,7 +121,7 @@ export default async function DashboardPage() {
       include: {
         contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        deals: { include: { deal: { select: { id: true, title: true, contact: { select: contactSelect } } } } },
         project: {
           select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
         },
@@ -136,7 +136,7 @@ export default async function DashboardPage() {
       include: {
         contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        deals: { include: { deal: { select: { id: true, title: true, contact: { select: contactSelect } } } } },
         project: {
           select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
         },

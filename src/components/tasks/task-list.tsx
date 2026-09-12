@@ -22,16 +22,27 @@ import { cn } from "@/lib/utils";
 // without breaking this type — only the dashboard and /tasks page, which
 // do render those buttons, select the fuller shape.
 type ContactRef = Pick<Contact, "id" | "firstName" | "lastName"> & Partial<Pick<Contact, "email" | "phone">>;
-type DealRef = Pick<Deal, "id" | "title"> & { contact?: ContactRef | null };
+export type DealRef = Pick<Deal, "id" | "title"> & { contact?: ContactRef | null };
 
 export type TaskWithRelations = Task & {
   contact?: ContactRef | null;
   company?: Pick<Company, "id" | "name"> | null;
-  deal?: DealRef | null;
+  // A task can be linked to any number of deals (see the TaskDeal join
+  // table) — the raw join rows, same shape `include: { deals: { include: {
+  // deal: {...} } } }` returns, so every query site can pass its Prisma
+  // result straight through with no extra mapping.
+  deals?: { deal: DealRef }[];
   project?: (Pick<Project, "id" | "name"> & { deal?: DealRef | null }) | null;
   assignees?: { user: Pick<User, "id" | "name"> }[];
   _count?: { followers: number };
 };
+
+// The deals actually linked to a task, unwrapped from the join rows above —
+// shared by every place that needs them (this file, the filter panel's
+// search, the task detail page).
+export function taskDeals(task: TaskWithRelations): DealRef[] {
+  return task.deals?.map((link) => link.deal) ?? [];
+}
 
 // MySQL sorts NULL as the lowest value, so `ORDER BY dueDate ASC` puts
 // undated tasks first — the opposite of what people expect (a task with no
@@ -96,13 +107,14 @@ export function TaskList({
         const overdue =
           !task.completed && task.dueDate && new Date(task.dueDate) < new Date();
         const dueLabel = relativeToToday(task.dueDate);
+        const deals = taskDeals(task);
         const durationLabel = task.completed
           ? `Done in ${formatDuration(task.createdAt, task.completedAt ?? undefined)}`
           : `Running ${formatDuration(task.createdAt)}`;
         // Same resolution as the task detail page: whichever contact this
         // task is actually about, direct link first, falling back through
-        // its deal or project.
-        const clientContact = task.contact ?? task.deal?.contact ?? task.project?.deal?.contact ?? null;
+        // its (first) deal or project.
+        const clientContact = task.contact ?? deals[0]?.contact ?? task.project?.deal?.contact ?? null;
         const clientName = clientContact ? fullName(clientContact.firstName, clientContact.lastName) : "";
 
         return (
@@ -195,7 +207,7 @@ export function TaskList({
                   className="mt-1 text-sm text-slate-500 dark:text-slate-400"
                 />
               )}
-              {showParent && (task.contact || task.company || task.deal || task.project) && (
+              {showParent && (task.contact || task.company || deals.length > 0 || task.project) && (
                 <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-400">
                   {task.contact && (
                     <Link
@@ -213,14 +225,15 @@ export function TaskList({
                       {task.company.name}
                     </Link>
                   )}
-                  {task.deal && (
+                  {deals.map((deal) => (
                     <Link
-                      href={`/system/deals/${task.deal.id}`}
+                      key={deal.id}
+                      href={`/system/deals/${deal.id}`}
                       className="hover:text-indigo-600 hover:underline"
                     >
-                      {task.deal.title}
+                      {deal.title}
                     </Link>
-                  )}
+                  ))}
                   {task.project && (
                     <Link
                       href={`/system/projects/${task.project.id}`}

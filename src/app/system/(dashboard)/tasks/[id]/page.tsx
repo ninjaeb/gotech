@@ -44,7 +44,7 @@ export default async function TaskDetailPage({
       include: {
         contact: { select: contactSelect },
         company: { select: { id: true, name: true } },
-        deal: { select: { id: true, title: true, contact: { select: contactSelect } } },
+        deals: { include: { deal: { select: { id: true, title: true, contact: { select: contactSelect } } } } },
         project: {
           select: { id: true, name: true, deal: { select: { id: true, title: true, contact: { select: contactSelect } } } },
         },
@@ -68,11 +68,13 @@ export default async function TaskDetailPage({
   const totalMinutes = timeLogged._sum.minutes ?? 0;
   const overdue = !task.completed && task.dueDate && new Date(task.dueDate) < new Date();
 
+  const deals = task.deals.map((link) => link.deal);
+
   // "The client" for the send-email/WhatsApp buttons — whichever contact
   // this task is actually about. A direct link wins; otherwise fall back
-  // through the deal or project's own contact, since a task can be linked
-  // to those without a contact set directly on it.
-  const clientContact = task.contact ?? task.deal?.contact ?? task.project?.deal?.contact ?? null;
+  // through the (first) deal or project's own contact, since a task can be
+  // linked to those without a contact set directly on it.
+  const clientContact = task.contact ?? deals[0]?.contact ?? task.project?.deal?.contact ?? null;
   const clientSection = (() => {
     if (!clientContact) return null;
     const name = fullName(clientContact.firstName, clientContact.lastName);
@@ -167,7 +169,20 @@ export default async function TaskDetailPage({
               <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <DetailRow label="Company" value={task.company?.name} href={task.company ? `/system/companies/${task.company.id}` : undefined} />
                 <DetailRow label="Contact" value={clientSection} />
-                <DetailRow label="Deal" value={task.deal?.title} href={task.deal ? `/system/deals/${task.deal.id}` : undefined} />
+                <DetailRow
+                  label="Deals"
+                  value={
+                    deals.length > 0 ? (
+                      <span className="flex flex-wrap gap-x-2 gap-y-1">
+                        {deals.map((deal) => (
+                          <Link key={deal.id} href={`/system/deals/${deal.id}`} className="text-indigo-600 hover:underline">
+                            {deal.title}
+                          </Link>
+                        ))}
+                      </span>
+                    ) : null
+                  }
+                />
                 <DetailRow
                   label="Project"
                   value={task.project?.name}

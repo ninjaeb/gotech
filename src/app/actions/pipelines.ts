@@ -288,13 +288,17 @@ export async function applyPipelineTaskTemplate(
       orderBy: { sortOrder: "asc" },
       include: { assignees: true, followers: true },
     }),
-    db.task.findMany({ where: { dealId: deal.id }, select: { title: true } }),
+    db.task.findMany({ where: { deals: { some: { dealId: deal.id } } }, select: { title: true } }),
   ]);
   if (items.length === 0) return 0;
   const existingTitles = new Set(existingTasks.map((t) => t.title));
   const toCreate = items.filter((item) => !existingTitles.has(item.title));
   if (toCreate.length === 0) return 0;
 
+  // A task can link to more than one deal (see the TaskDeal join table),
+  // so seeding the link needs a nested relation write — createMany only
+  // writes flat scalar rows and can't express that, hence one create per
+  // item rather than a single bulk insert.
   const now = Date.now();
   const createdTasks = await Promise.all(
     toCreate.map((item) => {
@@ -307,9 +311,9 @@ export async function applyPipelineTaskTemplate(
           type: item.type,
           priority: item.priority,
           dueDate: item.daysFromNow === null ? null : new Date(now + item.daysFromNow * 86_400_000),
-          dealId: deal.id,
           companyId: deal.companyId,
           contactId: deal.contactId,
+          deals: { create: [{ dealId: deal.id }] },
           assignees: { create: assigneeIds.map((userId) => ({ userId })) },
           followers: { create: [...followerIds].map((userId) => ({ userId })) },
         },
