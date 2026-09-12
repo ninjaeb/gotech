@@ -4,13 +4,15 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/field";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
-import { TaskList, type TaskWithRelations } from "@/components/tasks/task-list";
+import { TaskList, taskDeals, type TaskWithRelations } from "@/components/tasks/task-list";
 import { AssigneeFilterSelect } from "@/components/tasks/assignee-filter-select";
+import { SortSelect } from "@/components/tasks/sort-select";
 import { TASK_PRIORITY_LABELS, TASK_TYPE_LABELS } from "@/lib/labels";
 import { fullName } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { FILTERS, tabHref, type FilterKey } from "@/lib/task-filters";
+import { FILTERS, tabHref, type FilterKey, type SortKey } from "@/lib/task-filters";
 import type { UserOption } from "@/lib/mentions";
 
 // Everything shown in a task row (and a few things that aren't, like type/
@@ -18,7 +20,8 @@ import type { UserOption } from "@/lib/mentions";
 // company, contact, deal/project, and assignee names — not just the task's
 // own title/description.
 function searchableText(task: TaskWithRelations): string {
-  const contact = task.contact ?? task.deal?.contact ?? task.project?.deal?.contact ?? null;
+  const deals = taskDeals(task);
+  const contact = task.contact ?? deals[0]?.contact ?? task.project?.deal?.contact ?? null;
   return [
     task.title,
     task.description,
@@ -26,7 +29,7 @@ function searchableText(task: TaskWithRelations): string {
     TASK_PRIORITY_LABELS[task.priority],
     task.company?.name,
     contact ? fullName(contact.firstName, contact.lastName) : null,
-    task.deal?.title,
+    ...deals.map((deal) => deal.title),
     task.project?.name,
     task.project?.deal?.title,
     ...(task.assignees?.map((a) => a.user.name) ?? []),
@@ -39,10 +42,13 @@ function searchableText(task: TaskWithRelations): string {
 export function TasksFilterPanel({
   tasks,
   users,
+  currency,
   canManage,
   hasEmailAccount,
   hasWhatsAppAccount,
   filter,
+  sort,
+  minDealValue,
   initialQuery = "",
   assigneeExplicit,
   assigneeId,
@@ -50,16 +56,20 @@ export function TasksFilterPanel({
 }: {
   tasks: TaskWithRelations[];
   users: UserOption[];
+  currency: string;
   canManage: boolean;
   hasEmailAccount: boolean;
   hasWhatsAppAccount: boolean;
   filter: FilterKey;
+  sort: SortKey;
+  minDealValue?: string;
   initialQuery?: string;
   assigneeExplicit: boolean;
   assigneeId?: string;
   emptyMessage: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
+  const tabOptions = { assignee: assigneeExplicit ? (assigneeId ?? "") : undefined, sort, minDealValue };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -73,7 +83,7 @@ export function TasksFilterPanel({
         {FILTERS.map((f) => (
           <Link
             key={f.key}
-            href={tabHref(f.key, query, assigneeExplicit ? (assigneeId ?? "") : undefined)}
+            href={tabHref(f.key, query, tabOptions)}
             className={cn(
               "shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium",
               filter === f.key
@@ -88,9 +98,10 @@ export function TasksFilterPanel({
 
       <form className="mb-4 flex flex-wrap items-center gap-2">
         {filter !== "open" && <input type="hidden" name="filter" value={filter} />}
-        {/* Mirrors the live query so changing the assignee (which submits
-            this form and reloads with a fresh server-filtered task set)
-            carries the current search text forward instead of losing it. */}
+        {/* Mirrors the live query so changing the assignee/sort/min-value
+            (which submit this form and reload with a fresh server-filtered
+            task set) carries the current search text forward instead of
+            losing it. */}
         <input type="hidden" name="q" value={query} />
         <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -103,6 +114,21 @@ export function TasksFilterPanel({
           />
         </div>
         <AssigneeFilterSelect users={users} defaultValue={assigneeId} />
+        <SortSelect defaultValue={sort} />
+        <Input
+          type="number"
+          name="minDealValue"
+          min="0"
+          step="0.01"
+          inputMode="decimal"
+          defaultValue={minDealValue ?? ""}
+          placeholder={`Min deal value (${currency})`}
+          aria-label={`Minimum deal value, in ${currency}`}
+          className="w-44"
+        />
+        <Button type="submit" variant="secondary" size="sm">
+          Apply
+        </Button>
       </form>
 
       <Card>

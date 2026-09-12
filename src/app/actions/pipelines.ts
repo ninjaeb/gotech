@@ -267,25 +267,33 @@ export async function applyPipelineTaskTemplate(deal: {
 }): Promise<number> {
   const [items, existingTasks] = await Promise.all([
     db.pipelineTaskTemplateItem.findMany({ where: { pipelineId: deal.pipelineId }, orderBy: { sortOrder: "asc" } }),
-    db.task.findMany({ where: { dealId: deal.id }, select: { title: true } }),
+    db.task.findMany({ where: { deals: { some: { dealId: deal.id } } }, select: { title: true } }),
   ]);
   if (items.length === 0) return 0;
   const existingTitles = new Set(existingTasks.map((t) => t.title));
   const toCreate = items.filter((item) => !existingTitles.has(item.title));
   if (toCreate.length === 0) return 0;
 
+  // A task can link to more than one deal (see the TaskDeal join table),
+  // so seeding the link needs a nested relation write — createMany only
+  // writes flat scalar rows and can't express that, hence one create per
+  // item rather than a single bulk insert.
   const now = Date.now();
-  await db.task.createMany({
-    data: toCreate.map((item) => ({
-      title: item.title,
-      type: item.type,
-      priority: item.priority,
-      dueDate: item.daysFromNow === null ? null : new Date(now + item.daysFromNow * 86_400_000),
-      dealId: deal.id,
-      companyId: deal.companyId,
-      contactId: deal.contactId,
-    })),
-  });
+  await Promise.all(
+    toCreate.map((item) =>
+      db.task.create({
+        data: {
+          title: item.title,
+          type: item.type,
+          priority: item.priority,
+          dueDate: item.daysFromNow === null ? null : new Date(now + item.daysFromNow * 86_400_000),
+          companyId: deal.companyId,
+          contactId: deal.contactId,
+          deals: { create: [{ dealId: deal.id }] },
+        },
+      }),
+    ),
+  );
   return toCreate.length;
 }
 

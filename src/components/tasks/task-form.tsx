@@ -10,10 +10,10 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { AttachmentField } from "@/components/activity/attachment-field";
 import { AttachmentPreview, type AttachmentInfo } from "@/components/activity/attachment-preview";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
-import { formatDateInput, fullName } from "@/lib/format";
+import { formatCurrency, formatDateInput, fullName } from "@/lib/format";
 
 type ContactOption = { id: string; firstName: string; lastName: string | null; companyId: string | null };
-type DealOption = { id: string; title: string; companyId: string | null; contactId: string | null };
+type DealOption = { id: string; title: string; value: string; companyId: string | null; contactId: string | null };
 type UserOption = { id: string; name: string };
 
 function dealMatches(deal: DealOption, companyId: string, contactId: string) {
@@ -28,6 +28,8 @@ export function TaskForm({
   contacts,
   deals,
   users,
+  currency,
+  dealIds = [],
   assigneeIds = [],
   followerIds = [],
   existingAttachments = [],
@@ -39,6 +41,9 @@ export function TaskForm({
   contacts: ContactOption[];
   deals: DealOption[];
   users: UserOption[];
+  currency: string;
+  // A task can belong to any number of deals — see the TaskDeal join table.
+  dealIds?: string[];
   assigneeIds?: string[];
   followerIds?: string[];
   existingAttachments?: AttachmentInfo[];
@@ -46,7 +51,7 @@ export function TaskForm({
 }) {
   const [companyId, setCompanyId] = useState(task?.companyId ?? "");
   const [contactId, setContactId] = useState(task?.contactId ?? "");
-  const [dealId, setDealId] = useState(task?.dealId ?? "");
+  const [selectedDealIds, setSelectedDealIds] = useState(dealIds);
 
   const filteredContacts = useMemo(
     () => (companyId ? contacts.filter((contact) => contact.companyId === companyId) : contacts),
@@ -56,6 +61,23 @@ export function TaskForm({
     () => deals.filter((deal) => dealMatches(deal, companyId, contactId)),
     [deals, companyId, contactId],
   );
+  const dealOptions = useMemo(
+    () => deals.map((deal) => ({ value: deal.id, label: deal.title, sublabel: formatCurrency(deal.value, currency) })),
+    [deals, currency],
+  );
+
+  // Dropping a company/contact that no longer matches a selected deal keeps
+  // the deal picker honest — the same pruning the single-select version of
+  // this field already did, just applied across every currently-picked deal
+  // instead of just one.
+  function pruneMismatchedDeals(nextCompanyId: string, nextContactId: string) {
+    setSelectedDealIds((current) =>
+      current.filter((dealId) => {
+        const deal = deals.find((d) => d.id === dealId);
+        return !deal || dealMatches(deal, nextCompanyId, nextContactId);
+      }),
+    );
+  }
 
   function handleCompanyChange(nextCompanyId: string) {
     setCompanyId(nextCompanyId);
@@ -64,8 +86,7 @@ export function TaskForm({
       : contacts.some((contact) => contact.id === contactId && contact.companyId === nextCompanyId);
     const nextContactId = contactStillValid ? contactId : "";
     if (!contactStillValid) setContactId("");
-    const deal = deals.find((d) => d.id === dealId);
-    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
+    pruneMismatchedDeals(nextCompanyId, nextContactId);
   }
 
   function handleContactChange(nextContactId: string) {
@@ -73,8 +94,7 @@ export function TaskForm({
     const contact = contacts.find((c) => c.id === nextContactId);
     const nextCompanyId = contact?.companyId ?? companyId;
     if (contact?.companyId) setCompanyId(contact.companyId);
-    const deal = deals.find((d) => d.id === dealId);
-    if (deal && !dealMatches(deal, nextCompanyId, nextContactId)) setDealId("");
+    pruneMismatchedDeals(nextCompanyId, nextContactId);
   }
 
   return (
@@ -126,7 +146,7 @@ export function TaskForm({
         </FieldGroup>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Company" htmlFor="companyId">
           <Combobox
             id="companyId"
@@ -156,20 +176,23 @@ export function TaskForm({
             ]}
           />
         </FieldGroup>
-        <FieldGroup label="Deal" htmlFor="dealId">
-          <Combobox
-            id="dealId"
-            name="dealId"
-            value={dealId}
-            onValueChange={setDealId}
-            placeholder="—"
-            options={[
-              { value: "", label: "—" },
-              ...filteredDeals.map((deal) => ({ value: deal.id, label: deal.title })),
-            ]}
-          />
-        </FieldGroup>
       </div>
+
+      <FieldGroup label="Deals" htmlFor="dealIds">
+        {deals.length === 0 ? (
+          <p className="text-sm text-slate-400">No deals to link this task to.</p>
+        ) : (
+          <MultiCombobox
+            id="dealIds"
+            name="dealIds"
+            value={selectedDealIds}
+            onValueChange={setSelectedDealIds}
+            placeholder="Search deals…"
+            emptyMessage={companyId || contactId ? "No matching deals for this company/contact" : "No matching deals"}
+            options={(companyId || contactId ? filteredDeals : deals).map((deal) => dealOptions.find((o) => o.value === deal.id)!)}
+          />
+        )}
+      </FieldGroup>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FieldGroup label="Assignees" htmlFor="assigneeIds">

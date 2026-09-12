@@ -104,7 +104,7 @@ export async function runTaskReminders({ force = false }: { force?: boolean } = 
       include: {
         contact: { select: { firstName: true, lastName: true } },
         company: { select: { name: true } },
-        deal: { select: { title: true } },
+        deals: { include: { deal: { select: { title: true } } } },
         project: { select: { name: true } },
       },
     });
