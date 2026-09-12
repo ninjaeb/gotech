@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Copy, ExternalLink, FilePlus2, Mail, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, FilePlus2, Mail, MessageCircle, Pencil, Receipt, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { deleteQuote, duplicateQuote, issueQuoteForm, reviseQuote } from "@/app/actions/quotes";
+import { convertQuoteToInvoice } from "@/app/actions/invoices";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +117,25 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
                     Duplicate
                   </button>
                 </form>
+                {quote.status === "ACCEPTED" && (
+                  <form action={convertQuoteToInvoice.bind(null, quote.id)}>
+                    {row.convertedAt ? (
+                      <ConfirmSubmitButton
+                        variant="secondary"
+                        size="md"
+                        confirmMessage="An invoice was already drafted from this quote. Draft another one anyway?"
+                      >
+                        <Receipt className="h-4 w-4" />
+                        Convert to invoice
+                      </ConfirmSubmitButton>
+                    ) : (
+                      <button type="submit" className={buttonClasses("secondary")}>
+                        <Receipt className="h-4 w-4" />
+                        Convert to invoice
+                      </button>
+                    )}
+                  </form>
+                )}
               </>
             )}
           </>

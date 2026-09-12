@@ -4,13 +4,15 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
-import { requireAdminAction } from "@/lib/auth/dal";
+import { Prisma, TaskPriority, TaskType } from "@/generated/prisma/client";
+import { requireAdminAction, requireSalesAction } from "@/lib/auth/dal";
 import { withFlash } from "@/lib/utils";
 
 export type PipelineFormState = { error: string } | undefined;
 export type PipelineStagesState = { error: string } | { success: true } | undefined;
 export type PipelineActionState = { error: string } | { success: true } | undefined;
+export type PipelineTaskTemplateState = { error: string } | { success: true } | undefined;
+export type ApplyTaskTemplateState = { error: string } | { success: true; count: number } | undefined;
 
 const STARTER_STAGES = [
   { name: "New", isWon: false, isLost: false },
@@ -66,6 +68,46 @@ export async function setDefaultPipeline(id: string): Promise<PipelineActionStat
   revalidatePath("/system/deals");
   revalidatePath("/system");
   return { success: true };
+}
+
+// Copies a pipeline's stages and standard task checklist onto a brand-new
+// pipeline — never its deals, and never isDefault (a duplicate always
+// starts as a plain, non-default pipeline the admin can promote by hand).
+export async function duplicatePipeline(id: string, formData: FormData) {
+  void formData;
+  await requireAdminAction();
+  const [source, count] = await Promise.all([
+    db.pipeline.findUniqueOrThrow({
+      where: { id },
+      include: {
+        stages: { orderBy: { sortOrder: "asc" } },
+        taskTemplateItems: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+    db.pipeline.count(),
+  ]);
+
+  const copy = await db.pipeline.create({
+    data: {
+      name: `${source.name} (copy)`,
+      sortOrder: count,
+      stages: {
+        create: source.stages.map((stage) => ({ name: stage.name, isWon: stage.isWon, isLost: stage.isLost, sortOrder: stage.sortOrder })),
+      },
+      taskTemplateItems: {
+        create: source.taskTemplateItems.map((item) => ({
+          title: item.title,
+          type: item.type,
+          priority: item.priority,
+          daysFromNow: item.daysFromNow,
+          sortOrder: item.sortOrder,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/system/settings/pipelines");
+  redirect(withFlash(`/system/settings/pipelines/${copy.id}`, `Duplicated "${source.name}".`));
 }
 
 export async function deletePipeline(id: string, formData: FormData) {
@@ -152,4 +194,125 @@ export async function updatePipelineStages(
   revalidatePath("/system/deals");
   revalidatePath("/system");
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// Task checklist template — the standard set of tasks every deal of this
+// pipeline's "type" should start with. applyPipelineTaskTemplate (below)
+// turns these into real Tasks; daysFromNow is a standard duration counted
+// from whenever the template is applied to a deal, not from the template
+// item's own createdAt — same idiom as MILESTONE_TEMPLATE's daysFromNow in
+// src/app/actions/projects.ts.
+
+const taskTemplateItemSchema = z.object({
+  id: z.string().trim().nullable(),
+  title: z.string().trim().min(1, "Every task needs a title"),
+  type: z.nativeEnum(TaskType),
+  priority: z.nativeEnum(TaskPriority),
+  daysFromNow: z.number().int().min(0).nullable(),
+});
+const taskTemplateItemsSchema = z.array(taskTemplateItemSchema);
+
+export async function updatePipelineTaskTemplate(
+  pipelineId: string,
+  _prevState: PipelineTaskTemplateState,
+  formData: FormData,
+): Promise<PipelineTaskTemplateState> {
+  await requireAdminAction();
+  let rawItems: unknown;
+  try {
+    rawItems = JSON.parse(String(formData.get("itemsJson") || "[]"));
+  } catch {
+    return { error: "Task list data could not be read — try again." };
+  }
+  const parsed = taskTemplateItemsSchema.safeParse(rawItems);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Invalid task list data" };
+  }
+  const items = parsed.data;
+
+  const existing = await db.pipelineTaskTemplateItem.findMany({ where: { pipelineId }, select: { id: true } });
+  const submittedIds = new Set(items.map((i) => i.id).filter((id): id is string => Boolean(id)));
+  const removedIds = existing.map((i) => i.id).filter((id) => !submittedIds.has(id));
+
+  await db.$transaction(async (tx) => {
+    if (removedIds.length > 0) {
+      await tx.pipelineTaskTemplateItem.deleteMany({ where: { id: { in: removedIds } } });
+    }
+    for (const [index, item] of items.entries()) {
+      const data = { title: item.title, type: item.type, priority: item.priority, daysFromNow: item.daysFromNow, sortOrder: index };
+      if (item.id) {
+        await tx.pipelineTaskTemplateItem.update({ where: { id: item.id }, data });
+      } else {
+        await tx.pipelineTaskTemplateItem.create({ data: { ...data, pipelineId } });
+      }
+    }
+  });
+
+  revalidatePath(`/system/settings/pipelines/${pipelineId}`);
+  return { success: true };
+}
+
+// Turns a pipeline's standard checklist into real Tasks on a deal, linked
+// to the deal itself and its company/contact (so the task also shows up on
+// their own pages, not just the deal's) — skips any title the deal's tasks
+// already carry, so this is safe to call more than once (re-applied by
+// hand after the template changes, or a deal already seeded at creation)
+// without piling up duplicates. Returns how many tasks it actually added.
+export async function applyPipelineTaskTemplate(deal: {
+  id: string;
+  pipelineId: string;
+  companyId: string | null;
+  contactId: string | null;
+}): Promise<number> {
+  const [items, existingTasks] = await Promise.all([
+    db.pipelineTaskTemplateItem.findMany({ where: { pipelineId: deal.pipelineId }, orderBy: { sortOrder: "asc" } }),
+    db.task.findMany({ where: { deals: { some: { dealId: deal.id } } }, select: { title: true } }),
+  ]);
+  if (items.length === 0) return 0;
+  const existingTitles = new Set(existingTasks.map((t) => t.title));
+  const toCreate = items.filter((item) => !existingTitles.has(item.title));
+  if (toCreate.length === 0) return 0;
+
+  // A task can link to more than one deal (see the TaskDeal join table),
+  // so seeding the link needs a nested relation write — createMany only
+  // writes flat scalar rows and can't express that, hence one create per
+  // item rather than a single bulk insert.
+  const now = Date.now();
+  await Promise.all(
+    toCreate.map((item) =>
+      db.task.create({
+        data: {
+          title: item.title,
+          type: item.type,
+          priority: item.priority,
+          dueDate: item.daysFromNow === null ? null : new Date(now + item.daysFromNow * 86_400_000),
+          companyId: deal.companyId,
+          contactId: deal.contactId,
+          deals: { create: [{ dealId: deal.id }] },
+        },
+      }),
+    ),
+  );
+  return toCreate.length;
+}
+
+export async function applyTaskTemplateToDeal(
+  dealId: string,
+  _prevState: ApplyTaskTemplateState,
+  formData: FormData,
+): Promise<ApplyTaskTemplateState> {
+  void formData;
+  await requireSalesAction();
+  const deal = await db.deal.findUnique({
+    where: { id: dealId },
+    select: { id: true, pipelineId: true, companyId: true, contactId: true },
+  });
+  if (!deal) return { error: "Deal not found." };
+
+  const count = await applyPipelineTaskTemplate(deal);
+  revalidatePath(`/system/deals/${dealId}`);
+  revalidatePath("/system/tasks");
+  revalidatePath("/system");
+  return { success: true, count };
 }

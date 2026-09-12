@@ -25,7 +25,7 @@ export default async function EditInvoicePage({
       <PageHeader
         breadcrumbs={[
           { label: "Projects", href: "/system/projects" },
-          { label: invoice.project.name, href: `/system/projects/${projectId}` },
+          { label: invoice.project?.name ?? "Project", href: `/system/projects/${projectId}` },
           { label: "Edit" },
         ]}
         title={`Edit ${invoice.title}`}
