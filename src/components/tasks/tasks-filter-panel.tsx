@@ -103,6 +103,13 @@ export function TasksFilterPanel({
             task set) carries the current search text forward instead of
             losing it. */}
         <input type="hidden" name="q" value={query} />
+        {/* Marks this navigation as an actual submission of this form —
+            typing + Apply, or the Sort/Assignee selects auto-submitting —
+            as opposed to some other link elsewhere in the app that merely
+            happens to carry one of these same params. The Tasks page reads
+            it to decide whether to remember these choices as this user's
+            new default (see task-list-prefs.ts). */}
+        <input type="hidden" name="applied" value="1" />
         <div className="relative max-w-sm flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input

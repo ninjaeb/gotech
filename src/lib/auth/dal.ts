@@ -19,7 +19,7 @@ export const getCurrentUser = cache(async () => {
   const session = await verifySession();
   const user = await db.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true },
+    select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true, taskListPrefs: true },
   });
   if (!user) {
     redirect("/system/login");

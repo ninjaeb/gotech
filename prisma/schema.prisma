@@ -134,6 +134,14 @@ model User {
   // on the entities being viewed.
   sectionLayout String? @db.Text
 
+  // JSON: { sort?: SortKey, assignee?: string, minDealValue?: string } — the
+  // Sort/Assignee/Min-deal-value choices last applied on the Tasks page,
+  // remembered as this user's default there until they change one again.
+  // Same "personal display preference" reasoning as sectionLayout above,
+  // just without its per-page-type nesting since there's only one page's
+  // worth of controls to remember here.
+  taskListPrefs String? @db.Text
+
   // Referral program — both only meaningful for role PARTNER (see
   // src/lib/referrals.ts). referralCode is the slug in that partner's
   // share link (/r/<code>), generated once when the account becomes a
