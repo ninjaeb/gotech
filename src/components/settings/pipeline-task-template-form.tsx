@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { updatePipelineTaskTemplate } from "@/app/actions/pipelines";
 import { Button, buttonClasses } from "@/components/ui/button";
@@ -44,6 +44,27 @@ export function PipelineTaskTemplateForm({
       ? items.map((item) => ({ key: newDraftKey(), ...item, daysFromNow: item.daysFromNow === null ? "" : String(item.daysFromNow) }))
       : [],
   );
+
+  // A successful submit runs through React's own post-action form-reset
+  // (it replays the browser's native reset-after-submit behavior), which
+  // snaps every <select> in the form back to its first <option> —
+  // bypassing React's value tracking, since nothing about `rows` itself
+  // changed. Text/number inputs don't show this because React re-syncs
+  // those directly; selects don't get the same treatment. That reset runs
+  // synchronously as part of finishing the action, before passive effects,
+  // so — unlike most state derived from a prop/state change — this can't
+  // be done during render (it would just get reset again right after);
+  // it has to happen in an effect, after the reset already ran. Bumping
+  // this into each row's <select> key then forces a fresh DOM node whose
+  // initial value is the (already-correct) current one.
+  const seenStateRef = useRef(state);
+  const [selectGen, setSelectGen] = useState(0);
+  useEffect(() => {
+    if (state === seenStateRef.current) return;
+    seenStateRef.current = state;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- must run after React's post-action form.reset(), which a render-phase update can't wait for (see comment above)
+    if (state && "success" in state) setSelectGen((gen) => gen + 1);
+  }, [state]);
 
   function updateRow(key: string, patch: Partial<ItemDraft>) {
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...patch } : row)));
@@ -94,7 +115,12 @@ export function PipelineTaskTemplateForm({
                 placeholder="Task title"
                 aria-label="Task title"
               />
-              <Select value={row.type} onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })} aria-label="Task type">
+              <Select
+                key={`type-${row.key}-${selectGen}`}
+                value={row.type}
+                onChange={(event) => updateRow(row.key, { type: event.target.value as TaskType })}
+                aria-label="Task type"
+              >
                 {TASK_TYPES.map((type) => (
                   <option key={type} value={type}>
                     {TASK_TYPE_LABELS[type]}
@@ -102,6 +128,7 @@ export function PipelineTaskTemplateForm({
                 ))}
               </Select>
               <Select
+                key={`priority-${row.key}-${selectGen}`}
                 value={row.priority}
                 onChange={(event) => updateRow(row.key, { priority: event.target.value as TaskPriority })}
                 aria-label="Task priority"

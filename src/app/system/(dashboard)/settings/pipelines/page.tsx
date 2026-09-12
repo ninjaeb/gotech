@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Pencil, Trash2 } from "lucide-react";
+import { Copy, Pencil, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
-import { deletePipeline } from "@/app/actions/pipelines";
+import { deletePipeline, duplicatePipeline } from "@/app/actions/pipelines";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody } from "@/components/ui/card";
 import { buttonClasses } from "@/components/ui/button";
@@ -51,6 +51,11 @@ export default async function PipelinesPage() {
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Link>
+                  <form action={duplicatePipeline.bind(null, pipeline.id)}>
+                    <button type="submit" title="Duplicate pipeline" aria-label="Duplicate pipeline" className={buttonClasses("secondary", "sm")}>
+                      <Copy className="h-3.5 w-3.5" />
+                    </button>
+                  </form>
                   {!pipeline.isDefault && pipeline._count.deals === 0 && (
                     <form action={deletePipeline.bind(null, pipeline.id)}>
                       <ConfirmSubmitButton confirmMessage={`Delete the "${pipeline.name}" pipeline?`} size="sm">

@@ -70,6 +70,46 @@ export async function setDefaultPipeline(id: string): Promise<PipelineActionStat
   return { success: true };
 }
 
+// Copies a pipeline's stages and standard task checklist onto a brand-new
+// pipeline — never its deals, and never isDefault (a duplicate always
+// starts as a plain, non-default pipeline the admin can promote by hand).
+export async function duplicatePipeline(id: string, formData: FormData) {
+  void formData;
+  await requireAdminAction();
+  const [source, count] = await Promise.all([
+    db.pipeline.findUniqueOrThrow({
+      where: { id },
+      include: {
+        stages: { orderBy: { sortOrder: "asc" } },
+        taskTemplateItems: { orderBy: { sortOrder: "asc" } },
+      },
+    }),
+    db.pipeline.count(),
+  ]);
+
+  const copy = await db.pipeline.create({
+    data: {
+      name: `${source.name} (copy)`,
+      sortOrder: count,
+      stages: {
+        create: source.stages.map((stage) => ({ name: stage.name, isWon: stage.isWon, isLost: stage.isLost, sortOrder: stage.sortOrder })),
+      },
+      taskTemplateItems: {
+        create: source.taskTemplateItems.map((item) => ({
+          title: item.title,
+          type: item.type,
+          priority: item.priority,
+          daysFromNow: item.daysFromNow,
+          sortOrder: item.sortOrder,
+        })),
+      },
+    },
+  });
+
+  revalidatePath("/system/settings/pipelines");
+  redirect(withFlash(`/system/settings/pipelines/${copy.id}`, `Duplicated "${source.name}".`));
+}
+
 export async function deletePipeline(id: string, formData: FormData) {
   void formData;
   await requireAdminAction();
