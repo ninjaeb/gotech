@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  AlertTriangle,
   Building2,
   CalendarClock,
   CalendarDays,
@@ -12,6 +13,7 @@ import {
   Plus,
   Receipt,
   Star,
+  Trophy,
   Users,
 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -24,13 +26,21 @@ import { buttonClasses } from "@/components/ui/button";
 import { AiPipelineDiagnosis } from "@/components/dashboard/ai-pipeline-diagnosis";
 import { LEAD_SOURCE_LABELS, stageBadgeClasses } from "@/lib/labels";
 import { getDefaultPipeline } from "@/lib/pipelines";
+import { needsFollowUp, isRotting, daysInStage, ROTTING_THRESHOLD_DAYS } from "@/lib/deal-hygiene";
 import { computeProjectActuals, budgetSeverity, timelineSeverity } from "@/lib/project-budget";
 import { formatCurrency, fullName } from "@/lib/format";
 import { getSettings } from "@/lib/settings";
 import { orgToday } from "@/lib/documents/dates";
 import { requireSales } from "@/lib/auth/dal";
+import { cn } from "@/lib/utils";
 
-export default async function DashboardPage() {
+type Scope = "me" | "team";
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ scope?: string }>;
+}) {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);
@@ -43,6 +53,14 @@ export default async function DashboardPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const currentUser = await requireSales();
+  // ADMIN opens onto the whole team's numbers (that's their job); SALES
+  // opens onto their own book — same "default to me, let them switch"
+  // idiom the Tasks page uses for its assignee filter. Neither role is
+  // locked to its default; the toggle below just picks the starting tab.
+  const { scope: scopeParam } = await searchParams;
+  const scope: Scope = scopeParam === "me" || scopeParam === "team" ? scopeParam : currentUser.role === "ADMIN" ? "team" : "me";
+  const dealScopeWhere = scope === "me" ? { ownerId: currentUser.id } : {};
+
   const contactSelect = { id: true, firstName: true, lastName: true, email: true, phone: true } as const;
   // Quote validity is a calendar date in the org's own timezone (see
   // src/lib/documents/dates.ts), not the server's.
@@ -57,10 +75,8 @@ export default async function DashboardPage() {
     allDeals,
     tasksDueTodayCount,
     overdueTasksCount,
-    needsFollowUpCount,
     myTasks,
     followedTasks,
-    topOpenDeals,
     defaultPipeline,
     users,
     hasEmailAccount,
@@ -70,13 +86,15 @@ export default async function DashboardPage() {
     quoteStatusCounts,
     activeProjects,
     testimonialStats,
-    dealsClosingThisMonthCount,
     upcomingBookingsCount,
     companyCount30dAgo,
     contactCount30dAgo,
+    dealsWonThisMonth,
   ] = await Promise.all([
     // "Awaiting response" = issued, still open: not withdrawn, not replaced
-    // by a revision, not past its valid-until date.
+    // by a revision, not past its valid-until date. Invoicing/delivery
+    // numbers stay team-wide regardless of the toggle — see the note over
+    // that section below.
     db.quote.count({
       where: {
         status: { in: ["SENT", "VIEWED"] },
@@ -87,7 +105,12 @@ export default async function DashboardPage() {
     }),
     db.company.count(),
     db.contact.count(),
+    // The one deal fetch every scope-aware section below reads from —
+    // stage/source breakdowns, the high-value and going-stale lists, and
+    // every deal-derived stat card all slice this same array instead of
+    // running their own separate query.
     db.deal.findMany({
+      where: dealScopeWhere,
       select: {
         id: true,
         title: true,
@@ -95,7 +118,19 @@ export default async function DashboardPage() {
         pipelineStageId: true,
         source: true,
         createdAt: true,
-        pipelineStage: { select: { isWon: true, isLost: true } },
+        expectedCloseDate: true,
+        company: { select: { id: true, name: true } },
+        contact: { select: contactSelect },
+        pipelineStage: { select: { id: true, name: true, isWon: true, isLost: true, sortOrder: true } },
+        tasks: { select: { task: { select: { completed: true, dueDate: true } } } },
+        // Latest STAGE_CHANGE activity is how "days in this stage" is
+        // derived (no stored field for it) — same idiom as the Deals board.
+        activities: {
+          where: { type: "STAGE_CHANGE" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
       },
     }),
     db.task.count({
@@ -107,12 +142,6 @@ export default async function DashboardPage() {
     }),
     db.task.count({
       where: { assignees: { some: { userId: currentUser.id } }, completed: false, dueDate: { lt: startOfToday } },
-    }),
-    db.deal.count({
-      where: {
-        pipelineStage: { isWon: false, isLost: false },
-        tasks: { none: { task: { completed: false, dueDate: { not: null } } } },
-      },
     }),
     db.task.findMany({
       where: { assignees: { some: { userId: currentUser.id } }, completed: false },
@@ -144,12 +173,6 @@ export default async function DashboardPage() {
         _count: { select: { followers: true } },
       },
     }),
-    db.deal.findMany({
-      where: { pipelineStage: { isWon: false, isLost: false } },
-      orderBy: { value: "desc" },
-      take: 5,
-      include: { company: true, contact: true, pipelineStage: true },
-    }),
     getDefaultPipeline(),
     db.user.findMany({ where: { role: { not: "PARTNER" } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.emailAccount.findUnique({ where: { userId: currentUser.id }, select: { id: true } }).then(Boolean),
@@ -178,15 +201,15 @@ export default async function DashboardPage() {
       _count: true,
       _avg: { rating: true },
     }),
-    db.deal.count({
-      where: {
-        pipelineStage: { isWon: false, isLost: false },
-        expectedCloseDate: { gte: startOfMonth, lt: startOfNextMonth },
-      },
-    }),
     db.booking.count({ where: { startAt: { gte: startOfToday, lt: sevenDaysOut } } }),
     db.company.count({ where: { createdAt: { lt: thirtyDaysAgo } } }),
     db.contact.count({ where: { createdAt: { lt: thirtyDaysAgo } } }),
+    // Always team-wide (only rendered in Team scope) — "top performers"
+    // ranked against your own book alone isn't a meaningful list.
+    db.deal.findMany({
+      where: { pipelineStage: { isWon: true }, ownerId: { not: null }, wonAt: { gte: startOfMonth } },
+      select: { value: true, ownerId: true },
+    }),
   ]);
 
   const openDeals = allDeals.filter((deal) => !deal.pipelineStage.isWon && !deal.pipelineStage.isLost);
@@ -219,8 +242,34 @@ export default async function DashboardPage() {
     });
   const maxStageValue = Math.max(1, ...stageBreakdown.map((s) => s.value));
 
-  // Every deal ever created (not just open ones) — this is about where
-  // leads have historically come from, not current pipeline composition.
+  const topOpenDeals = [...openDeals].sort((a, b) => Number(b.value) - Number(a.value)).slice(0, 5);
+
+  // No scheduled next step, or stalled in its current stage too long —
+  // same two hygiene signals the Deals board flags per-card, tallied and
+  // (for staleness) listed here instead of shown per-row.
+  const dealsWithHygiene = openDeals.map((deal) => {
+    const dealTasks = deal.tasks.map((link) => link.task);
+    const latestStageChangeAt = deal.activities[0]?.createdAt ?? null;
+    return {
+      ...deal,
+      needsFollowUp: needsFollowUp({ pipelineStage: deal.pipelineStage, tasks: dealTasks }),
+      rotting: isRotting({ pipelineStage: deal.pipelineStage, createdAt: deal.createdAt, latestStageChangeAt }),
+      daysInStage: daysInStage({ createdAt: deal.createdAt, latestStageChangeAt }),
+    };
+  });
+  const needsFollowUpCount = dealsWithHygiene.filter((deal) => deal.needsFollowUp).length;
+  const rottingDeals = dealsWithHygiene
+    .filter((deal) => deal.rotting)
+    .sort((a, b) => b.daysInStage - a.daysInStage)
+    .slice(0, 5);
+  const rottingCount = dealsWithHygiene.filter((deal) => deal.rotting).length;
+
+  const dealsClosingThisMonthCount = openDeals.filter(
+    (deal) => deal.expectedCloseDate && deal.expectedCloseDate >= startOfMonth && deal.expectedCloseDate < startOfNextMonth,
+  ).length;
+
+  // Every deal in scope (not just open ones) — this is about where leads
+  // have historically come from, not current pipeline composition.
   // "Unknown" (source is null) covers everything created before this field
   // existed plus any manually-created deal where it was left blank; shown
   // rather than hidden so the breakdown never silently omits deals.
@@ -267,8 +316,11 @@ export default async function DashboardPage() {
   for (const deal of openDeals) {
     if (!oldestOpenDeal || deal.createdAt < oldestOpenDeal.createdAt) oldestOpenDeal = deal;
   }
+  // Clamped to 0 — a deal created earlier today is "0 days old", not -1
+  // (createdAt falls after startOfToday's midnight, so the raw subtraction
+  // would otherwise go negative for anything opened today).
   const oldestOpenDealDays = oldestOpenDeal
-    ? Math.floor((startOfToday.getTime() - oldestOpenDeal.createdAt.getTime()) / 86_400_000)
+    ? Math.max(0, Math.floor((startOfToday.getTime() - oldestOpenDeal.createdAt.getTime()) / 86_400_000))
     : null;
 
   const companyDelta = companyCount - companyCount30dAgo;
@@ -278,15 +330,53 @@ export default async function DashboardPage() {
   const contactDeltaLabel =
     contactDelta > 0 ? `+${contactDelta} this month` : contactDelta < 0 ? `${contactDelta} this month` : "No change this month";
 
+  const performerStats = new Map<string, { count: number; total: number }>();
+  for (const deal of dealsWonThisMonth) {
+    if (!deal.ownerId) continue;
+    const stats = performerStats.get(deal.ownerId) ?? { count: 0, total: 0 };
+    stats.count += 1;
+    stats.total += Number(deal.value);
+    performerStats.set(deal.ownerId, stats);
+  }
+  const topPerformers = users
+    .map((user) => ({ ...user, ...(performerStats.get(user.id) ?? { count: 0, total: 0 }) }))
+    .filter((user) => user.count > 0)
+    .sort((a, b) => b.total - a.total || b.count - a.count)
+    .slice(0, 5);
+
   return (
     <div>
-      <PageHeader title="Dashboard" description="Your CRM at a glance" />
+      <PageHeader
+        title="Dashboard"
+        description="Your CRM at a glance"
+        actions={
+          <div className="flex gap-1.5">
+            {([
+              { key: "me", label: "My pipeline" },
+              { key: "team", label: "Whole team" },
+            ] as const).map((tab) => (
+              <Link
+                key={tab.key}
+                href={`/system?scope=${tab.key}`}
+                className={cn(
+                  "rounded-full px-3 py-1 text-xs font-medium",
+                  tab.key === scope
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-neutral-800 dark:text-slate-300 dark:hover:bg-neutral-700",
+                )}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
 
       <div className="mb-6 overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-indigo-300">
-              Pipeline overview
+              {scope === "me" ? "Your pipeline" : "Pipeline overview"}
             </p>
             <p className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
               {formatCurrency(openPipelineValue, currency)}
@@ -347,18 +437,50 @@ export default async function DashboardPage() {
           href={`/system/tasks?filter=overdue&assignee=${currentUser.id}`}
         />
         <StatCard
-          label="Needs follow-up"
-          value={needsFollowUpCount.toString()}
-          icon={Flag}
+          label={scope === "me" ? "My deals closing this month" : "Deals closing this month"}
+          value={dealsClosingThisMonthCount.toString()}
+          icon={CalendarClock}
           accent="orange"
-          description={needsFollowUpCount > 0 ? "Open deals, no next step" : "All deals on track"}
-          href="/system/deals?flag=needs-follow-up"
+          href="/system/deals"
         />
       </div>
 
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        Revenue &amp; delivery
+        Pipeline health {scope === "me" && <span className="normal-case text-slate-400">— your deals</span>}
       </p>
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
+        <StatCard
+          label="Needs follow-up"
+          value={needsFollowUpCount.toString()}
+          icon={Flag}
+          accent="orange"
+          description={needsFollowUpCount > 0 ? "Open, no next step" : "All on track"}
+          href="/system/deals?flag=needs-follow-up"
+        />
+        <StatCard
+          label="Going stale"
+          value={rottingCount.toString()}
+          icon={AlertTriangle}
+          accent="rose"
+          description={rottingCount > 0 ? `${ROTTING_THRESHOLD_DAYS}+ days in stage` : "Nothing's stalled"}
+          href="#going-stale"
+        />
+        <StatCard
+          label="Oldest open deal"
+          value={oldestOpenDealDays !== null ? `${oldestOpenDealDays}d` : "—"}
+          icon={Hourglass}
+          accent="indigo"
+          description={oldestOpenDeal?.title}
+          href={oldestOpenDeal ? `/system/deals/${oldestOpenDeal.id}` : undefined}
+        />
+      </div>
+
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          Revenue &amp; delivery
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Whole team, regardless of the toggle above</p>
+      </div>
       <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Outstanding invoices"
@@ -400,27 +522,15 @@ export default async function DashboardPage() {
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Coming up
       </p>
-      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-6 grid gap-4 md:grid-cols-2">
+        <StatCard label="Bookings, next 7 days" value={upcomingBookingsCount.toString()} icon={CalendarDays} accent="sky" />
         <StatCard
-          label="Deals closing this month"
-          value={dealsClosingThisMonthCount.toString()}
-          icon={CalendarClock}
+          label={scope === "me" ? "My win rate" : "Team win rate"}
+          value={winRate !== null ? `${winRate}%` : "—"}
+          icon={Trophy}
           accent="indigo"
-          href="/system/deals"
-        />
-        <StatCard
-          label="Bookings, next 7 days"
-          value={upcomingBookingsCount.toString()}
-          icon={CalendarDays}
-          accent="sky"
-        />
-        <StatCard
-          label="Oldest open deal"
-          value={oldestOpenDealDays !== null ? `${oldestOpenDealDays}d` : "—"}
-          icon={Hourglass}
-          accent="rose"
-          description={oldestOpenDeal?.title}
-          href={oldestOpenDeal ? `/system/deals/${oldestOpenDeal.id}` : undefined}
+          description={decidedCount > 0 ? `${wonDeals.length} won of ${decidedCount} decided` : "No decided deals yet"}
+          href="/system/leaderboard"
         />
       </div>
 
@@ -434,26 +544,32 @@ export default async function DashboardPage() {
               </Link>
             </CardHeader>
             <CardBody className="space-y-4">
-              {stageBreakdown.map(({ stage, count, value }) => (
-                <Link
-                  key={stage.id}
-                  href={`/system/deals?pipeline=${defaultPipeline.id}#stage-${stage.id}`}
-                  className="-mx-2 block rounded-md px-2 py-1 transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800"
-                >
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">
-                      {stage.name} <span className="font-normal text-slate-400">({count})</span>
-                    </span>
-                    <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value, currency)}</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-neutral-800">
-                    <div
-                      className="h-full rounded-full bg-indigo-500"
-                      style={{ width: `${(value / maxStageValue) * 100}%` }}
-                    />
-                  </div>
-                </Link>
-              ))}
+              {stageBreakdown.every((s) => s.count === 0) ? (
+                <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                  {scope === "me" ? "No open deals of yours right now." : "No open deals right now."}
+                </p>
+              ) : (
+                stageBreakdown.map(({ stage, count, value }) => (
+                  <Link
+                    key={stage.id}
+                    href={`/system/deals?pipeline=${defaultPipeline.id}#stage-${stage.id}`}
+                    className="-mx-2 block rounded-md px-2 py-1 transition-colors hover:bg-slate-50 dark:hover:bg-neutral-800"
+                  >
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
+                        {stage.name} <span className="font-normal text-slate-400">({count})</span>
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">{formatCurrency(value, currency)}</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-neutral-800">
+                      <div
+                        className="h-full rounded-full bg-indigo-500"
+                        style={{ width: `${(value / maxStageValue) * 100}%` }}
+                      />
+                    </div>
+                  </Link>
+                ))
+              )}
             </CardBody>
           </Card>
 
@@ -467,7 +583,7 @@ export default async function DashboardPage() {
             <CardBody>
               {topOpenDeals.length === 0 ? (
                 <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                  No open deals yet.
+                  {scope === "me" ? "You have no open deals yet." : "No open deals yet."}
                 </p>
               ) : (
                 <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
@@ -492,6 +608,51 @@ export default async function DashboardPage() {
                           </span>
                           <Badge className={stageBadgeClasses(deal.pipelineStage)}>
                             {deal.pipelineStage.name}
+                          </Badge>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card id="going-stale">
+            <CardHeader>
+              <CardTitle>Deals going stale</CardTitle>
+              <Link href="/system/deals" className="text-sm font-medium text-indigo-600 hover:underline">
+                View board
+              </Link>
+            </CardHeader>
+            <CardBody>
+              {rottingDeals.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                  Nothing&apos;s sat in a stage for {ROTTING_THRESHOLD_DAYS}+ days — pipeline&apos;s moving.
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {rottingDeals.map((deal) => (
+                    <li key={deal.id}>
+                      <Link
+                        href={`/system/deals/${deal.id}`}
+                        className="flex items-center justify-between gap-3 py-2.5 text-sm hover:text-indigo-600"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-800 dark:text-slate-200">
+                            {deal.title}
+                          </p>
+                          <p className="truncate text-xs text-slate-400">
+                            {deal.company?.name ??
+                              (deal.contact ? fullName(deal.contact.firstName, deal.contact.lastName) : "No company")}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-3">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {formatCurrency(deal.value.toString(), currency)}
+                          </span>
+                          <Badge className="bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950 dark:text-rose-300 dark:ring-rose-500/30">
+                            {deal.daysInStage}d in stage
                           </Badge>
                         </div>
                       </Link>
@@ -534,6 +695,49 @@ export default async function DashboardPage() {
         </div>
 
         <div className="min-w-0 space-y-6">
+          {scope === "team" && topPerformers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Top performers this month</CardTitle>
+                <Link href="/system/leaderboard" className="text-sm font-medium text-indigo-600 hover:underline">
+                  Full board
+                </Link>
+              </CardHeader>
+              <CardBody className="p-0">
+                <ul className="divide-y divide-slate-100 dark:divide-neutral-800">
+                  {topPerformers.map((entry, index) => {
+                    const rank = index + 1;
+                    return (
+                      <li key={entry.id} className="flex items-center gap-3 px-5 py-3">
+                        <span
+                          className={cn(
+                            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                            rank === 1
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                              : "bg-slate-100 text-slate-500 dark:bg-neutral-800 dark:text-slate-400",
+                          )}
+                        >
+                          {rank === 1 ? <Trophy className="h-3.5 w-3.5" /> : rank}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-200">
+                            {entry.name}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {entry.count} {entry.count === 1 ? "deal" : "deals"} won
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                          {formatCurrency(entry.total, currency)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardBody>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>My Tasks</CardTitle>
