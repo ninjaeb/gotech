@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.86",
+    date: "2026-09-12",
+    title: "Pipeline task checklist: narrower Assignees/Followers fields",
+    changes: [
+      "The Assignees and Followers pickers on each row of Settings → Pipelines' task checklist editor are now a quarter of the row's width each instead of half, so there's more room to see the rest of the row at once",
+    ],
+  },
+  {
     version: "1.85",
     date: "2026-09-12",
     title: "Tasks page remembers your Sort, Assignee, and Min deal value",
