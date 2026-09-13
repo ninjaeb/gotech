@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.87",
+    date: "2026-09-13",
+    title: "Tasks page: Deal value sort now factors in priority and due date too",
+    changes: [
+      "The Deal value sort on the Tasks page no longer ranks by deal size alone — it now ranks what to work on first: any overdue task comes before non-overdue ones, then HIGH priority beats MEDIUM/LOW, then the task linked to the bigger deal wins, then the closer due date breaks any remaining tie",
+      "Due date and Priority sorts are unchanged",
+    ],
+  },
+  {
     version: "1.86",
     date: "2026-09-12",
     title: "Pipeline task checklist: narrower Assignees/Followers fields",
