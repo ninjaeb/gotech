@@ -4,6 +4,7 @@ import { useRef, useTransition } from "react";
 import { createTask } from "@/app/actions/tasks";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
+import { MultiCombobox } from "@/components/ui/multi-combobox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { TASK_PRIORITIES, TASK_PRIORITY_LABELS, TASK_TYPES, TASK_TYPE_LABELS } from "@/lib/labels";
 
@@ -90,25 +91,13 @@ export function TaskQuickForm({
         </div>
       )}
       {!dealId && deals.length > 0 && (
-        <div className="flex min-w-[11rem] flex-col gap-1 rounded-md px-3 py-2 text-sm ring-1 ring-inset ring-slate-300 dark:bg-neutral-900 dark:ring-neutral-700">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Deals</span>
-          <div className="flex flex-wrap gap-x-3 gap-y-1">
-            {deals.map((deal) => (
-              <label
-                key={deal.id}
-                className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300"
-              >
-                <input
-                  type="checkbox"
-                  name="dealIds"
-                  value={deal.id}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
-                />
-                {deal.title}
-              </label>
-            ))}
-          </div>
-        </div>
+        <MultiCombobox
+          name="dealIds"
+          placeholder="Deals…"
+          emptyMessage="No matching deals"
+          options={deals.map((deal) => ({ value: deal.id, label: deal.title }))}
+          className="min-w-[11rem] flex-1"
+        />
       )}
       <DatePicker name="dueDate" placeholder="Due date" className="w-40" />
       <Button type="submit" size="sm" disabled={pending}>
