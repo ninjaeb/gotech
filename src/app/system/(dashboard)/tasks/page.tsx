@@ -7,7 +7,7 @@ import { FILTERS, isSortKey, type FilterKey, type SortKey } from "@/lib/task-fil
 import { readTaskListPrefs } from "@/lib/task-list-prefs";
 import { getCurrency } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth/dal";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, TaskPriority } from "@/generated/prisma/client";
 
 // A plain, unsigned amount with up to 2 decimals — same shape MONEY_RE in
 // src/lib/documents/money.ts enforces for a document line, so a value
@@ -47,14 +47,15 @@ function buildWhere(filter: FilterKey): Prisma.TaskWhereInput {
 // value choice always wins instead, on every tab — a sort you picked on
 // purpose shouldn't quietly revert just because you're looking at
 // Completed. Deal value can't be expressed as a single Prisma orderBy
-// (it's the *highest* value among a task's linked deals, a to-many
-// relation), so that case orders by due date here and gets re-sorted in
-// JS afterwards — see `sortByDealValue` below.
+// (it's a tiered ranking that also depends on the *highest* value among a
+// task's linked deals, a to-many relation), so that case orders by
+// priority here and gets re-sorted in JS afterwards — see
+// `sortByDealValue` below.
 function buildOrderBy(
   filter: FilterKey,
   sort: SortKey,
 ): Prisma.TaskOrderByWithRelationInput | Prisma.TaskOrderByWithRelationInput[] {
-  if (sort === "priority") return [{ priority: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }];
+  if (sort === "priority" || sort === "dealValue") return [{ priority: "desc" }, { dueDate: "asc" }, { createdAt: "desc" }];
   if (filter === "completed") return { completedAt: "desc" };
   return [{ dueDate: "asc" }, { priority: "desc" }, { createdAt: "desc" }];
 }
@@ -64,11 +65,48 @@ function maxDealValue(task: { deals: { deal: { value: Prisma.Decimal } }[] }): n
   return Math.max(...task.deals.map((link) => Number(link.deal.value)));
 }
 
-// Array.prototype.sort is a stable sort (guaranteed since ES2019), so ties
-// keep whatever order the DB query already produced (due date, then
-// priority, then recency) instead of shuffling on every render.
-function sortByDealValue<T extends { deals: { deal: { value: Prisma.Decimal } }[] }>(tasks: T[]): T[] {
-  return [...tasks].sort((a, b) => maxDealValue(b) - maxDealValue(a));
+const PRIORITY_WEIGHT: Record<TaskPriority, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+
+function isOverdue(task: { completed: boolean; dueDate: Date | null }, now: Date): boolean {
+  return !task.completed && task.dueDate !== null && task.dueDate < now;
+}
+
+// "Deal value" — what to work on first, as a tiered comparison rather than
+// one blended score (a single number that mixes ringgit and days would make
+// the ranking hard to predict or explain). Overdue work always outranks
+// non-overdue work first, since a slipping deadline matters more than any
+// other signal; within that, HIGH priority beats MEDIUM/LOW; within that,
+// the bigger deal wins; the closer due date is the final tiebreak before
+// falling back to recency. Array.prototype.sort is a stable sort
+// (guaranteed since ES2019), so a tie all the way down to recency keeps
+// whatever order the DB query already produced.
+function sortByDealValue<
+  T extends {
+    completed: boolean;
+    dueDate: Date | null;
+    priority: TaskPriority;
+    createdAt: Date;
+    deals: { deal: { value: Prisma.Decimal } }[];
+  },
+>(tasks: T[]): T[] {
+  const now = new Date();
+  return [...tasks].sort((a, b) => {
+    const overdueA = isOverdue(a, now);
+    const overdueB = isOverdue(b, now);
+    if (overdueA !== overdueB) return overdueA ? -1 : 1;
+
+    const priorityDiff = PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority];
+    if (priorityDiff !== 0) return priorityDiff;
+
+    const valueDiff = maxDealValue(b) - maxDealValue(a);
+    if (valueDiff !== 0) return valueDiff;
+
+    const dueA = a.dueDate ? a.dueDate.getTime() : Infinity;
+    const dueB = b.dueDate ? b.dueDate.getTime() : Infinity;
+    if (dueA !== dueB) return dueA - dueB;
+
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
 }
 
 export default async function TasksPage({
