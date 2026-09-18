@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.88",
+    date: "2026-09-18",
+    title: "Embeddable widget scripts are now browser-cacheable",
+    changes: [
+      "The lead-capture and newsletter-signup widget scripts (embed/lead-form.js, embed/newsletter-form.js), linked directly from partner sites, now tell browsers to cache them for an hour (with a background-refreshed stale copy for up to a week after) instead of not caching at all — faster repeat page loads on any site embedding them, and one fewer 'no cache lifetime' warning from tools like Google PageSpeed Insights",
+    ],
+  },
+  {
     version: "1.87",
     date: "2026-09-13",
     title: "Tasks page: Deal value sort now factors in priority and due date too",
