@@ -111,16 +111,28 @@ async function proxyPortalRoute(request: NextRequest, pathname: string) {
 // /business-portal at the same time.
 const BUSINESS_AUTH_ONLY_PUBLIC_ROUTES = ["/business-portal/login"];
 
+// Only ever redirects a sessionless visitor to the login page — never the
+// other direction. An *already* signed-in visitor to /business-portal/login
+// used to get bounced to /business-portal right here too, on nothing more
+// than "a business_session cookie is present" (no database call, so a
+// still-valid-looking but stale cookie — its account's role changed away
+// from PARTNER, or the account was deleted; the cookie itself is a
+// stateless JWT good for 30 days with nothing to revoke it early — passed
+// this check the same as a genuinely valid one). Since /business-portal
+// itself always re-verifies against the database and bounces anything
+// stale right back to /business-portal/login, that combination was an
+// infinite loop with no way to ever reach the login form again. That
+// decision now lives in the login page's own layout instead
+// (getVerifiedPartnerOrNull), where a database check is cheap (a login
+// page is low-traffic, unlike the dashboard) and authoritative — this
+// function's job is only keeping a stranger with no session at all out of
+// the dashboard.
 async function proxyBusinessRoute(request: NextRequest, pathname: string) {
   const isAuthOnlyPublic = BUSINESS_AUTH_ONLY_PUBLIC_ROUTES.includes(pathname);
   const session = await decryptBusinessSession(request.cookies.get("business_session")?.value);
 
   if (!isAuthOnlyPublic && !session?.userId) {
     return NextResponse.redirect(new URL("/business-portal/login", request.url));
-  }
-
-  if (isAuthOnlyPublic && session?.userId) {
-    return NextResponse.redirect(new URL("/business-portal", request.url));
   }
 
   return NextResponse.next();
