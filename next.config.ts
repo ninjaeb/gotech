@@ -20,6 +20,24 @@ function turbopackRoot(): string | undefined {
 const root = turbopackRoot();
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        // These embeddable widget scripts (public/embed/*.js) get linked
+        // directly from other companies' websites — unlike everything
+        // under /_next/static, their filename never changes when the
+        // content does, so a cache duration long enough to matter for
+        // repeat visitors still needs a short enough max-age that a fix or
+        // feature change here actually reaches embedders in a reasonable
+        // time. stale-while-revalidate covers the gap: a cached copy still
+        // serves instantly past the hour mark while a fresh one loads in
+        // the background for next time, rather than every visitor blocking
+        // on a network round trip.
+        source: "/embed/:path*.js",
+        headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=604800" }],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // Default is 1mb. 24mb covers the largest WhatsApp attachment this
