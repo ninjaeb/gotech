@@ -1,11 +1,46 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { requirePartner } from "@/lib/auth/dal";
 import { businessLogout } from "@/app/actions/auth";
+import { getSiteOrigin } from "@/lib/site-url";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DirectoryLanguageSwitcher } from "@/components/directory/directory-language-switcher";
 import { getDirectoryLocale } from "@/lib/directory-locale";
 import { PartnerNavMenu } from "@/components/referrals/partner-nav";
 import { PartnerSidebar } from "@/components/referrals/partner-sidebar";
+
+const TITLE = "Business CRM";
+const DESCRIPTION = "Manage your own companies, contacts, deals, and tasks in the Gotka Business CRM.";
+
+// None of these pages set their own metadata, so this is what every one of
+// them — Companies, Contacts, Deals, Tasks, Listings, Leads, Commissions,
+// Profile — shows in a browser tab/share preview instead of falling through
+// to the root layout's generic "Gotka CRM" (that title belongs to the
+// separate staff-facing /system app). robots noindex for the same reason as
+// the login page above this one: everything past it requires requirePartner,
+// so there's nothing here a search engine should ever list.
+export async function generateMetadata(): Promise<Metadata> {
+  const siteOrigin = await getSiteOrigin();
+  const imageUrl = `${siteOrigin}/icon-192.png`;
+  return {
+    title: TITLE,
+    description: DESCRIPTION,
+    robots: { index: false, follow: false },
+    openGraph: {
+      title: TITLE,
+      description: DESCRIPTION,
+      siteName: "Gotka Business CRM",
+      type: "website",
+      images: [{ url: imageUrl }],
+    },
+    twitter: {
+      card: "summary",
+      title: TITLE,
+      description: DESCRIPTION,
+      images: [imageUrl],
+    },
+  };
+}
 
 // The business portal's own shell — deliberately not the CRM's (dashboard)
 // layout's dark sidebar or global search, but same Sidebar/MobileNav split

@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.89",
+    date: "2026-09-19",
+    title: "Business CRM portal: proper title, description, and share image",
+    changes: [
+      "Every page under the Business CRM portal (Companies, Contacts, Deals, Tasks, and the rest of the partner portal) now shows \"Business CRM\" as its browser tab title with its own description, instead of falling back to the internal system's generic \"Gotka CRM\" — and, like its sign-in page, is marked non-indexable since it all sits behind login",
+      "The sign-in page and the rest of the portal now include a share image (the same Gotka mark already used as the app's favicon), so a shared link previews with an image on WhatsApp/Slack/etc. instead of a blank one",
+    ],
+  },
+  {
     version: "1.88",
     date: "2026-09-18",
     title: "Embeddable widget scripts are now browser-cacheable",
