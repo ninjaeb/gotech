@@ -3,6 +3,29 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// Every `prisma` CLI command that touches the database (migrate deploy,
+// migrate dev, db push, ...) connects through this URL using Prisma's own
+// schema engine — a separate connection pool from the app's own
+// PrismaClient, which caps ITS pool via the mariadb driver adapter's own
+// `connectionLimit` option (see src/lib/db.ts). Without a matching cap
+// here, the schema engine falls back to a pool sized off the host's CPU
+// count, which on shared hosting (cPanel and similar, where MySQL commonly
+// caps `max_user_connections` well below that) can by itself exceed the
+// account's whole connection budget — especially since scripts/deploy.ts
+// runs `prisma migrate deploy` while the previous app process is still up
+// and holding its own connections open. `connection_limit` (snake_case)
+// is the query param Prisma's schema engine itself recognizes — distinct
+// from the driver adapter's own camelCase `connectionLimit` in db.ts.
+function withConnectionLimit(rawUrl: string, limit = 5): string {
+  const url = new URL(rawUrl);
+  if (!url.searchParams.has("connection_limit")) {
+    url.searchParams.set("connection_limit", String(limit));
+  }
+  return url.toString();
+}
+
+const databaseUrl = process.env["DATABASE_URL"];
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +33,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: databaseUrl ? withConnectionLimit(databaseUrl) : databaseUrl,
   },
 });
