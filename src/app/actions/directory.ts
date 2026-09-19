@@ -12,6 +12,7 @@ import { isRateLimited, isSuspiciouslyFast } from "@/lib/lead-spam-guard";
 import { firstHopValue } from "@/lib/site-url";
 import { DIRECTORY_REFERRAL_COOKIE, findPartnerByReferralCode } from "@/lib/referrals";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
+import { regenerateSitemapFile } from "@/lib/sitemap-generator";
 import {
   buildPublishedSnapshot,
   createPartnerListing,
@@ -1146,12 +1147,16 @@ export async function replyToDirectoryLead(
 // Builds and attaches the published snapshot — shared by the admin's own
 // Approve button below and submitDirectoryListingForReview's own
 // self-approval path above, whichever one decides a listing goes live.
+// Regenerates the static sitemap.xml (see src/lib/sitemap-generator.ts)
+// afterward — a listing going live is exactly the kind of change that file
+// needs to reflect, and there's no other trigger (no request, no build)
+// that would otherwise catch it.
 async function publishListing(id: string) {
   const listing = await db.partnerListing.findUniqueOrThrow({
     where: { id },
     include: { categories: { include: { category: true } }, partner: { select: { timezone: true } } },
   });
-  return db.partnerListing.update({
+  const published = await db.partnerListing.update({
     where: { id },
     data: {
       status: "PUBLISHED",
@@ -1165,6 +1170,8 @@ async function publishListing(id: string) {
       ),
     },
   });
+  await regenerateSitemapFile();
+  return published;
 }
 
 export async function approveDirectoryListing(id: string): Promise<void> {
@@ -1217,13 +1224,16 @@ export async function rejectDirectoryListing(id: string, formData: FormData): Pr
 
 // Pulls a listing off the public directory without touching the partner's
 // own draft — for a listing that turns out to be inappropriate or stale.
-// The partner can resubmit once they've addressed why.
+// The partner can resubmit once they've addressed why. Regenerates
+// sitemap.xml afterward — same reasoning as publishListing's own call,
+// just removing this listing's entries instead of adding them.
 export async function unpublishDirectoryListing(id: string): Promise<void> {
   await requireAdminAction();
   const listing = await db.partnerListing.update({
     where: { id },
     data: { publishedSnapshot: Prisma.JsonNull, status: "DRAFT" },
   });
+  await regenerateSitemapFile();
   revalidatePath("/system/settings/directory");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);
