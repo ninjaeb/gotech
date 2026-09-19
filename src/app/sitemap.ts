@@ -15,10 +15,18 @@ function languageAlternates(pathFor: (locale: DirectoryLocale) => string, siteOr
   return Object.fromEntries(DIRECTORY_LOCALES.map(({ code }) => [code, `${siteOrigin}${pathFor(code)}`]));
 }
 
-// The only part of this app crawlers can actually reach — everything else
-// sits behind the login wall (see robots.ts), so this lists just the
-// public directory: its home page, every currently-published partner
-// listing, and every business category's own friendly page.
+// The public directory is what crawlers can actually reach — this lists
+// its home page, every currently-published partner listing, and every
+// business category's own friendly page. /business-portal and /system are
+// listed too, deliberately, even though robots.ts disallows crawling both
+// — this tells a search engine those URLs exist (so "Sign in to your
+// business" / the staff CRM's own login can still surface as a known,
+// bookmarkable entry point for someone searching for it by name) without
+// asking it to crawl or index whatever's behind the login wall. Google's
+// own guidance is that a disallowed URL in a sitemap is unusual and it
+// will generally show as "Submitted URL blocked by robots.txt" in Search
+// Console rather than "Indexed" — expected, not a bug, given what this is
+// deliberately asking for.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteOrigin = await getSiteOrigin();
   const [listings, categories] = await Promise.all([
@@ -29,6 +37,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
     db.businessCategory.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
   ]);
+
+  const gatedEntryPoints: MetadataRoute.Sitemap = [
+    { url: `${siteOrigin}/business-portal`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${siteOrigin}/system`, changeFrequency: "monthly", priority: 0.3 },
+  ];
 
   const homeEntries: MetadataRoute.Sitemap = DIRECTORY_LOCALES.map(({ code }) => ({
     url: `${siteOrigin}${directoryHomePath(code)}`,
@@ -57,5 +70,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   );
 
-  return [...homeEntries, ...categoryEntries, ...listingEntries];
+  return [...gatedEntryPoints, ...homeEntries, ...categoryEntries, ...listingEntries];
 }
