@@ -43,6 +43,24 @@ export const verifyBusinessSession = cache(async () => {
   return session;
 });
 
+// A redirect-free version of requirePartner, for the one caller that must
+// never itself redirect to /business-portal/login on failure: that page
+// itself (see its layout). Everything downstream of a valid business_session
+// cookie is re-verified against the database here — the cookie alone can
+// outlive the account behind it (role changed away from PARTNER, or the
+// account deleted) for up to its full 30-day life, since it's a signed,
+// stateless JWT with nothing to revoke it early.
+export async function getVerifiedPartnerOrNull() {
+  const session = await getBusinessSessionPayload();
+  if (!session?.userId) return null;
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, name: true, email: true, title: true, role: true, sectionLayout: true, phone: true, companyName: true },
+  });
+  if (!user || user.role !== "PARTNER") return null;
+  return user;
+}
+
 export const getCurrentBusinessUser = cache(async () => {
   const session = await verifyBusinessSession();
   const user = await db.user.findUnique({
