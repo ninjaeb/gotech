@@ -14,6 +14,17 @@ export const DIRECTORY_LOCALES: { code: DirectoryLocale; label: string }[] = [
   { code: "ms", label: "BM" },
 ];
 
+// The directory home page's own title, in each language — shared rather
+// than kept as a local const in src/app/[locale]/business/page.tsx (where
+// it originated) so a "Home" breadcrumb entry elsewhere in the tree (the
+// category page, a single listing's own page) names the same page the same
+// way instead of drifting into its own wording over time.
+export const DIRECTORY_HOME_TITLE_BY_LOCALE: Record<DirectoryLocale, string> = {
+  en: "Business Directory",
+  zh: "企业目录",
+  ms: "Direktori Perniagaan",
+};
+
 // Every directory URL carries its language as a leading path segment —
 // /en/business, /zh/business/some-company, /ms/business/signup — English
 // included, rather than a bare default-locale URL, so all three languages

@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import type { Industry, PartnerListing, Prisma } from "@/generated/prisma/client";
 import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
 import { slugify } from "@/lib/slug";
-import type { DirectoryLocale } from "@/lib/directory-i18n";
+import { directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 // Re-exported for existing server-side imports (actions, pages) that
 // already pull these from "@/lib/directory" — but a "use client" component
@@ -273,15 +273,21 @@ export function normalizeWebsiteUrl(value: string): string {
 // Schema.org CollectionPage/ItemList markup for the directory's own listing
 // pages (the home page and each friendly category page) — the collection-
 // level counterpart to a single listing's own LocalBusiness markup (see
-// buildJsonLd in src/app/directory/[slug]/page.tsx). Read by both search
-// engines (SEO) and AI answer engines that crawl the page (GEO), same
+// buildJsonLd in src/app/[locale]/business/[slug]/page.tsx). Read by both
+// search engines (SEO) and AI answer engines that crawl the page (GEO), same
 // reasoning as that one. Shared here since both pages build the same shape
-// from the same ListingRow[] they already fetch.
+// from the same ListingRow[] they already fetch. `locale` decides which
+// language each ItemList entry's own URL points at (directoryListingPath) —
+// this used to hardcode the pre-rename `/directory/{slug}` path with no
+// locale prefix at all, which still worked (the old path permanently
+// redirects) but sent every crawler through a redirect hop instead of
+// straight to the canonical, correctly-localized URL.
 export function buildDirectoryCollectionJsonLd(
   listings: { slug: string; listing: PublishedListingSnapshot }[],
   url: string,
   siteOrigin: string,
   name: string,
+  locale: DirectoryLocale,
   description?: string,
 ): string {
   const jsonLd: Record<string, unknown> = {
@@ -297,13 +303,35 @@ export function buildDirectoryCollectionJsonLd(
     itemListElement: listings.map(({ slug, listing }, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: `${siteOrigin}/directory/${slug}`,
+      url: `${siteOrigin}${directoryListingPath(locale, slug)}`,
       name: listing.companyName,
     })),
   };
   // Same reasoning as buildJsonLd's own escape: JSON.stringify doesn't
   // escape "</script>", so a company name containing that literal string
   // could otherwise break out of the script tag.
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
+
+// Schema.org BreadcrumbList markup — shared by the category page (Home >
+// Category) and a single listing's own page (Home > Category > Business
+// name, when the listing has a category). Search engines use this for the
+// breadcrumb trail shown under a result instead of the raw URL; an AI
+// answer engine crawling the page gets the same "where does this sit in the
+// site" context for free. `items` is root-first, and its last entry is the
+// current page itself — schema.org expects `item` on every entry, current
+// page included, not just the ancestors.
+export function buildBreadcrumbJsonLd(items: { name: string; url: string }[]): string {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
   return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
 }
 
