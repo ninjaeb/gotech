@@ -8,8 +8,9 @@ import { getSiteOrigin } from "@/lib/site-url";
 // Neither actually risks leaking anything by being crawled — a crawler
 // can't get past either one's own login page regardless — this is purely
 // about not showing a bare "Sign in" page or an empty dashboard shell in
-// search results. (Both bare URLs are still listed in sitemap.xml despite
-// being disallowed here — see that file's own comment for why.)
+// search results. (/business-portal's bare URL is still listed in
+// sitemap.xml despite being disallowed here — see that file's own comment
+// for why; /system isn't, for the same reason given there.)
 //
 // Everything else is allowed by default rather than hand-maintained on an
 // allowlist: the public business directory (/en|/zh|/ms/business), the

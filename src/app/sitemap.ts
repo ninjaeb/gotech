@@ -17,16 +17,21 @@ function languageAlternates(pathFor: (locale: DirectoryLocale) => string, siteOr
 
 // The public directory is what crawlers can actually reach — this lists
 // its home page, every currently-published partner listing, and every
-// business category's own friendly page. /business-portal and /system are
-// listed too, deliberately, even though robots.ts disallows crawling both
-// — this tells a search engine those URLs exist (so "Sign in to your
-// business" / the staff CRM's own login can still surface as a known,
-// bookmarkable entry point for someone searching for it by name) without
-// asking it to crawl or index whatever's behind the login wall. Google's
-// own guidance is that a disallowed URL in a sitemap is unusual and it
-// will generally show as "Submitted URL blocked by robots.txt" in Search
-// Console rather than "Indexed" — expected, not a bug, given what this is
-// deliberately asking for.
+// business category's own friendly page. /business-portal is listed too,
+// deliberately, even though robots.ts disallows crawling it — this tells a
+// search engine the URL exists (so "Sign in to your business" can still
+// surface as a known, bookmarkable entry point for a partner searching for
+// their own portal by name) without asking it to crawl or index whatever's
+// behind the login wall. Google's own guidance is that a disallowed URL in
+// a sitemap is unusual and it will generally show as "Submitted URL
+// blocked by robots.txt" in Search Console rather than "Indexed" —
+// expected, not a bug, given what this is deliberately asking for.
+// /system (the internal staff CRM) is deliberately NOT listed here, even
+// though robots.ts disallows it too — unlike the business portal, nobody
+// outside the company is ever going to search for it by name, so there's
+// no upside to naming it in a document search engines actually read,
+// versus the business portal's genuine "a partner is looking for this"
+// use case above.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteOrigin = await getSiteOrigin();
   const [listings, categories] = await Promise.all([
@@ -40,7 +45,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const gatedEntryPoints: MetadataRoute.Sitemap = [
     { url: `${siteOrigin}/business-portal`, changeFrequency: "monthly", priority: 0.3 },
-    { url: `${siteOrigin}/system`, changeFrequency: "monthly", priority: 0.3 },
   ];
 
   const homeEntries: MetadataRoute.Sitemap = DIRECTORY_LOCALES.map(({ code }) => ({
