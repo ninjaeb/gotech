@@ -280,10 +280,19 @@ export default async function DealDetailPage({
                 <Card>
                   <CardHeader>
                     <CardTitle>Quotes ({deal.quotes.length})</CardTitle>
-                    <Link href={`/system/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
-                      <Plus className="h-4 w-4" />
-                      New quote
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/system/deals/${deal.id}/quotes/log-external`}
+                        className={buttonClasses("secondary", "sm")}
+                        title="Already sent a quote outside the CRM? Log it here."
+                      >
+                        Log external
+                      </Link>
+                      <Link href={`/system/deals/${deal.id}/quotes/new`} className={buttonClasses("secondary", "sm")}>
+                        <Plus className="h-4 w-4" />
+                        New quote
+                      </Link>
+                    </div>
                   </CardHeader>
                   <CardBody>
                     {deal.quotes.length === 0 ? (

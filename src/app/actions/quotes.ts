@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { Prisma, type AcceptedVia, type Quote, type QuoteStatus } from "@/generated/prisma/client";
 import { requireSalesAction } from "@/lib/auth/dal";
 import { getBillingSettings, type BillingSettings } from "@/lib/settings";
-import { computeTotals, normalizeMoney } from "@/lib/documents/money";
+import { computeTotals, MONEY_RE, normalizeMoney } from "@/lib/documents/money";
 import { addDays, isQuoteOpen, orgToday, toDateOnly } from "@/lib/documents/dates";
 import { billToSchema, discountSchema, firstIssueMessage, lineItemSchema, parseItemsJson } from "@/lib/documents/schemas";
 import {
@@ -347,6 +347,117 @@ export async function issueQuote(quoteId: string): Promise<QuoteActionState> {
 export async function issueQuoteForm(quoteId: string, _prevState: QuoteActionState, formData: FormData): Promise<QuoteActionState> {
   void formData;
   return issueQuote(quoteId);
+}
+
+// ---------------------------------------------------------------------------
+// Log an externally issued quote — a sale where the quote itself was sent
+// outside the CRM entirely (email, another tool, a signed PO) rather than
+// through the line-item builder above. Skips drafting: goes straight to a
+// single-line, already-"SENT" Quote so it counts toward the Won stage gate
+// (see stageGateError in src/lib/deal-hygiene.ts) exactly like a normal
+// issued quote would — same status, same real shareToken/number shape —
+// which also means the existing "Record a response" flow (markQuoteResponse
+// below) works on it unchanged if staff want to log the client's yes too.
+// The number is prefixed so it can never collide with — or be mistaken for —
+// one this CRM's own sequence allocated (see allocateDocumentNumber).
+
+const externalQuoteSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(191),
+  reference: z
+    .string()
+    .trim()
+    .min(1, "Enter the quote number or reference from the original document")
+    .max(100),
+  total: z.string().trim().regex(MONEY_RE, "Amount must be a number with at most 2 decimals"),
+  issuedAt: z.string().trim().optional(),
+  description: z.string().trim().max(500).optional(),
+});
+
+export async function logExternalQuote(dealId: string, _prevState: QuoteFormState, formData: FormData): Promise<QuoteFormState> {
+  const user = await requireSalesAction();
+  const parsed = externalQuoteSchema.safeParse({
+    title: formData.get("title"),
+    reference: formData.get("reference"),
+    total: formData.get("total"),
+    issuedAt: formData.get("issuedAt"),
+    description: formData.get("description"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid quote details" };
+
+  let issuedAt = new Date();
+  if (parsed.data.issuedAt) {
+    const parsedDate = toDateOnly(parsed.data.issuedAt);
+    if (!parsedDate) return { error: "Issued date must be a valid date." };
+    issuedAt = parsedDate;
+  }
+
+  const deal = await db.deal.findUnique({ where: { id: dealId }, include: { contact: true, company: true } });
+  if (!deal) return { error: "That deal no longer exists." };
+
+  const settings = await getBillingSettings();
+  const number = `EXT-${parsed.data.reference}`;
+  const total = normalizeMoney(parsed.data.total);
+  const defaults = billToDefaults(deal.contact, deal.company);
+
+  let quoteId: string;
+  try {
+    const quote = await db.quote.create({
+      data: {
+        title: parsed.data.title,
+        status: "SENT",
+        dealId,
+        contactId: deal.contactId,
+        currency: settings.currency,
+        taxLabel: settings.taxLabel,
+        number,
+        shareToken: newShareToken(),
+        issuedAt,
+        sentAt: issuedAt,
+        subtotal: total,
+        total,
+        ...issuerSnapshot(settings),
+        billToName: defaults.billToName || null,
+        billToCompany: defaults.billToCompany || null,
+        billToRegistrationNo: defaults.billToRegistrationNo || null,
+        billToAddress: defaults.billToAddress || null,
+        billToEmail: defaults.billToEmail || null,
+        items: {
+          create: [
+            {
+              description: parsed.data.description || "Quoted amount (issued outside the CRM)",
+              quantity: 1,
+              unitPrice: total,
+              taxable: false,
+              lineTotal: total,
+              sortOrder: 0,
+            },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    quoteId = quote.id;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { error: "A quote with that reference is already logged on this deal." };
+    }
+    throw error;
+  }
+
+  await logDocumentEvent(db, { type: "CREATED", quoteId, actorId: user.id, actorLabel: user.name });
+  await logDocumentEvent(db, {
+    type: "ISSUED",
+    quoteId,
+    actorId: user.id,
+    actorLabel: user.name,
+    payload: { number, external: true },
+  });
+  await db.activity.create({
+    data: { type: "NOTE", content: `Logged external quote ${number}: "${parsed.data.title}".`, dealId },
+  });
+
+  revalidateQuotePaths(dealId, quoteId);
+  redirect(withFlash(`/system/deals/${dealId}/quotes/${quoteId}`, "External quote logged."));
 }
 
 // ---------------------------------------------------------------------------
