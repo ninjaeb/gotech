@@ -1,39 +1,35 @@
 import type { MetadataRoute } from "next";
 import { getSiteOrigin } from "@/lib/site-url";
 
-// Every other route either requires a login (so a crawler can't reach it
-// regardless) or is a single-purpose embed/form page with nothing worth
-// indexing — the partner directory is the one part of this app meant to be
-// found via search, now living under /en|/zh|/ms/business (renamed from
-// /directory for a friendlier public URL). The bare /directory and
-// locale-prefixed /en|/zh|/ms/directory paths are permanent redirects now
-// (see src/app/directory/ and src/app/[locale]/directory/) rather than
-// real content, but stay allowed so a crawler that already indexed one
-// under the old scheme can still fetch it, follow the redirect, and
-// transfer over to the real /business URL instead of the old entry just
-// going stale. Bare /business (no locale) is deliberately left off this
-// list — that one's the signed-in partner portal, not public content.
-// /llms.txt (see that route's own comment) is listed too — nothing there
-// that this disallow-by-default rule should actually block, but an AI
-// system that does treat robots.txt as gating everything, llms.txt
-// included, should still be able to fetch it.
+// Crawlable by default now, except the internal staff CRM at /system (and
+// everything under it — robots.txt Disallow is a prefix match, so this one
+// entry covers /system/login, /system/deals/[id], etc. too). /system is
+// where deal values, contacts, and every other business-internal record
+// live behind a login wall — a crawler can't actually get past
+// /system/login either way, so nothing sensitive would leak by allowing
+// it, but a bare "Sign in" page and an otherwise-empty CRM shell have no
+// business showing up in search results, so it's the one thing kept out
+// deliberately rather than left to Google's own judgment.
+//
+// Everything else is now allowed by default rather than hand-maintained on
+// an allowlist: the public business directory (/en|/zh|/ms/business), the
+// business-portal and client-portal login/dashboard pages (also
+// login-gated, same reasoning as /system, but a partner searching for
+// their own portal is a real use case /system doesn't have), lead/quote
+// links, the embeddable widget scripts, and webhook endpoints. This also
+// means /sitemap.xml and /llms.txt no longer need their own explicit allow
+// entries the way they did under the old disallow-by-default rule — see
+// this repo's history for that bug (Google Search Console's URL Inspection
+// reported /sitemap.xml itself as "blocked by robots.txt" — it was never
+// on the old allowlist, even though the `sitemap:` line below always
+// pointed at it).
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const siteOrigin = await getSiteOrigin();
   return {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/directory",
-          "/en/directory",
-          "/zh/directory",
-          "/ms/directory",
-          "/en/business",
-          "/zh/business",
-          "/ms/business",
-          "/llms.txt",
-        ],
-        disallow: "/",
+        disallow: ["/system"],
       },
     ],
     sitemap: `${siteOrigin}/sitemap.xml`,
