@@ -1,0 +1,4 @@
+User-Agent: *
+Disallow: /system
+
+Sitemap: https://crm.gotka.com/sitemap.xml
