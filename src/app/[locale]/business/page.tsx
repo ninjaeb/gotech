@@ -2,18 +2,20 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { resolveDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE, directoryHomePath } from "@/lib/directory-i18n";
+import {
+  DIRECTORY_STRINGS,
+  DIRECTORY_LOCALES,
+  DIRECTORY_HOME_TITLE_BY_LOCALE,
+  INDUSTRY_LABELS_BY_LOCALE,
+  directoryHomePath,
+} from "@/lib/directory-i18n";
 import { translateCategoryName } from "@/lib/directory-category-labels";
 import { readPublishedSnapshot, buildDirectoryCollectionJsonLd, type PublishedListingSnapshot } from "@/lib/directory";
 import { INDUSTRIES } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
 import { getSiteOrigin } from "@/lib/site-url";
 
-const TITLE_BY_LOCALE = {
-  en: "Business Directory",
-  zh: "企业目录",
-  ms: "Direktori Perniagaan",
-};
+const TITLE_BY_LOCALE = DIRECTORY_HOME_TITLE_BY_LOCALE;
 const DESCRIPTION_BY_LOCALE = {
   en: "Browse trusted businesses in the Gotka network and reach out directly — search by name, service, or category.",
   zh: "浏览 Gotka 网络中值得信赖的企业 — 按名称、服务或类别搜索并直接联系。",
@@ -109,7 +111,7 @@ export default async function DirectoryHomePage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: buildDirectoryCollectionJsonLd(listings, directoryUrl, siteOrigin, TITLE_BY_LOCALE[resolved]),
+          __html: buildDirectoryCollectionJsonLd(listings, directoryUrl, siteOrigin, TITLE_BY_LOCALE[resolved], resolved),
         }}
       />
       <DirectorySearch

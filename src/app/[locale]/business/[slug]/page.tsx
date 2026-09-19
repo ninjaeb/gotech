@@ -10,6 +10,7 @@ import {
   isOpenNow,
   readPublishedSnapshot,
   slugify,
+  buildBreadcrumbJsonLd,
   type FaqEntry,
   type OperatingHours,
 } from "@/lib/directory";
@@ -18,6 +19,7 @@ import { resolveDirectoryLocale } from "@/lib/directory-locale";
 import {
   DIRECTORY_STRINGS,
   DIRECTORY_LOCALES,
+  DIRECTORY_HOME_TITLE_BY_LOCALE,
   INDUSTRY_LABELS_BY_LOCALE,
   directoryHomePath,
   directoryListingPath,
@@ -165,7 +167,18 @@ function buildJsonLd(
   const description = listing.seoDescription?.trim() || stripMarkdownLiteToPlainText(listing.description) || listing.tagline;
   if (description) jsonLd.description = description;
   if (imageUrl) jsonLd.image = imageUrl;
-  if (listing.address) jsonLd.address = listing.address;
+  // A structured PostalAddress (falling back to the free-text `address` as
+  // streetAddress when state/country aren't set) reads far better to both a
+  // rich-result parser and an AI crawler extracting "where is this
+  // business" than the same info as one opaque string ever did.
+  if (listing.address || listing.state || listing.country) {
+    jsonLd.address = {
+      "@type": "PostalAddress",
+      ...(listing.address ? { streetAddress: listing.address } : {}),
+      ...(listing.state ? { addressRegion: listing.state } : {}),
+      ...(listing.country ? { addressCountry: listing.country } : {}),
+    };
+  }
   if (listing.website) jsonLd.sameAs = [listing.website];
   // English regardless of the page's own locale — schema.org's own
   // vocabulary/consumers (search engines, AI crawlers) expect this field in
@@ -281,6 +294,23 @@ export default async function DirectoryListingPage({
   const displayServices = translation?.services?.length ? translation.services : listing.services;
   const displayFaqs = translation?.faqs?.length ? translation.faqs : listing.faqs;
 
+  // Home > (first category, if any) > this business. Only the first
+  // category, not every one a listing has — a breadcrumb trail is meant to
+  // read as one path back to the root, not an exhaustive tag list.
+  const primaryCategory = listing.categories[0];
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: DIRECTORY_HOME_TITLE_BY_LOCALE[resolved], url: `${siteOrigin}${directoryHomePath(resolved)}` },
+    ...(primaryCategory
+      ? [
+          {
+            name: translateCategoryName(primaryCategory, resolved),
+            url: `${siteOrigin}${categoryPath(slugify(primaryCategory), resolved)}`,
+          },
+        ]
+      : []),
+    { name: listing.companyName, url: pageUrl },
+  ]);
+
   return (
     // Bottom padding clears whatever is pinned over the page's foot: the
     // mobile jump bar below (always, on small screens), plus the
@@ -303,6 +333,7 @@ export default async function DirectoryListingPage({
           dangerouslySetInnerHTML={{ __html: buildFaqJsonLd(displayFaqs) }}
         />
       )}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
           {/* 96px below sm — a fixed 200px logo left too little width for

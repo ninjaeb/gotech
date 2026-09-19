@@ -2,11 +2,19 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSiteOrigin } from "@/lib/site-url";
-import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, INDUSTRY_LABELS_BY_LOCALE, type DirectoryLocale } from "@/lib/directory-i18n";
+import {
+  DIRECTORY_STRINGS,
+  DIRECTORY_LOCALES,
+  DIRECTORY_HOME_TITLE_BY_LOCALE,
+  INDUSTRY_LABELS_BY_LOCALE,
+  directoryHomePath,
+  type DirectoryLocale,
+} from "@/lib/directory-i18n";
 import {
   findCategoryBySlug,
   readPublishedSnapshot,
   buildDirectoryCollectionJsonLd,
+  buildBreadcrumbJsonLd,
   type PublishedListingSnapshot,
 } from "@/lib/directory";
 import { translateCategoryName, categoryPath, categoryPageTitle, categoryPageHeading, categoryPageDescription } from "@/lib/directory-category-labels";
@@ -83,15 +91,20 @@ export async function CategoryPageContent({
     .map((row) => ({ slug: row.slug, listing: readPublishedSnapshot(row.publishedSnapshot) }))
     .filter((row): row is { slug: string; listing: PublishedListingSnapshot } => row.listing !== null);
   const categoryListings = listings.filter(({ listing }) => listing.categories.includes(category));
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: DIRECTORY_HOME_TITLE_BY_LOCALE[locale], url: `${siteOrigin}${directoryHomePath(locale)}` },
+    { name: heading, url: pageUrl },
+  ]);
 
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: buildDirectoryCollectionJsonLd(categoryListings, pageUrl, siteOrigin, heading, description),
+          __html: buildDirectoryCollectionJsonLd(categoryListings, pageUrl, siteOrigin, heading, locale, description),
         }}
       />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
       <DirectorySearch
         listings={listings}
         industries={INDUSTRIES}

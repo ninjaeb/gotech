@@ -13,6 +13,10 @@ import { getSiteOrigin } from "@/lib/site-url";
 // transfer over to the real /business URL instead of the old entry just
 // going stale. Bare /business (no locale) is deliberately left off this
 // list — that one's the signed-in partner portal, not public content.
+// /llms.txt (see that route's own comment) is listed too — nothing there
+// that this disallow-by-default rule should actually block, but an AI
+// system that does treat robots.txt as gating everything, llms.txt
+// included, should still be able to fetch it.
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const siteOrigin = await getSiteOrigin();
   return {
@@ -27,6 +31,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
           "/en/business",
           "/zh/business",
           "/ms/business",
+          "/llms.txt",
         ],
         disallow: "/",
       },
