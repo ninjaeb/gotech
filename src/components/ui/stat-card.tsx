@@ -31,7 +31,7 @@ export function StatCard({
   const content = (
     <div
       className={cn(
-        "flex items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 dark:border-neutral-800 dark:bg-neutral-900",
+        "flex h-full items-center gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 dark:border-neutral-800 dark:bg-neutral-900",
         href && "transition-colors hover:border-indigo-300 dark:hover:border-indigo-800",
       )}
     >
@@ -53,8 +53,14 @@ export function StatCard({
   );
 
   if (href) {
+    // CSS Grid stretches direct children to a row's tallest item by
+    // default, but only that direct child — a card whose sibling has a
+    // `description` line (3 rows of text vs. this one's 2) needs the
+    // anchor to actually pass that stretched height down to `content`
+    // (h-full above), or the visible bordered box stays only as tall as
+    // its own text and looks short next to a taller sibling in the same row.
     return (
-      <Link href={href} className="block">
+      <Link href={href} className="block h-full">
         {content}
       </Link>
     );
