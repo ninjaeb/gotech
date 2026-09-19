@@ -1,0 +1,3 @@
+# Placeholder
+
+This file is regenerated automatically by src/instrumentation.ts the moment the server starts (see src/lib/llms-txt-generator.ts). Committed only so Next.js knows this path exists at build time — never meant to be served as-is.

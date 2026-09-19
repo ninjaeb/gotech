@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<!-- Placeholder — src/instrumentation.ts overwrites this with the real,
+     database-driven sitemap the moment the server starts (see
+     src/lib/sitemap-generator.ts). Committed only so Next.js knows this
+     path exists at build time; never meant to be served as-is. -->
+</urlset>

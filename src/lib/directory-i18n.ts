@@ -28,7 +28,7 @@ export const DIRECTORY_HOME_TITLE_BY_LOCALE: Record<DirectoryLocale, string> = {
 // Every directory URL carries its language as a leading path segment —
 // /en/business, /zh/business/some-company, /ms/business/signup — English
 // included, rather than a bare default-locale URL, so all three languages
-// are equally real, bookmarkable, crawlable pages (see sitemap.ts) instead
+// are equally real, bookmarkable, crawlable pages (see sitemap-generator.ts) instead
 // of one "canonical" version plus query-param/cookie variants. Lives under
 // /business rather than /directory (the tree's own folder name, and every
 // old link, was /directory until it was renamed for a friendlier public

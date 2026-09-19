@@ -1,0 +1,19 @@
+# A plain static file (see /public), not a dynamically rendered Next.js
+# route — this used to be src/app/robots.ts, generating its Sitemap: line
+# from the incoming request's own host (see src/lib/site-url.ts). Moved
+# here so this one file is served straight off disk with no app server
+# involved at all, since it's only ever meaningfully fetched on
+# crm.gotka.com in production anyway; the Sitemap: line below is hardcoded
+# to that domain accordingly, unlike the app's other absolute-URL-building
+# code, which stays request-relative on purpose.
+#
+# /business-portal is crawlable now (no longer disallowed) — a partner
+# searching for their own portal by name is a real use case, and it's
+# login-gated regardless, so nothing behind it is actually reachable by a
+# crawler either way. /system (the internal staff CRM) is the one thing
+# still kept out — see this file's git history/sitemap-generator.ts for the
+# fuller reasoning.
+User-Agent: *
+Disallow: /system
+
+Sitemap: https://crm.gotka.com/sitemap.xml
