@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/session";
 import { decryptPortalSession } from "@/lib/portal/session";
 import { decryptBusinessSession } from "@/lib/business/session";
+import { DIRECTORY_LOCALE_HEADER, directoryLocaleFromPathname } from "@/lib/directory-locale-header";
 
 // Routes logged-out visitors can reach at all. /business-portal/login is
 // handled entirely separately, in proxyBusinessRoute below, since it
@@ -154,6 +155,22 @@ function resolveDirectoryLocaleFromRequest(request: NextRequest): "en" | "zh" | 
   return "en";
 }
 
+// The root layout (src/app/layout.tsx) renders <html lang> from this header
+// — the only way a language that lives in a URL segment below it can reach
+// the one element that carries it. Set from the path itself and never
+// trusted from the client: stripped from any request that didn't arrive at
+// a directory URL, so nothing outside the directory can be made to claim a
+// language it isn't in.
+function withDirectoryLocaleHeader(request: NextRequest, pathname: string) {
+  const locale = directoryLocaleFromPathname(pathname);
+  if (!locale && !request.headers.has(DIRECTORY_LOCALE_HEADER)) return NextResponse.next();
+
+  const requestHeaders = new Headers(request.headers);
+  if (locale) requestHeaders.set(DIRECTORY_LOCALE_HEADER, locale);
+  else requestHeaders.delete(DIRECTORY_LOCALE_HEADER);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -167,6 +184,15 @@ export async function proxy(request: NextRequest) {
   // /directory redirect stub (src/app/directory/page.tsx) a second time.
   if (pathname === "/") {
     return NextResponse.redirect(new URL(`/${resolveDirectoryLocaleFromRequest(request)}/business`, request.url));
+  }
+
+  // A bare locale (/en, /zh, /ms) has no page of its own — without this it
+  // fell through to the login redirect below, bouncing a visitor who
+  // trimmed a directory URL back to its language segment onto the staff
+  // CRM's sign-in form. Permanent, since the answer never changes.
+  const bareLocale = /^\/(en|zh|ms)\/?$/.exec(pathname)?.[1];
+  if (bareLocale) {
+    return NextResponse.redirect(new URL(`/${bareLocale}/business`, request.url), 308);
   }
 
   if (pathname === "/portal" || pathname.startsWith("/portal/")) {
@@ -190,7 +216,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/system", request.url));
   }
 
-  return NextResponse.next();
+  return withDirectoryLocaleHeader(request, pathname);
 }
 
 export const config = {

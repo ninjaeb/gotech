@@ -13,6 +13,7 @@ import { firstHopValue } from "@/lib/site-url";
 import { DIRECTORY_REFERRAL_COOKIE, findPartnerByReferralCode } from "@/lib/referrals";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { regenerateSitemapFile } from "@/lib/sitemap-generator";
+import { regenerateLlmsTxtFile } from "@/lib/llms-txt-generator";
 import {
   buildPublishedSnapshot,
   createPartnerListing,
@@ -1170,7 +1171,7 @@ async function publishListing(id: string) {
       ),
     },
   });
-  await regenerateSitemapFile();
+  await Promise.all([regenerateSitemapFile(), regenerateLlmsTxtFile()]);
   return published;
 }
 
@@ -1233,7 +1234,7 @@ export async function unpublishDirectoryListing(id: string): Promise<void> {
     where: { id },
     data: { publishedSnapshot: Prisma.JsonNull, status: "DRAFT" },
   });
-  await regenerateSitemapFile();
+  await Promise.all([regenerateSitemapFile(), regenerateLlmsTxtFile()]);
   revalidatePath("/system/settings/directory");
   revalidatePath("/directory");
   revalidatePath(`/directory/${listing.slug}`);

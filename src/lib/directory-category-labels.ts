@@ -1,4 +1,5 @@
 import type { DirectoryLocale } from "@/lib/directory-i18n";
+import { DIRECTORY_SITE_NAME_BY_LOCALE } from "@/lib/directory-seo";
 
 // BusinessCategory rows only ever store an English name (see
 // prisma/migrations/20260909170000_seed_business_categories) and a
@@ -118,9 +119,10 @@ export function categoryPath(categorySlug: string, locale: DirectoryLocale): str
 // slot to interpolate into).
 export function categoryPageTitle(name: string, locale: DirectoryLocale): string {
   const label = translateCategoryName(name, locale);
-  if (locale === "zh") return `${label} 企业 | 企业目录`;
-  if (locale === "ms") return `Perniagaan ${label} | Direktori Perniagaan`;
-  return `${label} Businesses | Business Directory`;
+  const siteName = DIRECTORY_SITE_NAME_BY_LOCALE[locale];
+  if (locale === "zh") return `${label} 企业 | ${siteName}`;
+  if (locale === "ms") return `Perniagaan ${label} | ${siteName}`;
+  return `${label} Businesses | ${siteName}`;
 }
 
 export function categoryPageHeading(name: string, locale: DirectoryLocale): string {

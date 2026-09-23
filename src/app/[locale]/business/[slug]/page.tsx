@@ -8,17 +8,25 @@ import {
   DAYS_OF_WEEK,
   formatOpeningHoursSchema,
   isOpenNow,
+  listingLogoPath,
   readPublishedSnapshot,
   slugify,
   buildBreadcrumbJsonLd,
-  type FaqEntry,
   type OperatingHours,
 } from "@/lib/directory";
+import {
+  DIRECTORY_ROBOTS,
+  DIRECTORY_SITE_NAME_BY_LOCALE,
+  OG_LOCALE_BY_DIRECTORY_LOCALE,
+  buildFaqJsonLd,
+  buildLanguageAlternates,
+  directoryShareImage,
+  serializeJsonLd,
+} from "@/lib/directory-seo";
 import { renderMarkdownLite, stripMarkdownLiteToPlainText } from "@/lib/markdown-lite";
 import { resolveDirectoryLocale } from "@/lib/directory-locale";
 import {
   DIRECTORY_STRINGS,
-  DIRECTORY_LOCALES,
   DIRECTORY_HOME_TITLE_BY_LOCALE,
   INDUSTRY_LABELS_BY_LOCALE,
   directoryHomePath,
@@ -50,8 +58,9 @@ async function getPublishedListing(slug: string) {
   const snapshot = readPublishedSnapshot(listing.publishedSnapshot);
   // id/partnerId ride along with the snapshot so the page can tell whose
   // listing this is — a partner gets a "Recommend" link for everyone
-  // else's listing, never their own.
-  return snapshot ? { ...snapshot, id: listing.id, partnerId: listing.partnerId } : null;
+  // else's listing, never their own. publishedAt versions the logo URL
+  // (see listingLogoPath).
+  return snapshot ? { ...snapshot, id: listing.id, partnerId: listing.partnerId, publishedAt: listing.publishedAt } : null;
 }
 
 // Whether the visitor is a signed-in business owner with a referral code
@@ -98,8 +107,11 @@ export async function generateMetadata({
     listing.tagline ||
     (plainDescription ? plainDescription.slice(0, 160) : undefined) ||
     `${listing.companyName} on the business directory.`;
-  const title = listing.seoTitle?.trim() || `${listing.companyName} | Business Directory`;
-  const imageUrl = buildListingLogoUrl(listing, siteOrigin, slug) ?? `${siteOrigin}/icon-192.png`;
+  const title = listing.seoTitle?.trim() || `${listing.companyName} | ${DIRECTORY_SITE_NAME_BY_LOCALE[resolved]}`;
+  // No logo → the directory's own branded share image (see
+  // directoryShareImage) rather than the bare app icon.
+  const imageUrl = buildListingLogoUrl(listing, siteOrigin, slug);
+  const shareImage = imageUrl ? { url: imageUrl } : directoryShareImage(siteOrigin, resolved);
 
   return {
     title,
@@ -109,24 +121,25 @@ export async function generateMetadata({
       // The page body itself does vary by language (see the translation
       // lookup below, in the page component) even though this title/
       // description stay the partner's own single-language SEO fields.
-      languages: Object.fromEntries(
-        DIRECTORY_LOCALES.map(({ code }) => [code, `${siteOrigin}${directoryListingPath(code, slug)}`]),
-      ),
+      languages: buildLanguageAlternates(siteOrigin, (code) => directoryListingPath(code, slug)),
     },
-    robots: { index: true, follow: true },
+    robots: DIRECTORY_ROBOTS,
     openGraph: {
       title,
       description,
       url,
-      siteName: "Business Directory",
+      siteName: DIRECTORY_SITE_NAME_BY_LOCALE[resolved],
       type: "website",
-      images: [{ url: imageUrl }],
+      locale: OG_LOCALE_BY_DIRECTORY_LOCALE[resolved],
+      images: [shareImage],
     },
     twitter: {
-      card: "summary",
+      // A logo is roughly square, which suits the small summary card; the
+      // 1200×630 branded image wants the large one.
+      card: imageUrl ? "summary" : "summary_large_image",
       title,
       description,
-      images: [imageUrl],
+      images: [shareImage],
     },
   };
 }
@@ -135,16 +148,19 @@ export async function generateMetadata({
 // Open Graph/Twitter/JSON-LD can't use directly — those are read by a
 // crawler that fetches the image URL itself, not by a browser rendering
 // the page. /api/directory-images/logo/[slug] decodes and re-serves it
-// under a real URL instead. Returns null when the listing has no logo —
-// callers decide their own fallback (OG/Twitter want the app's own icon;
-// JSON-LD's `image` is meant to represent this specific business, so it's
-// left unset entirely rather than pointed at unrelated Gotka branding).
+// under a real URL instead (versioned by publish time, see
+// listingLogoPath, so a replaced logo is a new URL to every cache and
+// link-preview scraper too). Returns null when the listing has no logo —
+// callers decide their own fallback (OG/Twitter inherit the directory's
+// branded share image; JSON-LD's `image` is meant to represent this
+// specific business, so it's left unset entirely rather than pointed at
+// unrelated Gotka branding).
 function buildListingLogoUrl(
   listing: NonNullable<Awaited<ReturnType<typeof getPublishedListing>>>,
   siteOrigin: string,
   slug: string,
 ): string | null {
-  return listing.logoUrl ? `${siteOrigin}/api/directory-images/logo/${slug}` : null;
+  return listing.logoUrl ? `${siteOrigin}${listingLogoPath(slug, listing.publishedAt)}` : null;
 }
 
 // Schema.org LocalBusiness markup — read by both search engines (SEO) and
@@ -199,31 +215,7 @@ function buildJsonLd(
       },
     }));
   }
-  // JSON.stringify doesn't escape "</script>" — without this, a company
-  // name or description containing that literal string could break out of
-  // the script tag. < is invisible to JSON parsing but not to an HTML
-  // tokenizer, so this neutralizes it either way.
-  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
-}
-
-// FAQPage is normally its own top-level JSON-LD entity rather than nested
-// inside LocalBusiness — a separate <script> block, same escaping as
-// buildJsonLd above. Rich snippets are the SEO payoff; being directly
-// quotable Q&A is the GEO one.
-function buildFaqJsonLd(faqs: FaqEntry[]): string {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.question,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: faq.answer,
-      },
-    })),
-  };
-  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+  return serializeJsonLd(jsonLd);
 }
 
 type HoursRow = { day: string; label: string; status: string; isToday: boolean };
@@ -342,7 +334,8 @@ export default async function DirectoryListingPage({
               200px from sm up, where there's room for both. */}
           <ListingLogo
             name={listing.companyName}
-            logoUrl={listing.logoUrl}
+            logoUrl={listing.logoUrl ? listingLogoPath(slug, listing.publishedAt) : null}
+            size={200}
             className="h-24 w-24 text-2xl sm:h-[200px] sm:w-[200px] sm:text-4xl"
           />
           <div className="min-w-0 flex-1">

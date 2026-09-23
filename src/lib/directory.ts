@@ -3,6 +3,7 @@ import type { Industry, PartnerListing, Prisma } from "@/generated/prisma/client
 import { operatingHoursFromJson, type OperatingHours } from "@/lib/operating-hours";
 import { slugify } from "@/lib/slug";
 import { directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
+import { organizationJsonLdId, serializeJsonLd, websiteJsonLdId } from "@/lib/directory-seo";
 
 // Re-exported for existing server-side imports (actions, pages) that
 // already pull these from "@/lib/directory" — but a "use client" component
@@ -109,7 +110,7 @@ export function parseServicesJson(raw: string): ServiceEntry[] {
 
 // A listing's FAQ entries — see FaqEditor. Shown on the detail page and
 // emitted as FAQPage JSON-LD (see buildFaqJsonLd in
-// src/app/directory/[slug]/page.tsx), which is a straightforward, high-value
+// src/lib/directory-seo.ts), which is a straightforward, high-value
 // win for both SEO (rich snippets) and GEO (an AI answer engine can quote a
 // clearly-marked question/answer pair directly).
 export type FaqEntry = { question: string; answer: string };
@@ -259,6 +260,90 @@ export function buildPublishedSnapshot(
   };
 }
 
+// Only what the directory grid (the home page and each category page)
+// actually renders and filters on, in the visitor's own language. This is
+// what crosses the wire to the client-side search (see DirectorySearch), so
+// it deliberately drops everything the grid never shows — the full About
+// text, hours, FAQ, every other language's translation — and, above all,
+// the stored logo: that's a data: URL of the whole image (see photoDataUrl),
+// which inlined into the HTML and again into React's payload made the home
+// page ~870KB for five listings. logoUrl here is a real, cacheable path
+// instead (see listingLogoPath).
+export type DirectoryGridListing = {
+  slug: string;
+  companyName: string;
+  tagline: string | null;
+  services: { title: string; description: string }[];
+  industry: Industry | null;
+  categories: string[];
+  state: string | null;
+  country: string | null;
+  logoUrl: string | null;
+};
+
+export type PublishedListingRow = {
+  slug: string;
+  publishedAt: Date | null;
+  updatedAt: Date;
+  listing: PublishedListingSnapshot;
+};
+
+// Every listing the public directory shows, newest first — the one query
+// behind the home page, the category pages, sitemap.xml, and llms.txt, so
+// they can never disagree about what's public. Presence of an approved
+// snapshot is the test (same as the detail page), not the row's status.
+export async function loadPublishedListings(): Promise<PublishedListingRow[]> {
+  const rows = await db.partnerListing.findMany({
+    select: { slug: true, publishedAt: true, updatedAt: true, publishedSnapshot: true },
+    orderBy: { publishedAt: "desc" },
+  });
+  return rows.flatMap((row) => {
+    const listing = readPublishedSnapshot(row.publishedSnapshot);
+    return listing ? [{ slug: row.slug, publishedAt: row.publishedAt, updatedAt: row.updatedAt, listing }] : [];
+  });
+}
+
+// The logo's real URL (served by /api/directory-images/logo/[slug]). The
+// publish timestamp rides along as a cache-buster: the slug outlives any
+// number of logo replacements, but every replacement is re-approved, which
+// stamps a new publishedAt — so this URL changes exactly when the image
+// can, and that route caches the versioned form for good.
+export function listingLogoPath(slug: string, publishedAt: Date | null): string {
+  const path = `/api/directory-images/logo/${encodeURIComponent(slug)}`;
+  return publishedAt ? `${path}?v=${publishedAt.getTime()}` : path;
+}
+
+export function toDirectoryGridListing({ slug, publishedAt, listing }: PublishedListingRow, locale: DirectoryLocale): DirectoryGridListing {
+  // Same fallback rule as the detail page: a translation only stands in
+  // for the field it actually covers; the company name is never translated.
+  const translation = locale === "en" ? undefined : listing.translations[locale];
+  const services = translation?.services.length ? translation.services : listing.services;
+  return {
+    slug,
+    companyName: listing.companyName,
+    tagline: translation?.tagline || listing.tagline,
+    services: services.map(({ title, description }) => ({ title, description })),
+    industry: listing.industry,
+    categories: listing.categories,
+    state: listing.state,
+    country: listing.country,
+    logoUrl: listing.logoUrl ? listingLogoPath(slug, publishedAt) : null,
+  };
+}
+
+// How many published listings carry each category name — what decides
+// which categories get a real link on the home page, a sitemap entry, and
+// an llms.txt line (see those callers), versus only a dropdown option.
+export function countListingsByCategory(rows: { listing: Pick<PublishedListingSnapshot, "categories"> }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const { listing } of rows) {
+    for (const category of new Set(listing.categories)) {
+      counts.set(category, (counts.get(category) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 // A "Visit website" link needs a real absolute URL, not just a bare domain
 // — contrast Company.domain (src/lib/companies.ts), which deliberately
 // strips down to the bare form for internal matching. A partner typing
@@ -275,15 +360,15 @@ export function normalizeWebsiteUrl(value: string): string {
 // level counterpart to a single listing's own LocalBusiness markup (see
 // buildJsonLd in src/app/[locale]/business/[slug]/page.tsx). Read by both
 // search engines (SEO) and AI answer engines that crawl the page (GEO), same
-// reasoning as that one. Shared here since both pages build the same shape
-// from the same ListingRow[] they already fetch. `locale` decides which
-// language each ItemList entry's own URL points at (directoryListingPath) —
-// this used to hardcode the pre-rename `/directory/{slug}` path with no
-// locale prefix at all, which still worked (the old path permanently
-// redirects) but sent every crawler through a redirect hop instead of
-// straight to the canonical, correctly-localized URL.
+// reasoning as that one. Each entry is a LocalBusiness in its own right —
+// name, this language's canonical URL, logo, region, one-line description —
+// rather than a bare name+url pair, so a crawler that never follows through
+// to the detail page still learns what each business is and where. The page
+// also declares its language and the WebSite/Organization it belongs to
+// (see directory-seo.ts), so per-page and site-level markup read as one
+// graph rather than unrelated islands.
 export function buildDirectoryCollectionJsonLd(
-  listings: { slug: string; listing: PublishedListingSnapshot }[],
+  listings: DirectoryGridListing[],
   url: string,
   siteOrigin: string,
   name: string,
@@ -295,22 +380,36 @@ export function buildDirectoryCollectionJsonLd(
     "@type": "CollectionPage",
     name,
     url,
+    inLanguage: locale,
+    isPartOf: { "@id": websiteJsonLdId(siteOrigin) },
+    publisher: { "@id": organizationJsonLdId(siteOrigin) },
   };
   if (description) jsonLd.description = description;
   jsonLd.mainEntity = {
     "@type": "ItemList",
     numberOfItems: listings.length,
-    itemListElement: listings.map(({ slug, listing }, index) => ({
+    itemListElement: listings.map((listing, index) => ({
       "@type": "ListItem",
       position: index + 1,
-      url: `${siteOrigin}${directoryListingPath(locale, slug)}`,
-      name: listing.companyName,
+      item: {
+        "@type": "LocalBusiness",
+        name: listing.companyName,
+        url: `${siteOrigin}${directoryListingPath(locale, listing.slug)}`,
+        ...(listing.tagline ? { description: listing.tagline } : {}),
+        ...(listing.logoUrl ? { image: `${siteOrigin}${listing.logoUrl}` } : {}),
+        ...(listing.state || listing.country
+          ? {
+              address: {
+                "@type": "PostalAddress",
+                ...(listing.state ? { addressRegion: listing.state } : {}),
+                ...(listing.country ? { addressCountry: listing.country } : {}),
+              },
+            }
+          : {}),
+      },
     })),
   };
-  // Same reasoning as buildJsonLd's own escape: JSON.stringify doesn't
-  // escape "</script>", so a company name containing that literal string
-  // could otherwise break out of the script tag.
-  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+  return serializeJsonLd(jsonLd);
 }
 
 // Schema.org BreadcrumbList markup — shared by the category page (Home >
