@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS, DIRECTORY_LOCALES, directorySignupPath } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, directorySignupPath } from "@/lib/directory-i18n";
+import {
+  DIRECTORY_ROBOTS,
+  DIRECTORY_SITE_NAME_BY_LOCALE,
+  OG_LOCALE_BY_DIRECTORY_LOCALE,
+  buildLanguageAlternates,
+  directoryShareImage,
+} from "@/lib/directory-seo";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
 import { getSiteOrigin } from "@/lib/site-url";
 import { PartnerSignupForm } from "@/components/directory/partner-signup-form";
-
-const TITLE = "List Your Business | Business Directory";
-const DESCRIPTION = "Join the business directory and start receiving inquiries directly from visitors.";
 
 export async function generateMetadata({
   params,
@@ -19,31 +23,36 @@ export async function generateMetadata({
   if (!resolved) return {};
 
   const siteOrigin = await getSiteOrigin();
-  const imageUrl = `${siteOrigin}/icon-512.png`;
+  // The same heading/subheading the form itself shows, in the page's own
+  // language — this used to be one English title for all three locales.
+  const t = DIRECTORY_STRINGS[resolved];
+  const siteName = DIRECTORY_SITE_NAME_BY_LOCALE[resolved];
+  const title = `${t.signupHeading} | ${siteName}`;
+  const description = t.signupSubheading;
   const url = `${siteOrigin}${directorySignupPath(resolved)}`;
+  const shareImage = directoryShareImage(siteOrigin, resolved);
   return {
-    title: TITLE,
-    description: DESCRIPTION,
+    title,
+    description,
     alternates: {
       canonical: url,
-      languages: Object.fromEntries(
-        DIRECTORY_LOCALES.map(({ code }) => [code, `${siteOrigin}${directorySignupPath(code)}`]),
-      ),
+      languages: buildLanguageAlternates(siteOrigin, directorySignupPath),
     },
-    robots: { index: true, follow: true },
+    robots: DIRECTORY_ROBOTS,
     openGraph: {
-      title: TITLE,
-      description: DESCRIPTION,
+      title,
+      description,
       url,
-      siteName: "Business Directory",
+      siteName,
       type: "website",
-      images: [{ url: imageUrl }],
+      locale: OG_LOCALE_BY_DIRECTORY_LOCALE[resolved],
+      images: [shareImage],
     },
     twitter: {
-      card: "summary",
-      title: TITLE,
-      description: DESCRIPTION,
-      images: [imageUrl],
+      card: "summary_large_image",
+      title,
+      description,
+      images: [shareImage],
     },
   };
 }

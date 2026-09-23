@@ -10,6 +10,30 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.90",
+    date: "2026-09-23",
+    title: "Public business directory: faster, better described for search engines and AI assistants",
+    changes: [
+      "The directory home page (/en/business and its Chinese and Malay versions) is roughly a tenth of its previous size to load — partner logos are now fetched as normal, cacheable images instead of being embedded into the page itself (twice over), and the page no longer ships every listing's full About text, hours, FAQ and translations to the browser just to power the search box",
+      "New sections below the listings, in all three languages: a short description of what the directory is, links to every category that has a published business (with a count), a three-step How it works, a List your business call-out, and an FAQ — real text and real links for search engines, and plain, quotable statements for AI assistants, where before there was only a heading, a one-line subtitle and a dropdown",
+      "The Chinese and Malay pages now declare their own language to browsers, screen readers and crawlers instead of claiming to be English",
+      "Browser-tab and link-preview titles now carry the Gotka brand and say what's on the page; every directory page declares an x-default language alternate and allows full-size image previews in Google results; the List your business page's title and description are in the page's own language",
+      "Sharing a directory, category or sign-up link previews with a proper 1200×630 branded image instead of the small square app icon — a listing without a logo of its own inherits it too",
+      "Structured data: the home page now identifies the directory as a website with a search box, names Gotka Technologies as its publisher, describes each listed business (logo, region, one-line summary) rather than just naming it, and includes the FAQ",
+      "A category page with no published business yet is marked not-to-be-indexed and left out of sitemap.xml and llms.txt until a listing appears, so search engines aren't fed dozens of near-empty pages; llms.txt now also lists every published business with its summary and region, and is refreshed on every publish/unpublish, same as the sitemap",
+      "Also: /favicon.ico no longer 404s; a bare /en, /zh or /ms goes to that language's directory instead of the staff sign-in page; the directory footer gains plain links to the directory, List your business and Business Login; logos carry descriptive alt text and reserved dimensions so the grid doesn't shift as they load",
+    ],
+  },
+  {
+    version: "1.89",
+    date: "2026-09-19",
+    title: "Business CRM portal: proper title, description, and share image",
+    changes: [
+      "Every page under the Business CRM portal (Companies, Contacts, Deals, Tasks, and the rest of the partner portal) now shows \"Business CRM\" as its browser tab title with its own description, instead of falling back to the internal system's generic \"Gotka CRM\" — and, like its sign-in page, is marked non-indexable since it all sits behind login",
+      "The sign-in page and the rest of the portal now include a share image (the same Gotka mark already used as the app's favicon), so a shared link previews with an image on WhatsApp/Slack/etc. instead of a blank one",
+    ],
+  },
+  {
     version: "1.88",
     date: "2026-09-18",
     title: "Embeddable widget scripts are now browser-cacheable",

@@ -16,11 +16,28 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const siteOrigin = await getSiteOrigin();
+  // Same fallback mark used for the public directory listing pages
+  // (src/app/[locale]/business/[slug]/page.tsx) when a page has no image
+  // of its own to share — there's nothing listing-specific to show here.
+  const imageUrl = `${siteOrigin}/icon-192.png`;
   return {
     title: TITLE,
     description: DESCRIPTION,
     alternates: { canonical: `${siteOrigin}/business-portal/login` },
     robots: { index: false, follow: false },
+    openGraph: {
+      title: TITLE,
+      description: DESCRIPTION,
+      siteName: "Business Directory",
+      type: "website",
+      images: [{ url: imageUrl }],
+    },
+    twitter: {
+      card: "summary",
+      title: TITLE,
+      description: DESCRIPTION,
+      images: [imageUrl],
+    },
   };
 }
 

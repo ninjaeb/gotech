@@ -3,9 +3,15 @@ import "server-only";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { db } from "@/lib/db";
-import { slugify } from "@/lib/directory";
+import { countListingsByCategory, loadPublishedListings, slugify } from "@/lib/directory";
 import { categoryPath } from "@/lib/directory-category-labels";
-import { DIRECTORY_LOCALES, directoryHomePath, directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
+import {
+  DEFAULT_DIRECTORY_LOCALE,
+  DIRECTORY_LOCALES,
+  directoryHomePath,
+  directoryListingPath,
+  type DirectoryLocale,
+} from "@/lib/directory-i18n";
 import { STATIC_SEO_ORIGIN } from "@/lib/static-seo-origin";
 
 // This used to be src/app/sitemap.ts, a Next.js route rendering
@@ -32,10 +38,14 @@ import { STATIC_SEO_ORIGIN } from "@/lib/static-seo-origin";
 // below) work at all after that.
 const SITEMAP_PATH = path.join(process.cwd(), "public", "sitemap.xml");
 
+// The same set each page's own <head> declares (see buildLanguageAlternates
+// in directory-seo.ts): all three languages plus x-default → English.
 function languageAlternates(pathFor: (locale: DirectoryLocale) => string): string {
-  return DIRECTORY_LOCALES.map(
-    ({ code }) => `<xhtml:link rel="alternate" hreflang="${code}" href="${STATIC_SEO_ORIGIN}${pathFor(code)}" />`,
-  ).join("");
+  const alternates: [string, string][] = DIRECTORY_LOCALES.map(({ code }) => [code, pathFor(code)]);
+  alternates.push(["x-default", pathFor(DEFAULT_DIRECTORY_LOCALE)]);
+  return alternates
+    .map(([code, path]) => `<xhtml:link rel="alternate" hreflang="${code}" href="${STATIC_SEO_ORIGIN}${path}" />`)
+    .join("");
 }
 
 function urlEntry(
@@ -65,13 +75,10 @@ function urlEntry(
 // actually read.
 export async function buildSitemapXml(): Promise<string> {
   const [listings, categories] = await Promise.all([
-    db.partnerListing.findMany({
-      where: { status: "PUBLISHED" },
-      select: { slug: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-    }),
+    loadPublishedListings(),
     db.businessCategory.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
   ]);
+  const countByCategory = countListingsByCategory(listings);
 
   const entries: string[] = [];
 
@@ -88,6 +95,11 @@ export async function buildSitemapXml(): Promise<string> {
   }
 
   for (const { name } of categories) {
+    // A category nobody has published into yet is noindex (see
+    // buildCategoryMetadata) — listing it here would only send crawlers to
+    // a page that then asks not to be indexed. It joins the moment a
+    // published listing carries it, since every publish regenerates this.
+    if (!(countByCategory.get(name) ?? 0)) continue;
     const categorySlug = slugify(name);
     for (const { code } of DIRECTORY_LOCALES) {
       entries.push(

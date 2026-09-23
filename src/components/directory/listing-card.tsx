@@ -3,20 +3,18 @@ import { ChevronRight } from "lucide-react";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ListingLogo } from "@/components/directory/listing-logo";
-import type { PublishedListingSnapshot } from "@/lib/directory";
+import type { DirectoryGridListing } from "@/lib/directory";
 import { directoryListingPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 const MAX_VISIBLE_SERVICES = 3;
 
 export function ListingCard({
-  slug,
   listing,
   viewLabel,
   industryLabel,
   locale,
 }: {
-  slug: string;
-  listing: PublishedListingSnapshot;
+  listing: DirectoryGridListing;
   viewLabel: string;
   // Pre-resolved for the visitor's locale by the caller (see
   // directory-search.tsx) — this component has no locale of its own to
@@ -27,13 +25,18 @@ export function ListingCard({
   const extraServices = listing.services.length - MAX_VISIBLE_SERVICES;
 
   return (
-    <Link href={directoryListingPath(locale, slug)} className="block h-full">
+    <Link href={directoryListingPath(locale, listing.slug)} className="block h-full">
       <Card className="flex h-full flex-col transition-colors hover:border-petrol/40 dark:hover:border-petrol-light/30">
         <CardBody className="flex flex-1 flex-col gap-3">
           <div className="flex items-center gap-3">
-            <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} className="h-10 w-10 text-sm" />
+            <ListingLogo name={listing.companyName} logoUrl={listing.logoUrl} size={40} loading="lazy" className="h-10 w-10 text-sm" />
             <div className="min-w-0">
-              <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</p>
+              {/* A heading rather than a <p>: each card's name is an item
+                  under the page's H1/H2 outline, which is how a crawler (and
+                  a screen reader's heading list) tells the businesses apart
+                  from the surrounding copy. Tailwind's preflight leaves
+                  headings unstyled, so it looks exactly as before. */}
+              <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{listing.companyName}</h3>
               {listing.industry && industryLabel && (
                 <p className="truncate text-xs text-slate-500 dark:text-slate-400">{industryLabel}</p>
               )}

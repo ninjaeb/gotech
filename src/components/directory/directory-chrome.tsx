@@ -83,7 +83,10 @@ export async function DirectoryChrome({
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex w-full items-center gap-3 px-4 py-3 sm:px-8">
           <Link href={directoryHref} className="flex shrink-0 items-center gap-2">
-            <img src="/icon-192.png" alt="" className="h-8 w-8 shrink-0" />
+            {/* Below sm the wordmark beside it is hidden, so this alt is
+                the whole link's name there; from sm up the two together
+                read "Gotka Business Directory". */}
+            <img src="/icon-192.png" alt="Gotka" className="h-8 w-8 shrink-0" />
             {/* "Gotka" only ever showed the wordmark, not what this page
                 actually is — dropped entirely on mobile to save space
                 (the icon alone is enough there), and replaced with the
@@ -133,8 +136,20 @@ export async function DirectoryChrome({
 
       <footer className="border-t border-slate-200 bg-white py-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="w-full px-4 text-center text-sm text-slate-500 dark:text-slate-400 sm:px-8">
-          <p>{t.footerTagline}</p>
-          <p className="mt-1">
+          {/* Plain links, server-rendered: the header's hamburger menu only
+              builds its links in the browser once opened, so until this
+              existed the sign-up and sign-in pages had no crawlable link
+              anywhere in the directory's HTML. */}
+          <nav aria-label={t.stickyNavLabel} className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <Link href={directoryHref} className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
+              {t.brandName}
+            </Link>
+            <Link href={signupHref} className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
+              {t.listBusinessCta}
+            </Link>
+            <Link href="/business-portal/login" className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
+              {t.navLoginRegister}
+            </Link>
             <a
               href="https://gotka.com"
               target="_blank"
@@ -143,7 +158,8 @@ export async function DirectoryChrome({
             >
               gotka.com
             </a>
-          </p>
+          </nav>
+          <p className="mt-3">{t.footerTagline}</p>
         </div>
       </footer>
     </div>

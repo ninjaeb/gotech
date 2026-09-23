@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import { FlashToast } from "@/components/ui/flash-toast";
+import { DIRECTORY_LOCALE_HEADER } from "@/lib/directory-locale-header";
 import "./globals.css";
 
 const THEME_INIT_SCRIPT = `
@@ -54,10 +56,20 @@ export const viewport: Viewport = {
   themeColor: "#020617",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Everything in this app is English except the public directory, whose
+  // pages live under /en|/zh|/ms/business — a URL segment below this layout,
+  // which is the only place <html lang> can be set. src/proxy.ts copies
+  // that segment into a request header (and strips any client-sent one) for
+  // this one read; a Chinese or Malay page used to declare itself English
+  // here, which is what a screen reader, a translation prompt, and any
+  // crawler that trusts the attribute (Bing, most AI crawlers) went by.
+  const directoryLocale = (await headers()).get(DIRECTORY_LOCALE_HEADER);
+  const lang = directoryLocale === "zh" || directoryLocale === "ms" ? directoryLocale : "en";
+
   return (
     <html
-      lang="en"
+      lang={lang}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full min-h-full bg-slate-50 text-slate-900 dark:bg-neutral-950 dark:text-slate-100">

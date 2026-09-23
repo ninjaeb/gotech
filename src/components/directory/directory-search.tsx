@@ -6,11 +6,9 @@ import { ListingCard } from "@/components/directory/listing-card";
 import { ShareButton } from "@/components/directory/share-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input, Select } from "@/components/ui/field";
-import type { PublishedListingSnapshot } from "@/lib/directory";
+import type { DirectoryGridListing } from "@/lib/directory";
 import type { Industry } from "@/generated/prisma/client";
 import type { DirectoryLocale, DirectoryStrings } from "@/lib/directory-i18n";
-
-type ListingRow = { slug: string; listing: PublishedListingSnapshot };
 
 export function DirectorySearch({
   listings,
@@ -28,7 +26,7 @@ export function DirectorySearch({
   heading,
   subheading,
 }: {
-  listings: ListingRow[];
+  listings: DirectoryGridListing[];
   industries: Industry[];
   industryLabels: Record<Industry, string>;
   // value stays the English category name a listing's snapshot actually
@@ -69,7 +67,7 @@ export function DirectorySearch({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return listings.filter(({ listing }) => {
+    return listings.filter((listing) => {
       if (industry && listing.industry !== industry) return false;
       if (category && !listing.categories.includes(category)) return false;
       if (state && listing.state !== state) return false;
@@ -172,10 +170,9 @@ export function DirectorySearch({
           <EmptyState icon={Handshake} title={t.noResultsTitle} description={t.noResultsDescription} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map(({ slug, listing }) => (
+            {filtered.map((listing) => (
               <ListingCard
-                key={slug}
-                slug={slug}
+                key={listing.slug}
                 listing={listing}
                 viewLabel={t.viewListing}
                 industryLabel={listing.industry ? industryLabels[listing.industry] : undefined}

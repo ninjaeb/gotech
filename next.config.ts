@@ -20,6 +20,18 @@ function turbopackRoot(): string | undefined {
 const root = turbopackRoot();
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        // Browsers, link-preview bots, and some crawlers request
+        // /favicon.ico regardless of the <link rel="icon"> tags in <head>,
+        // so this 404ed on every page load. Serve the same PNG Next already
+        // exposes at /icon.png (from src/app/icon.png) there instead.
+        source: "/favicon.ico",
+        destination: "/icon.png",
+      },
+    ];
+  },
   async headers() {
     return [
       {
