@@ -14,6 +14,8 @@ import { DIRECTORY_REFERRAL_COOKIE, findPartnerByReferralCode } from "@/lib/refe
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_BYTES, photoDataUrl } from "@/lib/photo";
 import { regenerateSitemapFile } from "@/lib/sitemap-generator";
 import { regenerateLlmsTxtFile } from "@/lib/llms-txt-generator";
+import { revalidateDirectory } from "@/lib/directory-revalidate";
+import { directoryCategoryUrls, directoryHomeUrls, directoryListingUrls, notifyIndexNow } from "@/lib/indexnow";
 import {
   buildPublishedSnapshot,
   createPartnerListing,
@@ -912,7 +914,7 @@ export async function saveDirectoryListing(
   revalidatePath("/business-portal");
   revalidatePath("/business-portal/listings");
   revalidatePath(`/business-portal/listings/${listingId}`);
-  if (result.listing.publishedSnapshot) revalidatePath(`/directory/${result.listing.slug}`);
+  if (result.listing.publishedSnapshot) revalidateDirectory({ slugs: [result.listing.slug] });
   return { success: true };
 }
 
@@ -952,9 +954,15 @@ export async function updateListingSlug(
 
   await db.partnerListing.update({ where: { id: listing.id }, data: { slug: normalized } });
   revalidatePath(`/business-portal/listings/${listingId}`);
-  revalidatePath("/directory");
-  revalidatePath(`/directory/${listing.slug}`);
-  revalidatePath(`/directory/${normalized}`);
+  revalidateDirectory({ slugs: [listing.slug, normalized] });
+  if (listing.publishedSnapshot) {
+    // The public URL itself just moved: the static sitemap.xml/llms.txt name
+    // it (nothing else regenerates them for a slug change), and the search
+    // engines should hear both that the old address is gone and where the
+    // new one is — IndexNow takes a removed URL the same as a new one.
+    await Promise.all([regenerateSitemapFile(), regenerateLlmsTxtFile()]);
+    void notifyIndexNow([...directoryListingUrls(listing.slug), ...directoryListingUrls(normalized)]);
+  }
   return { success: true, slug: normalized };
 }
 
@@ -1015,8 +1023,7 @@ export async function submitDirectoryListingForReview(
 
   if (!needsReview) {
     const published = await publishListing(listingId);
-    revalidatePath("/directory");
-    revalidatePath(`/directory/${published.slug}`);
+    revalidateDirectory({ slugs: [published.slug] });
   }
 
   revalidatePath("/business-portal");
@@ -1172,6 +1179,13 @@ async function publishListing(id: string) {
     },
   });
   await Promise.all([regenerateSitemapFile(), regenerateLlmsTxtFile()]);
+  // Every page whose content this changes, in all three languages: the
+  // listing itself, the home grid, and each category page it now sits in.
+  void notifyIndexNow([
+    ...directoryHomeUrls(),
+    ...directoryListingUrls(published.slug),
+    ...directoryCategoryUrls(listing.categories.map((entry) => entry.category.name)),
+  ]);
   return published;
 }
 
@@ -1179,8 +1193,7 @@ export async function approveDirectoryListing(id: string): Promise<void> {
   await requireAdminAction();
   const listing = await publishListing(id);
   revalidatePath("/system/settings/directory");
-  revalidatePath("/directory");
-  revalidatePath(`/directory/${listing.slug}`);
+  revalidateDirectory({ slugs: [listing.slug] });
 }
 
 export type DirectorySettingsState = { error: string } | { success: true } | undefined;
@@ -1236,8 +1249,8 @@ export async function unpublishDirectoryListing(id: string): Promise<void> {
   });
   await Promise.all([regenerateSitemapFile(), regenerateLlmsTxtFile()]);
   revalidatePath("/system/settings/directory");
-  revalidatePath("/directory");
-  revalidatePath(`/directory/${listing.slug}`);
+  revalidateDirectory({ slugs: [listing.slug] });
+  void notifyIndexNow([...directoryHomeUrls(), ...directoryListingUrls(listing.slug)]);
 }
 
 // Reassigns a listing to a different partner account — e.g. the original

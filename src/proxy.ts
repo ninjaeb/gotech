@@ -75,6 +75,11 @@ const ALWAYS_PUBLIC_PREFIXES = [
   "/api/newsletter-images/",
   "/api/directory-images/",
   "/api/auth/google",
+  // /api/health is the deploy/uptime probe (scripts/deploy.ts polls it after
+  // every deploy) and /indexnow-key.txt the IndexNow key file (src/lib/
+  // indexnow.ts) — both fetched by machines that have no session.
+  "/api/health",
+  "/indexnow-key.txt",
 ];
 
 // The client portal (/portal/*) is a second, independent visitor type with

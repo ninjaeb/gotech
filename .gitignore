@@ -22,6 +22,7 @@
 # see getOrCreateServerActionsKey in server.js. Machine-specific, not a
 # secret meant to be shared/committed.
 /.server-actions-key
+.next-build-retry.json
 
 # production
 /build
