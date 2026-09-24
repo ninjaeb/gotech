@@ -66,13 +66,9 @@ function urlEntry(
 // (itself included, which is what a correct hreflang set requires) rather
 // than one "canonical" URL with the others only referenced as alternates.
 //
-// /business-portal is listed too — a partner searching for their own
-// portal by name is a real use case, and it's login-gated regardless (see
-// /public/robots.txt), so nothing behind it is actually reachable by a
-// crawler either way. /system (the internal staff CRM) is deliberately
-// NOT listed — nobody outside the company is ever going to search for it
-// by name, so there's no upside to naming it in a document search engines
-// actually read.
+// Only the public directory is listed. The partner portal and the staff CRM
+// both sit behind a login (and the portal declares itself noindex), so
+// naming them here would only send crawlers to a sign-in form.
 export async function buildSitemapXml(): Promise<string> {
   const [listings, categories] = await Promise.all([
     loadPublishedListings(),
@@ -81,8 +77,6 @@ export async function buildSitemapXml(): Promise<string> {
   const countByCategory = countListingsByCategory(listings);
 
   const entries: string[] = [];
-
-  entries.push(urlEntry(`${STATIC_SEO_ORIGIN}/business-portal`, { changeFrequency: "monthly", priority: 0.3 }));
 
   for (const { code } of DIRECTORY_LOCALES) {
     entries.push(
@@ -112,12 +106,15 @@ export async function buildSitemapXml(): Promise<string> {
     }
   }
 
-  for (const { slug, updatedAt } of listings) {
+  // The public page only changes when a snapshot is approved, so the
+  // publish time is the honest lastmod; updatedAt moves on every draft save
+  // the public never sees, and a lastmod that lies gets ignored.
+  for (const { slug, publishedAt, updatedAt } of listings) {
     for (const { code } of DIRECTORY_LOCALES) {
       entries.push(
         urlEntry(`${STATIC_SEO_ORIGIN}${directoryListingPath(code, slug)}`, {
           alternates: languageAlternates((locale) => directoryListingPath(locale, slug)),
-          lastModified: updatedAt,
+          lastModified: publishedAt ?? updatedAt,
           changeFrequency: "weekly",
           priority: 0.6,
         }),

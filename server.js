@@ -6,7 +6,7 @@
 // Not used for local development or for platforms that run `next start`
 // natively (Vercel, Docker, etc.) — see package.json's "dev"/"start" scripts.
 const { execFileSync } = require("node:child_process");
-const { existsSync, readFileSync, writeFileSync, renameSync, rmSync } = require("node:fs");
+const { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, utimesSync } = require("node:fs");
 const { randomBytes } = require("node:crypto");
 const path = require("node:path");
 const { createServer } = require("node:http");
@@ -83,6 +83,45 @@ function getOrCreateServerActionsKey() {
   return key;
 }
 
+// A build that fails for a transient reason (the README's "vips2png: unable
+// to write to target" case, a momentary resource cap on shared hosting)
+// used to stay failed until someone noticed and restarted the app by hand
+// — meanwhile the previous build kept serving, and any newly checked-out
+// files under /public (the placeholder sitemap.xml, for one) were served as
+// they were, which is how a deploy once left the site with a 0-URL sitemap
+// for a day. Now a failed build schedules its own retry: after a delay it
+// touches the same restart signal scripts/deploy.ts does, so the next
+// request restarts the app and this file tries the build again. Capped, so
+// a genuinely broken commit doesn't rebuild forever — the attempt count
+// lives in a small file next to .next, keyed by commit, and is cleared by
+// the next successful build.
+const BUILD_RETRY_DELAY_MS = 5 * 60 * 1000;
+const MAX_BUILD_ATTEMPTS = 3;
+const buildRetryStatePath = path.join(__dirname, ".next-build-retry.json");
+
+function readBuildAttempts(commit) {
+  try {
+    const state = JSON.parse(readFileSync(buildRetryStatePath, "utf8"));
+    return state && state.commit === commit ? Number(state.attempts) || 0 : 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Same signal scripts/deploy.ts sends: Passenger/LiteSpeed restart the app
+// on the next request once tmp/restart.txt's mtime changes.
+function signalRestart() {
+  const tmpDir = path.join(__dirname, "tmp");
+  mkdirSync(tmpDir, { recursive: true });
+  const restartFile = path.join(tmpDir, "restart.txt");
+  if (existsSync(restartFile)) {
+    const now = new Date();
+    utimesSync(restartFile, now, now);
+  } else {
+    writeFileSync(restartFile, "");
+  }
+}
+
 if (!dev) {
   const buildDir = path.join(__dirname, ".next");
   const backupDir = path.join(__dirname, ".next.last-good");
@@ -149,6 +188,7 @@ if (!dev) {
       });
       if (commit) writeFileSync(path.join(buildDir, "DEPLOYED_COMMIT"), commit);
       if (hasExistingBuild) rmSync(backupDir, { recursive: true, force: true });
+      rmSync(buildRetryStatePath, { force: true });
     } catch (error) {
       // A broken build must never take down an app that has a previous
       // working one to fall back to — that's strictly worse than serving
@@ -160,6 +200,27 @@ if (!dev) {
         console.error(
           "> Build failed (see error above) — restored the previous build so the app stays up. That previous build's commit is still what's recorded, so the next restart will try building this commit again too, in case the failure was transient; fix the actual error to make that retry succeed.",
         );
+        if (commit) {
+          const attempts = readBuildAttempts(commit) + 1;
+          writeFileSync(buildRetryStatePath, JSON.stringify({ commit, attempts }));
+          if (attempts < MAX_BUILD_ATTEMPTS) {
+            console.error(
+              `> Retrying the build of ${commit.slice(0, 7)} in ${BUILD_RETRY_DELAY_MS / 60000} minutes (attempt ${attempts} of ${MAX_BUILD_ATTEMPTS} so far) by signalling a restart, in case the failure was transient.`,
+            );
+            setTimeout(() => {
+              try {
+                signalRestart();
+                console.error(`> Restart signalled — the next request rebuilds ${commit.slice(0, 7)}.`);
+              } catch (signalError) {
+                console.error("> Could not signal the retry restart:", signalError);
+              }
+            }, BUILD_RETRY_DELAY_MS);
+          } else {
+            console.error(
+              `> Not retrying: the build of ${commit.slice(0, 7)} has failed ${attempts} times. Fix the error above, then restart the app (or push a new commit).`,
+            );
+          }
+        }
       } else {
         throw error;
       }

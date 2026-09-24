@@ -143,6 +143,9 @@ export type DirectoryStrings = {
   formSuccess: string;
   errors: Record<DirectoryLeadFormErrorCode, string>;
   stickyNavLabel: string;
+  notFoundTitle: string;
+  notFoundDescription: string;
+  notFoundBackCta: string;
   footerTagline: string;
   backToDirectory: string;
   brandName: string;
@@ -255,6 +258,10 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "Something went wrong. Please try again.",
     },
     stickyNavLabel: "Quick links",
+    notFoundTitle: "This page isn't in the directory",
+    notFoundDescription:
+      "The business or category you're looking for may have moved, been unpublished, or never existed. Check the link, or browse the directory from the start.",
+    notFoundBackCta: "Browse the directory",
     footerTagline: "A directory of trusted businesses in the Gotka network.",
     backToDirectory: "Back to directory",
     brandName: "Business Directory",
@@ -364,6 +371,9 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "出现错误，请重试。",
     },
     stickyNavLabel: "快捷链接",
+    notFoundTitle: "目录中没有这个页面",
+    notFoundDescription: "您查找的企业或类别可能已迁移、已下架，或从未存在。请检查链接，或从头浏览目录。",
+    notFoundBackCta: "浏览目录",
     footerTagline: "Gotka 网络中值得信赖的企业目录。",
     backToDirectory: "返回目录",
     brandName: "企业目录",
@@ -473,6 +483,10 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "Berlaku ralat. Sila cuba lagi.",
     },
     stickyNavLabel: "Pautan pantas",
+    notFoundTitle: "Halaman ini tiada dalam direktori",
+    notFoundDescription:
+      "Perniagaan atau kategori yang anda cari mungkin telah berpindah, ditarik balik, atau tidak pernah wujud. Semak pautan itu, atau layari direktori dari mula.",
+    notFoundBackCta: "Layari direktori",
     footerTagline: "Direktori perniagaan yang dipercayai dalam rangkaian Gotka.",
     backToDirectory: "Kembali ke direktori",
     brandName: "Direktori Perniagaan",
