@@ -344,6 +344,45 @@ export function countListingsByCategory(rows: { listing: Pick<PublishedListingSn
   return counts;
 }
 
+// How many published listings carry each state — the location-page
+// counterpart of countListingsByCategory above. Unlike category, state has
+// no separate admin-managed table (BusinessCategory): a state only exists
+// at all because some listing's own address carries it, so — unlike a
+// category — there's no such thing as a state with zero listings.
+export function countListingsByState(rows: { listing: Pick<PublishedListingSnapshot, "state"> }[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const { listing } of rows) {
+    if (listing.state) counts.set(listing.state, (counts.get(listing.state) ?? 0) + 1);
+  }
+  return counts;
+}
+
+// Resolves a location page's URL slug back to the exact state string its
+// listings carry (same slugify-at-request-time approach as
+// findCategoryBySlug, since state isn't a separate table with its own slug
+// column either) — null when no published listing has a state that
+// slugifies to this.
+export function findStateBySlug(rows: PublishedListingRow[], stateSlug: string): string | null {
+  for (const { listing } of rows) {
+    if (listing.state && slugify(listing.state) === stateSlug) return listing.state;
+  }
+  return null;
+}
+
+// Other published listings sharing a category, for the detail page's "More
+// businesses in [category]" section — the only place on a listing page a
+// visitor (or a crawler) could otherwise reach another listing without
+// going all the way back to search. Newest-first, same order
+// loadPublishedListings already returns; the caller caps how many to show.
+export function relatedListingsByCategory(
+  rows: PublishedListingRow[],
+  category: string,
+  excludeSlug: string,
+  limit: number,
+): PublishedListingRow[] {
+  return rows.filter((row) => row.slug !== excludeSlug && row.listing.categories.includes(category)).slice(0, limit);
+}
+
 // A "Visit website" link needs a real absolute URL, not just a bare domain
 // — contrast Company.domain (src/lib/companies.ts), which deliberately
 // strips down to the bare form for internal matching. A partner typing

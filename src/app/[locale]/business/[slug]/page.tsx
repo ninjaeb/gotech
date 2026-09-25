@@ -9,8 +9,11 @@ import {
   formatOpeningHoursSchema,
   isOpenNow,
   listingLogoPath,
+  loadPublishedListings,
   readPublishedSnapshot,
+  relatedListingsByCategory,
   slugify,
+  toDirectoryGridListing,
   buildBreadcrumbJsonLd,
   type OperatingHours,
 } from "@/lib/directory";
@@ -35,6 +38,7 @@ import {
   type DirectoryStrings,
 } from "@/lib/directory-i18n";
 import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
 import { directoryReferralUrl } from "@/lib/referrals";
@@ -44,13 +48,20 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { ListingLogo } from "@/components/directory/listing-logo";
+import { ListingCard } from "@/components/directory/listing-card";
 import { DirectoryLeadForm } from "@/components/directory/directory-lead-form";
 import { InquiryProvider, InquiryScrollTarget } from "@/components/directory/listing-inquiry";
 import { ServiceList } from "@/components/directory/service-list";
 import { ShareButton } from "@/components/directory/share-button";
 import { RecommendBar } from "@/components/directory/recommend-bar";
+import { DirectoryBreadcrumbs } from "@/components/directory/directory-breadcrumbs";
 
 export const dynamic = "force-dynamic";
+
+// How many other listings in the same category to surface below this one
+// (see relatedListingsByCategory) — enough to be useful, not so many the
+// section competes with the listing's own content for attention.
+const MAX_RELATED_LISTINGS = 6;
 
 async function getPublishedListing(slug: string) {
   const listing = await db.partnerListing.findUnique({ where: { slug } });
@@ -205,9 +216,13 @@ function buildJsonLd(
     if (openingHours.length > 0) jsonLd.openingHours = openingHours;
   }
   if (listing.services.length > 0) {
+    // service.price is deliberately left out of this Offer — it's free
+    // text a partner typed ("RM 25/day", "From RM 900/mo"), not the plain
+    // decimal plus separate priceCurrency schema.org's Offer.price expects.
+    // The visible price badge on the page itself is unaffected; this only
+    // keeps the JSON-LD from asserting an invalid price value.
     jsonLd.makesOffer = listing.services.map((service) => ({
       "@type": "Offer",
-      ...(service.price ? { price: service.price } : {}),
       itemOffered: {
         "@type": "Service",
         name: service.title,
@@ -290,7 +305,7 @@ export default async function DirectoryListingPage({
   // category, not every one a listing has — a breadcrumb trail is meant to
   // read as one path back to the root, not an exhaustive tag list.
   const primaryCategory = listing.categories[0];
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  const breadcrumbItems = [
     { name: DIRECTORY_HOME_TITLE_BY_LOCALE[resolved], url: `${siteOrigin}${directoryHomePath(resolved)}` },
     ...(primaryCategory
       ? [
@@ -301,7 +316,20 @@ export default async function DirectoryListingPage({
         ]
       : []),
     { name: listing.companyName, url: pageUrl },
-  ]);
+  ];
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(breadcrumbItems);
+
+  // Other listings sharing this one's primary category — without this,
+  // landing on a listing page from search or an AI answer engine has no
+  // path to another business except going all the way back to the
+  // directory home. Skipped entirely (no query at all) for a listing with
+  // no category, rather than loading every published listing to find none
+  // to show.
+  const relatedListings = primaryCategory
+    ? relatedListingsByCategory(await loadPublishedListings(), primaryCategory, slug, MAX_RELATED_LISTINGS).map((row) =>
+        toDirectoryGridListing(row, resolved),
+      )
+    : [];
 
   return (
     // Bottom padding clears whatever is pinned over the page's foot: the
@@ -326,6 +354,9 @@ export default async function DirectoryListingPage({
         />
       )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      <div className="mb-4">
+        <DirectoryBreadcrumbs items={breadcrumbItems} navLabel={t.breadcrumbNavLabel} />
+      </div>
       <div className="mb-8 border-b border-slate-200 bg-white px-4 py-4 -mx-4 sm:-mx-8 sm:px-8 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-start gap-4">
           {/* 96px below sm — a fixed 200px logo left too little width for
@@ -376,7 +407,7 @@ export default async function DirectoryListingPage({
                   <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
                     {listing.state && (
                       <Link
-                        href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                        href={locationPath(slugify(listing.state), resolved)}
                         className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
                       >
                         <MapPin className="h-4 w-4" />
@@ -463,7 +494,7 @@ export default async function DirectoryListingPage({
               <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
                 {listing.state && (
                   <Link
-                    href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                    href={locationPath(slugify(listing.state), resolved)}
                     className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
                   >
                     <MapPin className="h-4 w-4" />
@@ -675,6 +706,25 @@ export default async function DirectoryListingPage({
           </InquiryScrollTarget>
         </div>
       </InquiryProvider>
+
+      {relatedListings.length > 0 && primaryCategory && (
+        <section aria-labelledby="related-listings" className="mt-10">
+          <h2 id="related-listings" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t.relatedListingsHeading.replace("{category}", translateCategoryName(primaryCategory, resolved))}
+          </h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {relatedListings.map((related) => (
+              <ListingCard
+                key={related.slug}
+                listing={related}
+                viewLabel={t.viewListing}
+                industryLabel={related.industry ? INDUSTRY_LABELS_BY_LOCALE[resolved][related.industry] : undefined}
+                locale={resolved}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {recommendUrl && (
         <RecommendBar

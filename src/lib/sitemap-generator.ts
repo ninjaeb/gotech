@@ -3,8 +3,9 @@ import "server-only";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { db } from "@/lib/db";
-import { countListingsByCategory, loadPublishedListings, slugify } from "@/lib/directory";
+import { countListingsByCategory, countListingsByState, listingLogoPath, loadPublishedListings, slugify } from "@/lib/directory";
 import { categoryPath } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import {
   DEFAULT_DIRECTORY_LOCALE,
   DIRECTORY_LOCALES,
@@ -50,10 +51,14 @@ function languageAlternates(pathFor: (locale: DirectoryLocale) => string): strin
 
 function urlEntry(
   url: string,
-  options: { alternates?: string; lastModified?: Date; changeFrequency: string; priority: number },
+  options: { alternates?: string; lastModified?: Date; changeFrequency: string; priority: number; imageUrl?: string },
 ): string {
   const parts = [`<loc>${url}</loc>`];
   if (options.alternates) parts.push(options.alternates);
+  // The Google Images sitemap extension (see the xmlns:image declaration
+  // below) — a listing's logo otherwise has no dedicated discovery path
+  // into Google Images at all, only whatever a page crawl happens to find.
+  if (options.imageUrl) parts.push(`<image:image><image:loc>${options.imageUrl}</image:loc></image:image>`);
   if (options.lastModified) parts.push(`<lastmod>${options.lastModified.toISOString()}</lastmod>`);
   parts.push(`<changefreq>${options.changeFrequency}</changefreq>`);
   parts.push(`<priority>${options.priority}</priority>`);
@@ -75,6 +80,26 @@ export async function buildSitemapXml(): Promise<string> {
     db.businessCategory.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
   ]);
   const countByCategory = countListingsByCategory(listings);
+  // A category page's own content changes whenever any listing carrying it
+  // is published or unpublished — the latest such date among its listings
+  // is the honest lastmod for the category page itself, same reasoning as
+  // a listing's own lastmod below.
+  const latestPublishedByCategory = new Map<string, Date>();
+  // Same idea, per state, for the location pages below — see
+  // findStateBySlug/countListingsByState for why there's no "empty state"
+  // case to skip the way the category loop below has to.
+  const latestPublishedByState = new Map<string, Date>();
+  for (const { publishedAt, updatedAt, listing } of listings) {
+    const date = publishedAt ?? updatedAt;
+    for (const category of new Set(listing.categories)) {
+      const latest = latestPublishedByCategory.get(category);
+      if (!latest || date > latest) latestPublishedByCategory.set(category, date);
+    }
+    if (listing.state) {
+      const latest = latestPublishedByState.get(listing.state);
+      if (!latest || date > latest) latestPublishedByState.set(listing.state, date);
+    }
+  }
 
   const entries: string[] = [];
 
@@ -99,6 +124,25 @@ export async function buildSitemapXml(): Promise<string> {
       entries.push(
         urlEntry(`${STATIC_SEO_ORIGIN}${categoryPath(categorySlug, code)}`, {
           alternates: languageAlternates((locale) => categoryPath(categorySlug, locale)),
+          lastModified: latestPublishedByCategory.get(name),
+          changeFrequency: "daily",
+          priority: 0.7,
+        }),
+      );
+    }
+  }
+
+  // Every state at least one published listing carries. Unlike categories,
+  // there's no separate admin-managed table to iterate and no "nobody's
+  // published into it yet" case to skip (see countListingsByState) — the
+  // set of states below IS the count map's own keys.
+  for (const state of countListingsByState(listings).keys()) {
+    const stateSlug = slugify(state);
+    for (const { code } of DIRECTORY_LOCALES) {
+      entries.push(
+        urlEntry(`${STATIC_SEO_ORIGIN}${locationPath(stateSlug, code)}`, {
+          alternates: languageAlternates((locale) => locationPath(stateSlug, locale)),
+          lastModified: latestPublishedByState.get(state),
           changeFrequency: "daily",
           priority: 0.7,
         }),
@@ -109,7 +153,8 @@ export async function buildSitemapXml(): Promise<string> {
   // The public page only changes when a snapshot is approved, so the
   // publish time is the honest lastmod; updatedAt moves on every draft save
   // the public never sees, and a lastmod that lies gets ignored.
-  for (const { slug, publishedAt, updatedAt } of listings) {
+  for (const { slug, publishedAt, updatedAt, listing } of listings) {
+    const imageUrl = listing.logoUrl ? `${STATIC_SEO_ORIGIN}${listingLogoPath(slug, publishedAt)}` : undefined;
     for (const { code } of DIRECTORY_LOCALES) {
       entries.push(
         urlEntry(`${STATIC_SEO_ORIGIN}${directoryListingPath(code, slug)}`, {
@@ -117,6 +162,7 @@ export async function buildSitemapXml(): Promise<string> {
           lastModified: publishedAt ?? updatedAt,
           changeFrequency: "weekly",
           priority: 0.6,
+          imageUrl,
         }),
       );
     }
@@ -124,7 +170,7 @@ export async function buildSitemapXml(): Promise<string> {
 
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
-    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n` +
     entries.join("\n") +
     `\n</urlset>\n`
   );

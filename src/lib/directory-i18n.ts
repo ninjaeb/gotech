@@ -92,10 +92,22 @@ export type DirectoryStrings = {
   searchPlaceholder: string;
   allIndustries: string;
   allCategories: string;
+  // A category page's "see other categories" links, below its results —
+  // the only way to reach a sibling category without going back to the
+  // directory home (see category-page-content.tsx).
+  otherCategoriesHeading: string;
+  // Same idea, for a location page's sibling states (see
+  // location-page-content.tsx).
+  otherLocationsHeading: string;
   noResultsTitle: string;
   noResultsDescription: string;
   viewListing: string;
   servicesHeading: string;
+  // "More businesses in {category}" on a listing's own page — {category}
+  // is replaced with that category's translated name (see
+  // translateCategoryName). Plain substitution, same pattern as
+  // recommendMessage below, since this is localized data, not code.
+  relatedListingsHeading: string;
   aboutHeading: string;
   faqHeading: string;
   visitHeading: string;
@@ -147,6 +159,9 @@ export type DirectoryStrings = {
   formSuccess: string;
   errors: Record<DirectoryLeadFormErrorCode, string>;
   stickyNavLabel: string;
+  // aria-label for the visible breadcrumb trail (see
+  // directory-breadcrumbs.tsx) — read by assistive tech, not shown as text.
+  breadcrumbNavLabel: string;
   notFoundTitle: string;
   notFoundDescription: string;
   notFoundBackCta: string;
@@ -205,10 +220,13 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     searchPlaceholder: "Search by company or service…",
     allIndustries: "All industries",
     allCategories: "All categories",
+    otherCategoriesHeading: "Browse other categories",
+    otherLocationsHeading: "Browse other locations",
     noResultsTitle: "No businesses found",
     noResultsDescription: "Try a different search or industry filter.",
     viewListing: "View details",
     servicesHeading: "Products & Services",
+    relatedListingsHeading: "More businesses in {category}",
     aboutHeading: "About",
     faqHeading: "Frequently asked questions",
     visitHeading: "Visit us",
@@ -263,6 +281,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "Something went wrong. Please try again.",
     },
     stickyNavLabel: "Quick links",
+    breadcrumbNavLabel: "Breadcrumb",
     notFoundTitle: "This page isn't in the directory",
     notFoundDescription:
       "The business or category you're looking for may have moved, been unpublished, or never existed. Check the link, or browse the directory from the start.",
@@ -319,10 +338,13 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     searchPlaceholder: "按公司或服务搜索…",
     allIndustries: "所有行业",
     allCategories: "所有类别",
+    otherCategoriesHeading: "浏览其他类别",
+    otherLocationsHeading: "浏览其他地区",
     noResultsTitle: "未找到企业",
     noResultsDescription: "请尝试其他搜索词或行业筛选。",
     viewListing: "查看详情",
     servicesHeading: "产品与服务",
+    relatedListingsHeading: "更多{category}企业",
     aboutHeading: "关于",
     faqHeading: "常见问题",
     visitHeading: "联系地址",
@@ -377,6 +399,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "出现错误，请重试。",
     },
     stickyNavLabel: "快捷链接",
+    breadcrumbNavLabel: "面包屑导航",
     notFoundTitle: "目录中没有这个页面",
     notFoundDescription: "您查找的企业或类别可能已迁移、已下架，或从未存在。请检查链接，或从头浏览目录。",
     notFoundBackCta: "浏览目录",
@@ -432,10 +455,13 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     searchPlaceholder: "Cari mengikut syarikat atau perkhidmatan…",
     allIndustries: "Semua industri",
     allCategories: "Semua kategori",
+    otherCategoriesHeading: "Semak imbas kategori lain",
+    otherLocationsHeading: "Semak imbas lokasi lain",
     noResultsTitle: "Tiada perniagaan dijumpai",
     noResultsDescription: "Cuba carian atau penapis industri yang lain.",
     viewListing: "Lihat butiran",
     servicesHeading: "Produk & Perkhidmatan",
+    relatedListingsHeading: "Lebih banyak perniagaan dalam kategori {category}",
     aboutHeading: "Tentang",
     faqHeading: "Soalan lazim",
     visitHeading: "Lawati kami",
@@ -490,6 +516,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
       generic: "Berlaku ralat. Sila cuba lagi.",
     },
     stickyNavLabel: "Pautan pantas",
+    breadcrumbNavLabel: "Navigasi laluan",
     notFoundTitle: "Halaman ini tiada dalam direktori",
     notFoundDescription:
       "Perniagaan atau kategori yang anda cari mungkin telah berpindah, ditarik balik, atau tidak pernah wujud. Semak pautan itu, atau layari direktori dari mula.",

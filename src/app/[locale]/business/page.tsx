@@ -24,6 +24,7 @@ import {
 import {
   buildDirectoryCollectionJsonLd,
   countListingsByCategory,
+  countListingsByState,
   loadPublishedListings,
   toDirectoryGridListing,
 } from "@/lib/directory";
@@ -137,6 +138,7 @@ export default async function DirectoryHomePage({
     const count = countByCategory.get(row.name) ?? 0;
     return count > 0 ? [{ name: row.name, count }] : [];
   });
+  const linkedStates = [...countListingsByState(rows)].map(([name, count]) => ({ name, count }));
 
   return (
     <>
@@ -173,7 +175,7 @@ export default async function DirectoryHomePage({
         initialCountry={country ?? ""}
         directoryUrl={directoryUrl}
       />
-      <DirectoryHomeSections locale={resolved} categories={linkedCategories} />
+      <DirectoryHomeSections locale={resolved} categories={linkedCategories} states={linkedStates} />
     </>
   );
 }

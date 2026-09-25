@@ -10,6 +10,28 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.92",
+    date: "2026-09-25",
+    title: "Directory: real pages for every state and region",
+    changes: [
+      "Every state/region at least one published business is in now has its own real page — /en/business/location/<state> (and its Chinese/Malay versions) — with its own title, description, and a link back from the home page's new \"Browse by location\" section",
+      "A listing's own state now links to that new page instead of a search-results view of the home page filtered by a URL parameter, which had no title, description, or listing of its own and was never included in the sitemap",
+      "Each location page shows every other state with a published business below its results, and sitemap.xml/llms.txt list every one alongside the existing categories and businesses",
+    ],
+  },
+  {
+    version: "1.91",
+    date: "2026-09-25",
+    title: "Directory: better internal linking and cleaner search/structured data",
+    changes: [
+      "Every listing and category page now shows a visible breadcrumb trail back to the directory home (and the listing's category, for a listing page) — previously that path back only existed as invisible schema.org structured data, never as an actual link a visitor or a crawler could follow",
+      "A listing page now shows a handful of other businesses in the same category near the bottom of the page — before this, landing on one listing directly had no path to any other except going all the way back through search",
+      "Every category page now lists every other category with a published business below its own results, so a category page is reachable from another one directly instead of only from the home page's own category grid",
+      "sitemap.xml now tells Google about each listing's logo image (so it can surface in Google Images too) and gives every category page a last-modified date — previously only listings had one",
+      "A listing's structured data no longer states a service's price as free text like \"RM 25/day\" — schema.org's price field expects a plain number, and a value it can't parse as one made that part of the markup invalid; the price is still shown normally on the page itself",
+    ],
+  },
+  {
     version: "1.90",
     date: "2026-09-23",
     title: "Public business directory: faster, better described for search engines and AI assistants",

@@ -4,9 +4,10 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/slug";
-import { countListingsByCategory, loadPublishedListings } from "@/lib/directory";
+import { countListingsByCategory, countListingsByState, loadPublishedListings } from "@/lib/directory";
 import { DIRECTORY_LOCALES, DIRECTORY_HOME_TITLE_BY_LOCALE, directoryHomePath, directoryListingPath } from "@/lib/directory-i18n";
 import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import { STATIC_SEO_ORIGIN } from "@/lib/static-seo-origin";
 
 // This used to be src/app/llms.txt/route.ts, a Next.js route rendering
@@ -72,6 +73,19 @@ export async function buildLlmsTxt(): Promise<string> {
       lines.push(
         `- [${translateCategoryName(name, "en")}](${STATIC_SEO_ORIGIN}${categoryPath(slug, "en")}): ${count} ${count === 1 ? "business" : "businesses"}`,
       );
+    }
+    lines.push("");
+  }
+
+  // Every state at least one published listing carries — unlike
+  // categories, there's no "empty" one to filter out (see
+  // countListingsByState).
+  const countByState = countListingsByState(listings);
+  if (countByState.size > 0) {
+    lines.push("## Locations");
+    for (const [state, count] of countByState) {
+      const slug = slugify(state);
+      lines.push(`- [${inline(state)}](${STATIC_SEO_ORIGIN}${locationPath(slug, "en")}): ${count} ${count === 1 ? "business" : "businesses"}`);
     }
     lines.push("");
   }
