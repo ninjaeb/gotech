@@ -15,6 +15,8 @@ export type DirectoryHomeCopy = {
   browseHeading: string;
   browseIntro: string;
   listingCount: (count: number) => string;
+  browseLocationHeading: string;
+  browseLocationIntro: string;
   howHeading: string;
   howSteps: { title: string; body: string }[];
   listCtaHeading: string;
@@ -30,6 +32,8 @@ export const DIRECTORY_HOME_COPY: Record<DirectoryLocale, DirectoryHomeCopy> = {
     browseHeading: "Browse by category",
     browseIntro: "Jump straight to the businesses in a category.",
     listingCount: (count) => (count === 1 ? "1 business" : `${count} businesses`),
+    browseLocationHeading: "Browse by location",
+    browseLocationIntro: "Jump straight to the businesses in a state or region.",
     howHeading: "How it works",
     howSteps: [
       {
@@ -83,6 +87,8 @@ export const DIRECTORY_HOME_COPY: Record<DirectoryLocale, DirectoryHomeCopy> = {
     browseHeading: "按类别浏览",
     browseIntro: "直接查看某个类别下的企业。",
     listingCount: (count) => `${count} 家企业`,
+    browseLocationHeading: "按地区浏览",
+    browseLocationIntro: "直接查看某个州属或地区的企业。",
     howHeading: "使用方法",
     howSteps: [
       {
@@ -132,6 +138,8 @@ export const DIRECTORY_HOME_COPY: Record<DirectoryLocale, DirectoryHomeCopy> = {
     browseHeading: "Layari mengikut kategori",
     browseIntro: "Terus ke perniagaan dalam sesuatu kategori.",
     listingCount: (count) => `${count} perniagaan`,
+    browseLocationHeading: "Layari mengikut lokasi",
+    browseLocationIntro: "Terus ke perniagaan dalam sesuatu negeri atau kawasan.",
     howHeading: "Cara ia berfungsi",
     howSteps: [
       {

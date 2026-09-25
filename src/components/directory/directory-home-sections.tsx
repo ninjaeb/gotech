@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { buttonClasses } from "@/components/ui/button";
 import { slugify } from "@/lib/slug";
 import { categoryPath, translateCategoryName } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import { DIRECTORY_HOME_COPY } from "@/lib/directory-home-copy";
 import { DIRECTORY_STRINGS, directorySignupPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
@@ -20,12 +21,18 @@ import { DIRECTORY_STRINGS, directorySignupPath, type DirectoryLocale } from "@/
 export function DirectoryHomeSections({
   locale,
   categories,
+  states,
 }: {
   locale: DirectoryLocale;
   // Only categories with at least one published business (see
   // countListingsByCategory) — a link to an empty category page helps no
   // one, and those pages are noindex anyway (see buildCategoryMetadata).
   categories: { name: string; count: number }[];
+  // Every state at least one published listing carries (see
+  // countListingsByState) — there's no "empty state" case to filter out
+  // the way categories have one, since a state only exists here because a
+  // real listing carries it.
+  states: { name: string; count: number }[];
 }) {
   const copy = DIRECTORY_HOME_COPY[locale];
   const t = DIRECTORY_STRINGS[locale];
@@ -54,6 +61,28 @@ export function DirectoryHomeSections({
                   className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:border-petrol/40 hover:text-petrol dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-200 dark:hover:border-petrol-light/40 dark:hover:text-petrol-light"
                 >
                   {translateCategoryName(name, locale)}
+                  <span className="text-xs text-slate-400 dark:text-slate-500">{copy.listingCount(count)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {states.length > 0 && (
+        <section aria-labelledby="directory-locations" className="mx-auto max-w-5xl">
+          <h2 id="directory-locations" className={headingClasses}>
+            {copy.browseLocationHeading}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{copy.browseLocationIntro}</p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {states.map(({ name, count }) => (
+              <li key={name}>
+                <Link
+                  href={locationPath(slugify(name), locale)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:border-petrol/40 hover:text-petrol dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-200 dark:hover:border-petrol-light/40 dark:hover:text-petrol-light"
+                >
+                  {name}
                   <span className="text-xs text-slate-400 dark:text-slate-500">{copy.listingCount(count)}</span>
                 </Link>
               </li>

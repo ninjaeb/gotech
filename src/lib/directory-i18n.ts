@@ -92,6 +92,9 @@ export type DirectoryStrings = {
   // the only way to reach a sibling category without going back to the
   // directory home (see category-page-content.tsx).
   otherCategoriesHeading: string;
+  // Same idea, for a location page's sibling states (see
+  // location-page-content.tsx).
+  otherLocationsHeading: string;
   noResultsTitle: string;
   noResultsDescription: string;
   viewListing: string;
@@ -213,6 +216,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     allIndustries: "All industries",
     allCategories: "All categories",
     otherCategoriesHeading: "Browse other categories",
+    otherLocationsHeading: "Browse other locations",
     noResultsTitle: "No businesses found",
     noResultsDescription: "Try a different search or industry filter.",
     viewListing: "View details",
@@ -329,6 +333,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     allIndustries: "所有行业",
     allCategories: "所有类别",
     otherCategoriesHeading: "浏览其他类别",
+    otherLocationsHeading: "浏览其他地区",
     noResultsTitle: "未找到企业",
     noResultsDescription: "请尝试其他搜索词或行业筛选。",
     viewListing: "查看详情",
@@ -444,6 +449,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     allIndustries: "Semua industri",
     allCategories: "Semua kategori",
     otherCategoriesHeading: "Semak imbas kategori lain",
+    otherLocationsHeading: "Semak imbas lokasi lain",
     noResultsTitle: "Tiada perniagaan dijumpai",
     noResultsDescription: "Cuba carian atau penapis industri yang lain.",
     viewListing: "Lihat butiran",

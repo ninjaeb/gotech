@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.92",
+    date: "2026-09-25",
+    title: "Directory: real pages for every state and region",
+    changes: [
+      "Every state/region at least one published business is in now has its own real page — /en/business/location/<state> (and its Chinese/Malay versions) — with its own title, description, and a link back from the home page's new \"Browse by location\" section",
+      "A listing's own state now links to that new page instead of a search-results view of the home page filtered by a URL parameter, which had no title, description, or listing of its own and was never included in the sitemap",
+      "Each location page shows every other state with a published business below its results, and sitemap.xml/llms.txt list every one alongside the existing categories and businesses",
+    ],
+  },
+  {
     version: "1.91",
     date: "2026-09-25",
     title: "Directory: better internal linking and cleaner search/structured data",

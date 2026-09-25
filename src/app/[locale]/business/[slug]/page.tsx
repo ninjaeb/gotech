@@ -38,6 +38,7 @@ import {
   type DirectoryStrings,
 } from "@/lib/directory-i18n";
 import { translateCategoryName, categoryPath } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import { getSiteOrigin } from "@/lib/site-url";
 import { INDUSTRY_LABELS } from "@/lib/labels";
 import { directoryReferralUrl } from "@/lib/referrals";
@@ -406,7 +407,7 @@ export default async function DirectoryListingPage({
                   <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
                     {listing.state && (
                       <Link
-                        href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                        href={locationPath(slugify(listing.state), resolved)}
                         className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
                       >
                         <MapPin className="h-4 w-4" />
@@ -493,7 +494,7 @@ export default async function DirectoryListingPage({
               <div className="flex flex-wrap items-center gap-2 text-base text-slate-500 dark:text-slate-400">
                 {listing.state && (
                   <Link
-                    href={`${directoryHomePath(resolved)}?state=${encodeURIComponent(listing.state)}`}
+                    href={locationPath(slugify(listing.state), resolved)}
                     className="inline-flex items-center gap-1 hover:text-petrol hover:underline dark:hover:text-petrol-light"
                   >
                     <MapPin className="h-4 w-4" />

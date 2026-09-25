@@ -3,8 +3,9 @@ import "server-only";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { db } from "@/lib/db";
-import { countListingsByCategory, listingLogoPath, loadPublishedListings, slugify } from "@/lib/directory";
+import { countListingsByCategory, countListingsByState, listingLogoPath, loadPublishedListings, slugify } from "@/lib/directory";
 import { categoryPath } from "@/lib/directory-category-labels";
+import { locationPath } from "@/lib/directory-location-labels";
 import {
   DEFAULT_DIRECTORY_LOCALE,
   DIRECTORY_LOCALES,
@@ -84,11 +85,19 @@ export async function buildSitemapXml(): Promise<string> {
   // is the honest lastmod for the category page itself, same reasoning as
   // a listing's own lastmod below.
   const latestPublishedByCategory = new Map<string, Date>();
+  // Same idea, per state, for the location pages below — see
+  // findStateBySlug/countListingsByState for why there's no "empty state"
+  // case to skip the way the category loop below has to.
+  const latestPublishedByState = new Map<string, Date>();
   for (const { publishedAt, updatedAt, listing } of listings) {
     const date = publishedAt ?? updatedAt;
     for (const category of new Set(listing.categories)) {
       const latest = latestPublishedByCategory.get(category);
       if (!latest || date > latest) latestPublishedByCategory.set(category, date);
+    }
+    if (listing.state) {
+      const latest = latestPublishedByState.get(listing.state);
+      if (!latest || date > latest) latestPublishedByState.set(listing.state, date);
     }
   }
 
@@ -116,6 +125,24 @@ export async function buildSitemapXml(): Promise<string> {
         urlEntry(`${STATIC_SEO_ORIGIN}${categoryPath(categorySlug, code)}`, {
           alternates: languageAlternates((locale) => categoryPath(categorySlug, locale)),
           lastModified: latestPublishedByCategory.get(name),
+          changeFrequency: "daily",
+          priority: 0.7,
+        }),
+      );
+    }
+  }
+
+  // Every state at least one published listing carries. Unlike categories,
+  // there's no separate admin-managed table to iterate and no "nobody's
+  // published into it yet" case to skip (see countListingsByState) — the
+  // set of states below IS the count map's own keys.
+  for (const state of countListingsByState(listings).keys()) {
+    const stateSlug = slugify(state);
+    for (const { code } of DIRECTORY_LOCALES) {
+      entries.push(
+        urlEntry(`${STATIC_SEO_ORIGIN}${locationPath(stateSlug, code)}`, {
+          alternates: languageAlternates((locale) => locationPath(stateSlug, locale)),
+          lastModified: latestPublishedByState.get(state),
           changeFrequency: "daily",
           priority: 0.7,
         }),
