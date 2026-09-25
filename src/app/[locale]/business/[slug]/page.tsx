@@ -215,9 +215,13 @@ function buildJsonLd(
     if (openingHours.length > 0) jsonLd.openingHours = openingHours;
   }
   if (listing.services.length > 0) {
+    // service.price is deliberately left out of this Offer — it's free
+    // text a partner typed ("RM 25/day", "From RM 900/mo"), not the plain
+    // decimal plus separate priceCurrency schema.org's Offer.price expects.
+    // The visible price badge on the page itself is unaffected; this only
+    // keeps the JSON-LD from asserting an invalid price value.
     jsonLd.makesOffer = listing.services.map((service) => ({
       "@type": "Offer",
-      ...(service.price ? { price: service.price } : {}),
       itemOffered: {
         "@type": "Service",
         name: service.title,
