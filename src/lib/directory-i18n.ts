@@ -47,6 +47,10 @@ export function directorySignupPath(locale: DirectoryLocale): string {
   return `/${locale}/business/signup`;
 }
 
+export function directoryBenefitsPath(locale: DirectoryLocale): string {
+  return `/${locale}/business/benefits`;
+}
+
 export function directoryListingPath(locale: DirectoryLocale, slug: string): string {
   return `/${locale}/business/${slug}`;
 }
@@ -155,6 +159,7 @@ export type DirectoryStrings = {
   navGoToCrm: string;
   navSignOut: string;
   listBusinessCta: string;
+  benefitsNavLabel: string;
   signupHeading: string;
   signupSubheading: string;
   signupCompanyLabel: string;
@@ -271,6 +276,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     navGoToCrm: "Go to CRM",
     navSignOut: "Sign out",
     listBusinessCta: "List your business",
+    benefitsNavLabel: "Why list your business",
     signupHeading: "List your business",
     signupSubheading: "Join the business directory and start receiving inquiries directly from visitors.",
     signupCompanyLabel: "Business name",
@@ -383,6 +389,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     navGoToCrm: "前往 CRM",
     navSignOut: "退出登录",
     listBusinessCta: "刊登您的企业",
+    benefitsNavLabel: "为什么要刊登您的企业",
     signupHeading: "刊登您的企业",
     signupSubheading: "加入企业目录，直接从访客那里获得咨询。",
     signupCompanyLabel: "企业名称",
@@ -496,6 +503,7 @@ export const DIRECTORY_STRINGS: Record<DirectoryLocale, DirectoryStrings> = {
     navGoToCrm: "Pergi ke CRM",
     navSignOut: "Log keluar",
     listBusinessCta: "Senaraikan perniagaan anda",
+    benefitsNavLabel: "Kenapa senaraikan perniagaan anda",
     signupHeading: "Senaraikan perniagaan anda",
     signupSubheading: "Sertai direktori perniagaan dan mula menerima pertanyaan terus daripada pelawat.",
     signupCompanyLabel: "Nama perniagaan",

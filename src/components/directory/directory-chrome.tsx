@@ -11,6 +11,7 @@ import { getDirectoryLocale } from "@/lib/directory-locale";
 import {
   DIRECTORY_LOCALES,
   DIRECTORY_STRINGS,
+  directoryBenefitsPath,
   directoryHomePath,
   directorySignupPath,
   type DirectoryLocale,
@@ -77,6 +78,7 @@ export async function DirectoryChrome({
   // /business/login that isn't part of the locale-prefixed tree itself.
   const directoryHref = localeProp ? directoryHomePath(localeProp) : "/directory";
   const signupHref = localeProp ? directorySignupPath(localeProp) : "/directory/signup";
+  const benefitsHref = localeProp ? directoryBenefitsPath(localeProp) : "/directory/benefits";
 
   return (
     <div className="flex min-h-full flex-col bg-slate-50 dark:bg-neutral-950">
@@ -120,6 +122,7 @@ export async function DirectoryChrome({
               logoutAction={viewer === "business" ? businessLogout : logout}
               loginLabel={t.navLoginRegister}
               listBusinessLabel={t.listBusinessCta}
+              benefitsLabel={t.benefitsNavLabel}
               directoryLabel={t.brandName}
               myBusinessLabel={t.navMyBusiness}
               partnershipLabel={t.navPartnership}
@@ -127,6 +130,7 @@ export async function DirectoryChrome({
               signOutLabel={t.navSignOut}
               directoryHref={directoryHref}
               signupHref={signupHref}
+              benefitsHref={benefitsHref}
             />
           </div>
         </div>
@@ -146,6 +150,9 @@ export async function DirectoryChrome({
             </Link>
             <Link href={signupHref} className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
               {t.listBusinessCta}
+            </Link>
+            <Link href={benefitsHref} className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
+              {t.benefitsNavLabel}
             </Link>
             <Link href="/business-portal/login" className="hover:text-petrol hover:underline dark:hover:text-petrol-light">
               {t.navLoginRegister}

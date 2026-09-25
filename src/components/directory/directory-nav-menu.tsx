@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, LogIn, LogOut, Menu, Store, X } from "lucide-react";
+import { LayoutDashboard, LogIn, LogOut, Menu, Sparkles, Store, X } from "lucide-react";
 import { BUSINESS_NAV_ITEMS, PARTNERSHIP_NAV_ITEMS } from "@/lib/business-nav-items";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,7 @@ export function DirectoryNavMenu({
   logoutAction,
   loginLabel,
   listBusinessLabel,
+  benefitsLabel,
   directoryLabel,
   myBusinessLabel,
   partnershipLabel,
@@ -30,11 +31,13 @@ export function DirectoryNavMenu({
   signOutLabel,
   directoryHref,
   signupHref,
+  benefitsHref,
 }: {
   viewer: DirectoryViewer;
   logoutAction: () => void | Promise<void>;
   loginLabel: string;
   listBusinessLabel: string;
+  benefitsLabel: string;
   directoryLabel: string;
   myBusinessLabel: string;
   partnershipLabel: string;
@@ -46,6 +49,7 @@ export function DirectoryNavMenu({
   // old bare URL's redirect.
   directoryHref: string;
   signupHref: string;
+  benefitsHref: string;
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,6 +111,10 @@ export function DirectoryNavMenu({
               <Link href={signupHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
                 <Store className="h-4 w-4 shrink-0 text-slate-400" />
                 {listBusinessLabel}
+              </Link>
+              <Link href={benefitsHref} role="menuitem" onClick={() => setOpen(false)} className={itemClasses}>
+                <Sparkles className="h-4 w-4 shrink-0 text-slate-400" />
+                {benefitsLabel}
               </Link>
             </>
           )}
