@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { slugify } from "@/lib/slug";
 import { getSiteOrigin } from "@/lib/site-url";
 import {
   DIRECTORY_STRINGS,
@@ -28,6 +30,7 @@ import {
 import { translateCategoryName, categoryPath, categoryPageTitle, categoryPageHeading, categoryPageDescription } from "@/lib/directory-category-labels";
 import { INDUSTRIES } from "@/lib/labels";
 import { DirectorySearch } from "@/components/directory/directory-search";
+import { DirectoryBreadcrumbs } from "@/components/directory/directory-breadcrumbs";
 
 // Shared by every locale variant of the friendly category route (see
 // src/app/[locale]/business/category/[categorySlug]/page.tsx) so the
@@ -100,10 +103,23 @@ export async function CategoryPageContent({
   ]);
   const listings = rows.map((row) => toDirectoryGridListing(row, locale));
   const categoryListings = listings.filter((listing) => listing.categories.includes(category));
-  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+  const breadcrumbItems = [
     { name: DIRECTORY_HOME_TITLE_BY_LOCALE[locale], url: `${siteOrigin}${directoryHomePath(locale)}` },
     { name: heading, url: pageUrl },
-  ]);
+  ];
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd(breadcrumbItems);
+
+  // Every other category with at least one published listing — a category
+  // page otherwise has no on-page link to a sibling category at all, only
+  // reachable by going back to the home page's own category grid (see
+  // DirectoryHomeSections). Same "populated only" rule as that grid: an
+  // empty category's own page is noindex (see buildCategoryMetadata), so
+  // linking to one here would only lead somewhere search engines are asked
+  // to skip.
+  const countByCategory = countListingsByCategory(rows);
+  const otherCategories = businessCategories
+    .map((row) => row.name)
+    .filter((name) => name !== category && (countByCategory.get(name) ?? 0) > 0);
 
   return (
     <>
@@ -114,6 +130,9 @@ export async function CategoryPageContent({
         }}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+      <div className="w-full px-4 pt-4 sm:px-8">
+        <DirectoryBreadcrumbs items={breadcrumbItems} navLabel={t.breadcrumbNavLabel} />
+      </div>
       <DirectorySearch
         listings={listings}
         industries={INDUSTRIES}
@@ -130,6 +149,25 @@ export async function CategoryPageContent({
         heading={heading}
         subheading={description}
       />
+      {otherCategories.length > 0 && (
+        <section aria-labelledby="other-categories" className="mx-auto w-full max-w-5xl px-4 pb-12 sm:px-8">
+          <h2 id="other-categories" className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+            {t.otherCategoriesHeading}
+          </h2>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {otherCategories.map((name) => (
+              <li key={name}>
+                <Link
+                  href={categoryPath(slugify(name), locale)}
+                  className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm text-slate-700 transition-colors hover:border-petrol/40 hover:text-petrol dark:border-neutral-700 dark:bg-neutral-800 dark:text-slate-200 dark:hover:border-petrol-light/40 dark:hover:text-petrol-light"
+                >
+                  {translateCategoryName(name, locale)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </>
   );
 }

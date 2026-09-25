@@ -344,6 +344,20 @@ export function countListingsByCategory(rows: { listing: Pick<PublishedListingSn
   return counts;
 }
 
+// Other published listings sharing a category, for the detail page's "More
+// businesses in [category]" section — the only place on a listing page a
+// visitor (or a crawler) could otherwise reach another listing without
+// going all the way back to search. Newest-first, same order
+// loadPublishedListings already returns; the caller caps how many to show.
+export function relatedListingsByCategory(
+  rows: PublishedListingRow[],
+  category: string,
+  excludeSlug: string,
+  limit: number,
+): PublishedListingRow[] {
+  return rows.filter((row) => row.slug !== excludeSlug && row.listing.categories.includes(category)).slice(0, limit);
+}
+
 // A "Visit website" link needs a real absolute URL, not just a bare domain
 // — contrast Company.domain (src/lib/companies.ts), which deliberately
 // strips down to the bare form for internal matching. A partner typing

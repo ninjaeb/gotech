@@ -10,6 +10,16 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.91",
+    date: "2026-09-25",
+    title: "Directory: real, crawlable links between listings and categories",
+    changes: [
+      "Every listing and category page now shows a visible breadcrumb trail back to the directory home (and the listing's category, for a listing page) — previously that path back only existed as invisible schema.org structured data, never as an actual link a visitor or a crawler could follow",
+      "A listing page now shows a handful of other businesses in the same category near the bottom of the page — before this, landing on one listing directly had no path to any other except going all the way back through search",
+      "Every category page now lists every other category with a published business below its own results, so a category page is reachable from another one directly instead of only from the home page's own category grid",
+    ],
+  },
+  {
     version: "1.90",
     date: "2026-09-23",
     title: "Public business directory: faster, better described for search engines and AI assistants",
