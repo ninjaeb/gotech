@@ -4,7 +4,7 @@ import { buttonClasses } from "@/components/ui/button";
 import { slugify } from "@/lib/slug";
 import { categoryPath, translateCategoryName } from "@/lib/directory-category-labels";
 import { DIRECTORY_HOME_COPY } from "@/lib/directory-home-copy";
-import { DIRECTORY_STRINGS, directorySignupPath, type DirectoryLocale } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, directoryBenefitsPath, directorySignupPath, type DirectoryLocale } from "@/lib/directory-i18n";
 
 // The directory home page below its grid: what this directory is, real
 // links into every category that has a business in it, how it works, the
@@ -96,6 +96,14 @@ export function DirectoryHomeSections({
         >
           {t.listBusinessCta}
         </Link>
+        <div>
+          <Link
+            href={directoryBenefitsPath(locale)}
+            className="mt-3 inline-block text-sm text-petrol-ink underline hover:no-underline dark:text-petrol-light"
+          >
+            {t.benefitsNavLabel}
+          </Link>
+        </div>
       </section>
 
       <section aria-labelledby="directory-faq" className="mx-auto max-w-3xl">

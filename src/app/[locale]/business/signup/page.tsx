@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveDirectoryLocale } from "@/lib/directory-locale";
-import { DIRECTORY_STRINGS, directorySignupPath } from "@/lib/directory-i18n";
+import { DIRECTORY_STRINGS, directoryBenefitsPath, directorySignupPath } from "@/lib/directory-i18n";
 import {
   DIRECTORY_ROBOTS,
   DIRECTORY_SITE_NAME_BY_LOCALE,
@@ -73,6 +74,11 @@ export default async function PartnerSignupPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-12 sm:px-8">
       <PartnerSignupForm t={t} googleEnabled={isGoogleAuthConfigured()} initialError={error} />
+      <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        <Link href={directoryBenefitsPath(resolved)} className="text-petrol underline hover:no-underline dark:text-petrol-light">
+          {t.benefitsNavLabel}
+        </Link>
+      </p>
     </div>
   );
 }
