@@ -2,7 +2,7 @@
 // (Gmail, Apple Mail, Outlook web/mobile) — not the fully inlined-per-tag
 // HTML a production email-marketing tool would generate, but a reasonable
 // v1 given nothing in this app builds HTML email today beyond a signature
-// appended to plain text (see textToHtml in src/lib/email.ts).
+// appended to plain text (see textToHtml in src/lib/text-to-html.ts).
 export function wrapNewsletterHtml(options: { bodyHtml: string; unsubscribeUrl: string }): string {
   return `<!doctype html>
 <html>

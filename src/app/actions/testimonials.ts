@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { requireAdminAction } from "@/lib/auth/dal";
 import { callAi, isAiConfigured } from "@/lib/ai/client";
 import { buildTestimonialContext } from "@/lib/ai/context";
-import { textToHtml } from "@/lib/email";
+import { textToHtml } from "@/lib/text-to-html";
 import { getNewsletterSender, sendNewsletterEmail } from "@/lib/newsletter-sender";
 import { getSiteOrigin } from "@/lib/site-url";
 
