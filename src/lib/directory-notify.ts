@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { getNewsletterSender, sendNewsletterEmail } from "@/lib/newsletter-sender";
 import { getSiteOrigin } from "@/lib/site-url";
-import { textToHtml } from "@/lib/email";
+import { textToHtml } from "@/lib/text-to-html";
 import { notifyDirectoryLeadViaWhatsApp } from "@/lib/whatsapp";
 import type { DirectoryLead, PartnerListing } from "@/generated/prisma/client";
 
