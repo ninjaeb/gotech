@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.93",
+    date: "2026-09-26",
+    title: "Directory: 75 new business categories",
+    changes: [
+      "The directory's business category list grows from 85 to 160 — healthcare specialties (clinics, pharmacies, physiotherapy, aesthetics), legal and compliance (company secretarial, tax agents, trademarks), finance (insurance brokers, Islamic finance, fintech, wealth management), specific construction trades (renovation, roofing, waterproofing, welding), manufacturing types, retail and F&B formats, hospitality, automotive services, agriculture, education types, newer technology fields (AI, blockchain, IoT, game development), and more personal and professional services",
+      "Each new category gets its own real page (title, description, structured data), a Chinese and Malay translation, and joins the home page's category links, the search filter, and the partner listing editor's category picker the same way the original 85 do — nothing about how categories work changed, only how many there are",
+    ],
+  },
+  {
     version: "1.92",
     date: "2026-09-25",
     title: "Directory: real pages for every state and region",
