@@ -29,6 +29,7 @@ export function TeamMemberRow({
     role: Role;
     hourlyRate: number | null;
     createdAt: Date;
+    notifyTaskReminder: boolean;
     notifyNewWhatsAppMessage: boolean;
     notifyNewLead: boolean;
     referralCode: string | null;
@@ -94,11 +95,12 @@ export function TeamMemberRow({
               <Input id={`title-${user.id}`} name="title" defaultValue={user.title ?? ""} />
             </div>
             {/* WhatsApp number + broadcast opt-ins are internal-staff features
-            (task-reminder, @mention, new-message/new-lead pings) — a Partner
+            (task digest, @mention, new-message/new-lead pings) — a Partner
             has no tasks, mentions, or CRM inbox to be notified about, and
-            the two checkboxes below only ever fire for role ADMIN anyway
-            (see notifyNewWhatsAppMessageViaWhatsApp/notifyNewLeadViaWhatsApp
-            in src/lib/whatsapp.ts), so neither is shown for that role. */}
+            two of the three checkboxes below only ever fire for role ADMIN
+            (new-lead also fires for SALES) anyway (see
+            notifyNewWhatsAppMessageViaWhatsApp/notifyNewLeadViaWhatsApp in
+            src/lib/whatsapp.ts), so none of this is shown for that role. */}
             {user.role !== "PARTNER" && (
               <div>
                 <Label htmlFor={`phone-${user.id}`}>WhatsApp number</Label>
@@ -122,6 +124,15 @@ export function TeamMemberRow({
               <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <input
                   type="checkbox"
+                  name="notifyTaskReminder"
+                  defaultChecked={user.notifyTaskReminder}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
+                />
+                Notify me of the daily task digest
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
                   name="notifyNewWhatsAppMessage"
                   defaultChecked={user.notifyNewWhatsAppMessage}
                   className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-neutral-700"
@@ -137,7 +148,7 @@ export function TeamMemberRow({
                 />
                 Notify me of new leads
               </label>
-              <p className="text-xs text-slate-400">Both only take effect once a WhatsApp number is set above.</p>
+              <p className="text-xs text-slate-400">All three only take effect once a WhatsApp number is set above.</p>
             </div>
           )}
 

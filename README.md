@@ -181,7 +181,7 @@ A once-a-day WhatsApp message summarizing what's due or overdue, per user, with 
 
    Submit for review — Meta typically approves a template this simple within a day, but it's entirely their review queue, not something this app controls. Whatever your header/body variable counts end up being, they need to exactly match what this app sends (1 header + 4 body, per above) — Meta rejects a send whose variable count doesn't match what was approved, so an older or differently-shaped version of this template won't work with the current code.
 2. **Set `SITE_URL`** in your environment (e.g. `https://crm.yourcompany.com`, no trailing slash) — the link in the body's `{{4}}` is built from this, since a cron-run script has no incoming request to infer its own host from the way the rest of the app does. Without it, the script logs an error and sends nothing.
-3. **An admin sets a phone number for each user who wants it**, from *Settings → Team* → *Edit* on that user's row. Leaving it blank opts that user back out.
+3. **An admin turns it on per person** — check "Notify me of the daily task digest" and set a phone number, both on that user's row in *Settings → Team* → *Edit*. Leaving either off (the checkbox unchecked, or the phone number blank) opts that user back out.
 4. **Pick a send time** — *Settings → Integrations → Daily WhatsApp task reminder*, in the same timezone as the booking scheduler (also in Settings). This is what actually decides when it sends, not the cron schedule.
 5. **Nothing to schedule separately** — this rides along on the same cron job as email sync (see step 7 under *Deploying on cPanel* below), which already runs far more often than the hourly cadence this needs. It checks the configured send hour itself and only actually sends during the one hour that matches; the 20-hour per-user rate limit stops it from double-sending if that hour gets checked more than once.
 
@@ -205,7 +205,7 @@ Like the daily digest, this is proactive (not a reply to anything the recipient 
    - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL); WhatsApp renders any URL in body text as tappable on its own, no button component needed. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Can you review the proposal before Friday?` / `https://crm.yourcompany.com/system/contacts/abc123`.
 
    Submit for review, same as the digest template above.
-2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into both), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest (setting one opts a user into this and the other phone-only notifications below, though the daily digest itself needs its own checkbox too — see section 11), and sends automatically the moment they're mentioned. If WhatsApp Business isn't connected, or the recipient has no phone number set, or the template isn't approved yet, the mention still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
 `{{1}}` is the mentioning user's name, `{{2}}` the note/task text they were tagged in (long text is truncated), `{{3}}` a full link back to that page, built from your `SITE_URL` env var (same one the daily digest uses) plus the page's path.
 
@@ -253,7 +253,7 @@ Like the @mention notification, this is proactive, so it needs its own approved 
    - No buttons — the link is sent as the body's own `{{3}}` variable (a full URL), same reasoning as mention_notification above. Meta will ask for a sample value for each body variable when you submit — anything realistic works, e.g. `Sarah` / `Follow up with Acme Corp` / `https://crm.yourcompany.com/system/tasks/abc123`.
 
    Submit for review, same as the other templates above.
-2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the daily digest and @mention notification (setting one opts a user into all three). If WhatsApp Business isn't connected, the assignee has no phone number set, or the template isn't approved yet, the assignment still creates the normal in-app notification — the WhatsApp message is just silently skipped.
+2. Nothing else to configure — this reuses the same phone number from *Settings → Team* as the @mention notification and the daily digest (setting one opts a user into this one and @mention; the daily digest additionally needs its own checkbox — see section 11). If WhatsApp Business isn't connected, the assignee has no phone number set, or the template isn't approved yet, the assignment still creates the normal in-app notification — the WhatsApp message is just silently skipped.
 
 `{{1}}` is the assigning user's name, `{{2}}` the task's title, `{{3}}` a full link to the task, built from your `SITE_URL` env var (same one the other templates use).
 

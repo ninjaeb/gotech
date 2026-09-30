@@ -33,6 +33,7 @@ export default async function TeamSettingsPage() {
           role: user.role,
           hourlyRate: user.hourlyRate === null ? null : Number(user.hourlyRate),
           createdAt: user.createdAt,
+          notifyTaskReminder: user.notifyTaskReminder,
           notifyNewWhatsAppMessage: user.notifyNewWhatsAppMessage,
           notifyNewLead: user.notifyNewLead,
           referralCode: user.referralCode,
