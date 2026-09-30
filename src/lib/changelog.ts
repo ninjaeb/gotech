@@ -10,6 +10,15 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.94",
+    date: "2026-09-30",
+    title: "Daily WhatsApp task digest is now its own opt-in",
+    changes: [
+      "Setting a WhatsApp number in Settings → Team used to be enough to start receiving the daily task-reminder digest; it now also needs its own \"Notify me of the daily task digest\" checkbox, off by default, so a phone number set for @mention or task-assignment pings doesn't silently sign someone up for a recurring daily message too",
+      "Existing users keep getting @mention, task-assignment, and task-status pings exactly as before — only the daily digest itself needs the new checkbox now",
+    ],
+  },
+  {
     version: "1.93",
     date: "2026-09-26",
     title: "Directory: 75 new business categories",

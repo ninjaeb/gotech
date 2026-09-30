@@ -109,22 +109,31 @@ model User {
   hourlyRate Decimal? @db.Decimal(10, 2)
 
   // Set by an admin from Settings → Team — this user's opt-in number for
-  // two internal WhatsApp notifications: the daily task reminder (see
-  // scripts/send-task-digests-whatsapp.ts) and being @mentioned (see
-  // notifyMentionsViaWhatsApp in src/lib/whatsapp.ts). Not used for
-  // anything else; the WhatsApp *Business* number staff message clients
-  // from is a separate, shared WhatsAppAccount, unrelated to this.
+  // internal WhatsApp notifications: being @mentioned (see
+  // notifyMentionsViaWhatsApp in src/lib/whatsapp.ts), task assignment, and
+  // task status changes send as soon as this is set, no further opt-in
+  // needed. The daily task reminder (see runTaskReminders in
+  // src/lib/task-reminder.ts) additionally needs notifyTaskReminder below —
+  // it's a recurring proactive send rather than a ping about something that
+  // just happened, so it doesn't ride along on the phone number alone. Not
+  // used for anything else; the WhatsApp *Business* number staff message
+  // clients from is a separate, shared WhatsAppAccount, unrelated to this.
   phone                        String?
   lastTaskDigestWhatsAppSentAt DateTime?
 
+  // Opt-in for the daily WhatsApp task-reminder digest specifically —
+  // defaults off so setting a phone number for @mention/assignment/status
+  // pings above doesn't also silently sign someone up for a recurring daily
+  // message. No-ops without a phone number set too. Set by an admin from
+  // Settings → Team, same as phone.
+  notifyTaskReminder Boolean @default(false)
+
   // Two more opt-in WhatsApp pings, kept as their own booleans rather than
-  // folded into the phone-presence gate above: the four notifications above
-  // are each about something specifically involving this one user (you were
-  // mentioned, assigned, etc.), while a new inbound WhatsApp message or a
-  // new lead has no single "assignee" to narrow the ping to — every admin
-  // could plausibly want one, and, for a busy shared inbox especially, just
-  // as plausibly not. Set by an admin from Settings → Team, same as phone;
-  // both no-op without a phone number set too.
+  // folded into the phone-presence gate above: a new inbound WhatsApp
+  // message or a new lead has no single "assignee" to narrow the ping to —
+  // every admin could plausibly want one, and, for a busy shared inbox
+  // especially, just as plausibly not. Set by an admin from Settings →
+  // Team, same as phone; both no-op without a phone number set too.
   notifyNewWhatsAppMessage Boolean @default(false)
   notifyNewLead            Boolean @default(false)
 

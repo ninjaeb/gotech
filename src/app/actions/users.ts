@@ -78,6 +78,7 @@ const userDetailsSchema = z.object({
     .trim()
     .optional()
     .refine((value) => !value || isValidPhoneFormat(value), { message: PHONE_FORMAT_HINT }),
+  notifyTaskReminder: z.boolean(),
   notifyNewWhatsAppMessage: z.boolean(),
   notifyNewLead: z.boolean(),
 });
@@ -85,9 +86,9 @@ const userDetailsSchema = z.object({
 export type UserDetailsState = { error: string } | { success: true } | undefined;
 
 // Lets an admin edit a teammate's name/email/title, set or change their
-// WhatsApp task-reminder number, and toggle their two broadcast-style
-// WhatsApp opt-ins (new message / new lead) on their behalf, from
-// Settings → Team.
+// WhatsApp task-reminder number, and toggle their three broadcast-style
+// WhatsApp opt-ins (daily task digest / new message / new lead) on their
+// behalf, from Settings → Team.
 export async function updateUserDetails(
   userId: string,
   _prevState: UserDetailsState,
@@ -105,6 +106,7 @@ export async function updateUserDetails(
     // only widens to allow `undefined`) — `|| undefined` normalizes both
     // "field absent" and "field present but empty" to the same thing.
     phone: formData.get("phone") || undefined,
+    notifyTaskReminder: formData.get("notifyTaskReminder") === "on",
     notifyNewWhatsAppMessage: formData.get("notifyNewWhatsAppMessage") === "on",
     notifyNewLead: formData.get("notifyNewLead") === "on",
   });
@@ -124,6 +126,7 @@ export async function updateUserDetails(
       email: parsed.data.email,
       title: parsed.data.title || null,
       phone: parsed.data.phone ? normalizePhone(parsed.data.phone) : null,
+      notifyTaskReminder: parsed.data.notifyTaskReminder,
       notifyNewWhatsAppMessage: parsed.data.notifyNewWhatsAppMessage,
       notifyNewLead: parsed.data.notifyNewLead,
     },

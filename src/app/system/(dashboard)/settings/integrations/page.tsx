@@ -78,9 +78,10 @@ export default async function IntegrationsSettingsPage() {
         </CardHeader>
         <CardBody>
           <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-            What time each opted-in user gets their reminder — see Settings → Team to set a user&apos;s
-            phone number, and the README for the cron job and Meta template this needs. In the same
-            timezone as the booking scheduler ({formatUtcOffset(bookingSettings.utcOffsetMinutes)}).
+            What time each opted-in user gets their reminder — see Settings → Team to check &quot;Notify
+            me of the daily task digest&quot; and set a phone number on a user&apos;s row, and the README
+            for the cron job and Meta template this needs. In the same timezone as the booking scheduler
+            ({formatUtcOffset(bookingSettings.utcOffsetMinutes)}).
           </p>
           <TaskReminderHourForm taskReminderHour={taskReminderHour} />
           <div className="grid gap-4 border-t border-slate-200 pt-4 sm:grid-cols-2 dark:border-neutral-800">

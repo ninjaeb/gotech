@@ -59,9 +59,13 @@ export async function runTaskReminders({ force = false }: { force?: boolean } = 
     return { ok: false, message: "SITE_URL isn't set — see the README's WhatsApp task reminder section.", ...empty };
   }
 
-  const users = await db.user.findMany({ where: { phone: { not: null } } });
+  const users = await db.user.findMany({ where: { phone: { not: null }, notifyTaskReminder: true } });
   if (users.length === 0) {
-    return { ok: false, message: "No one has a phone number set (Settings → Team).", ...empty };
+    return {
+      ok: false,
+      message: "No one is opted into the daily task digest — check \"Notify me of the daily task digest\" and set a phone number (Settings → Team).",
+      ...empty,
+    };
   }
 
   const now = new Date();
