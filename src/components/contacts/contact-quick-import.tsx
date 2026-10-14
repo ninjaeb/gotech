@@ -67,11 +67,14 @@ export function ContactQuickImport({
   return (
     <div>
       <div className="flex flex-wrap gap-2">
+        {/* No `capture` attribute on purpose — that would force mobile
+        browsers straight into the camera, skipping their native chooser's
+        photo-gallery and file options. Without it, the browser offers all
+        three (camera, gallery, files); on desktop it's just a file picker. */}
         <input
           ref={photoInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handlePhoto}
           className="hidden"
         />

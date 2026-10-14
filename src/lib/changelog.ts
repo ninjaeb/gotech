@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.95",
+    date: "2026-10-14",
+    title: "Business card scan: pick from gallery or upload, not just camera",
+    changes: [
+      "\"Scan a business card\" on the New contact page (both the system CRM and the partner portal) used to jump straight to the device camera on mobile — it now opens the normal file picker instead, which lets you take a new photo, pick an existing one from your gallery, or upload a file, same as any other file input",
+    ],
+  },
+  {
     version: "1.94",
     date: "2026-09-30",
     title: "Daily WhatsApp task digest is now its own opt-in",
