@@ -10,6 +10,14 @@ export type ChangelogEntry = {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "1.96",
+    date: "2026-10-22",
+    title: "Business card scan: explicit camera and gallery buttons",
+    changes: [
+      "\"Scan a business card\" on the New contact page is now two buttons — \"Take a photo\" (opens the camera directly) and \"Choose a photo\" (opens the photo gallery/file picker) — instead of one button that left it up to the device's own chooser to offer both",
+    ],
+  },
+  {
     version: "1.95",
     date: "2026-10-14",
     title: "Business card scan: pick from gallery or upload, not just camera",
